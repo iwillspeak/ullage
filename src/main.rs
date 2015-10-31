@@ -1,5 +1,5 @@
 #![cfg_attr(test, feature(test))]
-#![feature(plugin,collections,str_char)]
+#![feature(plugin)]
 #![plugin(peg_syntax_ext)]
 
 peg_file! parser("grammar.peg"); // Fix " " .
@@ -7,7 +7,7 @@ peg_file! parser("grammar.peg"); // Fix " " .
 #[cfg(not(test))]
 fn dump_parse(s: &str) -> Result<(),parser::ParseError> {
     let words = try!(parser::words(s));
-    println!("{} = [{}]", s, words.connect(", "));
+    println!("{} = [{}]", s, words.join(", "));
     Ok(())
 }
 
