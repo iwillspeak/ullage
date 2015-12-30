@@ -21,6 +21,16 @@ enum Token {
     ///
     /// Represents an operator
     Operator(Operator),
+
+    /// Open Bracket
+    ///
+    /// Opening bracket.
+    OpenBracket,
+
+    /// Close Bracket
+    ///
+    /// Closing bracket
+    CloseBracket,
 }
 
 /// Tokeniser
@@ -60,6 +70,8 @@ impl Tokeniser {
                 '-' => Some(Token::Operator(Operator::Sub)),
                 '*' => Some(Token::Operator(Operator::Mul)),
                 '/' => Some(Token::Operator(Operator::Div)),
+                '(' => Some(Token::OpenBracket),
+                ')' => Some(Token::CloseBracket),
                 '0'...'9' => {
                     te += chars.take_while(|c| *c >= '0' && *c <= '9').count();
                     let token_str = &self.buff[ts..te];
@@ -104,8 +116,36 @@ mod test {
         while let Some(Token::Operator(op)) = ts.next() {
             ops.push(op);
         }
-        assert_eq!(ops,
-                   vec![Operator::Add, Operator::Sub, Operator::Mul, Operator::Div]);
+        assert_eq!(ops, vec![
+            Operator::Add,
+            Operator::Sub,
+            Operator::Mul,
+            Operator::Div]);
+    }
+
+    #[test]
+    pub fn test_brackets() {
+        let mut ts = create_tokeniser("(a * (213 + (b - 99)) / 8)");
+        let mut tokens = Vec::new();
+        while let Some(token) = ts.next() {
+            tokens.push(token);
+        }
+        assert_eq!(tokens, vec![
+            Token::OpenBracket,
+            Token::Identifier("a".to_string()),
+            Token::Operator(Operator::Mul),
+            Token::OpenBracket,
+            Token::Number(213),
+            Token::Operator(Operator::Add),
+            Token::OpenBracket,
+            Token::Identifier("b".to_string()),
+            Token::Operator(Operator::Sub),
+            Token::Number(99),
+            Token::CloseBracket,
+            Token::CloseBracket,
+            Token::Operator(Operator::Div),
+            Token::Number(8),
+            Token::CloseBracket]);
     }
 
     #[test]
