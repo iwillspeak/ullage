@@ -40,6 +40,18 @@ struct Tokeniser {
     idx: usize,
 }
 
+/// Tokeniser Iterator Implementation
+///
+/// A tokeniser can be used as a iterator. This means that tokens can
+/// be filtered, mapped and buffered to support `peek()`.
+impl Iterator for Tokeniser {
+    type Item = Token;
+
+    fn next(&mut self) -> Option<Token> {
+        self.next_token()
+    }
+}
+
 impl Tokeniser {
     /// Create a Tokeniser
     ///
@@ -52,7 +64,7 @@ impl Tokeniser {
         }
     }
 
-    pub fn next(&mut self) -> Option<Token> {
+    pub fn next_token(&mut self) -> Option<Token> {
 
         // skip over any leading whitespace
         self.idx += self.buff[self.idx..]
@@ -106,88 +118,79 @@ mod test {
     #[test]
     pub fn test_empty_string_returns_none_token() {
         let mut ts = create_tokeniser("");
-        assert_eq!(ts.next(), None);
+        assert_eq!(ts.next_token(), None);
     }
 
     #[test]
     pub fn test_operator_tokens() {
         let mut ts = create_tokeniser("+ - * /");
         let mut ops = Vec::new();
-        while let Some(Token::Operator(op)) = ts.next() {
+        while let Some(Token::Operator(op)) = ts.next_token() {
             ops.push(op);
         }
-        assert_eq!(ops, vec![
-            Operator::Add,
-            Operator::Sub,
-            Operator::Mul,
-            Operator::Div]);
+        assert_eq!(ops,
+                   [Operator::Add, Operator::Sub, Operator::Mul, Operator::Div]);
     }
 
     #[test]
     pub fn test_brackets() {
-        let mut ts = create_tokeniser("(a * (213 + (b - 99)) / 8)");
-        let mut tokens = Vec::new();
-        while let Some(token) = ts.next() {
-            tokens.push(token);
-        }
-        assert_eq!(tokens, vec![
-            Token::OpenBracket,
-            Token::Identifier("a".to_string()),
-            Token::Operator(Operator::Mul),
-            Token::OpenBracket,
-            Token::Number(213),
-            Token::Operator(Operator::Add),
-            Token::OpenBracket,
-            Token::Identifier("b".to_string()),
-            Token::Operator(Operator::Sub),
-            Token::Number(99),
-            Token::CloseBracket,
-            Token::CloseBracket,
-            Token::Operator(Operator::Div),
-            Token::Number(8),
-            Token::CloseBracket]);
+        let ts = create_tokeniser("(a * (213 + (b - 99)) / 8)");
+        let tokens: Vec<Token> = ts.collect();
+
+        assert_eq!(tokens,
+                   [Token::OpenBracket,
+                    Token::Identifier("a".to_string()),
+                    Token::Operator(Operator::Mul),
+                    Token::OpenBracket,
+                    Token::Number(213),
+                    Token::Operator(Operator::Add),
+                    Token::OpenBracket,
+                    Token::Identifier("b".to_string()),
+                    Token::Operator(Operator::Sub),
+                    Token::Number(99),
+                    Token::CloseBracket,
+                    Token::CloseBracket,
+                    Token::Operator(Operator::Div),
+                    Token::Number(8),
+                    Token::CloseBracket]);
     }
 
     #[test]
-    pub fn test_siple_number_token() {
+    pub fn test_number_tokenisation() {
         {
             let mut ts = create_tokeniser("1");
-            assert_eq!(ts.next(), Some(Token::Number(1)));
+            assert_eq!(ts.next_token(), Some(Token::Number(1)));
         }
         {
             let mut ts = create_tokeniser("5");
-            assert_eq!(ts.next(), Some(Token::Number(5)));
+            assert_eq!(ts.next_token(), Some(Token::Number(5)));
         }
         {
             let mut ts = create_tokeniser("0");
-            assert_eq!(ts.next(), Some(Token::Number(0)));
+            assert_eq!(ts.next_token(), Some(Token::Number(0)));
         }
         {
             let mut ts = create_tokeniser("9");
-            assert_eq!(ts.next(), Some(Token::Number(9)));
+            assert_eq!(ts.next_token(), Some(Token::Number(9)));
         }
-    }
-
-    #[test]
-    pub fn test_mult_char_numbers() {
-        let mut ts = create_tokeniser("123");
-        assert_eq!(ts.next(), Some(Token::Number(123)));
-    }
-
-    #[test]
-    pub fn test_whitespace() {
-        let mut ts = create_tokeniser("   2  2 3 45 ");
-        let mut nums = Vec::<i64>::new();
-        while let Some(Token::Number(value)) = ts.next() {
-            nums.push(value);
+        {
+            let mut ts = create_tokeniser("123");
+            assert_eq!(ts.next_token(), Some(Token::Number(123)));
         }
-        assert_eq!(nums, vec![2, 2, 3, 45]);
+        {
+            let mut ts = create_tokeniser("   2  2 3 45 ");
+            let mut nums = Vec::new();
+            while let Some(Token::Number(value)) = ts.next_token() {
+                nums.push(value);
+            }
+            assert_eq!(nums, [2, 2, 3, 45]);
+        }
     }
 
     #[test]
     pub fn test_simple_identifier_token() {
         let mut ts = create_tokeniser("a");
-        assert_eq!(ts.next(), Some(Token::Identifier("a".to_string())));
+        assert_eq!(ts.next_token(), Some(Token::Identifier("a".to_string())));
     }
 
     #[test]
@@ -195,32 +198,30 @@ mod test {
         {
             let s = "_hello_world";
             let mut ts = create_tokeniser(&s);
-            assert_eq!(ts.next(), Some(Token::Identifier(s.to_string())));
+            assert_eq!(ts.next_token(), Some(Token::Identifier(s.to_string())));
         }
         {
             let s = "helloWorld";
             let mut ts = create_tokeniser(&s);
-            assert_eq!(ts.next(), Some(Token::Identifier(s.to_string())));
+            assert_eq!(ts.next_token(), Some(Token::Identifier(s.to_string())));
         }
         {
             let s = "IDENTIFIER";
             let mut ts = create_tokeniser(&s);
-            assert_eq!(ts.next(), Some(Token::Identifier(s.to_string())));
+            assert_eq!(ts.next_token(), Some(Token::Identifier(s.to_string())));
         }
         {
             let s = "u32";
             let mut ts = create_tokeniser(&s);
-            assert_eq!(ts.next(), Some(Token::Identifier(s.to_string())));
+            assert_eq!(ts.next_token(), Some(Token::Identifier(s.to_string())));
         }
-    }
-
-    #[test]
-    pub fn test_create_identifier_token_suceeds() {
-        let tok = Token::Identifier("helloworld".to_string());
-        if let Token::Identifier(ident) = tok {
-            assert_eq!(ident, "helloworld");
-        } else {
-            assert!(false);
+        {
+            let tok = Token::Identifier("helloworld".to_string());
+            if let Token::Identifier(ident) = tok {
+                assert_eq!(ident, "helloworld");
+            } else {
+                assert!(false);
+            }
         }
     }
 
@@ -244,6 +245,20 @@ mod test {
         }
     }
 
+    #[test]
+    pub fn test_tokeniser_iterator() {
+        let ts = create_tokeniser("hello world");
+        let mut pts = ts.map(|t| {
+                            match t {
+                                Token::Identifier(id) => id,
+                                _ => "fail".to_string(),
+                            }
+                        })
+                        .peekable();
+        assert_eq!(pts.peek().unwrap(), "hello");
+        assert_eq!(pts.next().unwrap(), "hello");
+        assert_eq!(pts.peek().unwrap(), "world");
+    }
 }
 
 fn main() {
@@ -252,11 +267,8 @@ fn main() {
 
     let stdin = io::stdin();
     for line in stdin.lock().lines() {
-        let mut ts = Tokeniser::new(&line.unwrap());
-        let mut tokens = Vec::new();
-        while let Some(token) = ts.next() {
-            tokens.push(token);
-        }
+        let ts = Tokeniser::new(&line.unwrap());
+        let tokens: Vec<Token> = ts.collect();
         println!("{:?}", tokens);
     }
 }
