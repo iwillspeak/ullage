@@ -19,7 +19,7 @@ pub enum Expression<'a> {
     /// Value Expression
     ///
     /// Represents a simple numeric value
-    ValueExpression(i32),
+    ValueExpression(i64),
 
     /// Variable Expression
     ///
