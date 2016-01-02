@@ -220,7 +220,7 @@ mod test {
             if let Token::Identifier(ident) = tok {
                 assert_eq!(ident, "helloworld");
             } else {
-                assert!(false);
+                panic!();
             }
         }
     }
@@ -231,7 +231,7 @@ mod test {
         if let Token::Number(num) = tok {
             assert_eq!(num, 1234);
         } else {
-            assert!(false);
+            panic!();
         }
     }
 
@@ -241,7 +241,7 @@ mod test {
         if let Token::Operator(op) = tok {
             assert_eq!(op, Operator::Add);
         } else {
-            assert!(false);
+            panic!();
         }
     }
 

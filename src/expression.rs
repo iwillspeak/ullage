@@ -55,7 +55,7 @@ mod test {
         let expr = ValueExpression(32);
         match expr {
             ValueExpression(value) => assert_eq!(value, 32),
-            _ => assert!(false),
+            _ => panic!(),
         }
     }
 
@@ -64,7 +64,7 @@ mod test {
         let expr = VariableExpression("hello".to_string());
         match expr {
             VariableExpression(name) => assert_eq!(name, "hello".to_string()),
-            _ => assert!(false),
+            _ => panic!(),
         }
     }
 
@@ -81,10 +81,10 @@ mod test {
                 if let &ValueExpression(value) = expression {
                     assert_eq!(64, value)
                 } else {
-                    assert!(false);
+                    panic!();
                 }
             }
-            _ => assert!(false),
+            _ => panic!(),
         }
     }
 
@@ -101,15 +101,15 @@ mod test {
             BinaryOperatorExpression { lhs, operator, rhs } => {
                 match lhs {
                     &ValueExpression(value) => assert_eq!(value, 111),
-                    _ => assert!(false),
+                    _ => panic!(),
                 };
                 match rhs {
                     &ValueExpression(value) => assert_eq!(value, 222),
-                    _ => assert!(false),
+                    _ => panic!(),
                 };
                 assert_eq!(operator, Operator::Add)
             }
-            _ => assert!(false),
+            _ => panic!(),
         }
     }
 
