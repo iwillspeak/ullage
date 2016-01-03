@@ -1,8 +1,10 @@
+use std::fmt::{Display, Formatter, Error};
+
 /// Operator
 ///
 /// Represents an operation that can be applied to an expression
 /// either as a prefix operation or as an infix binary operation.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Copy, Clone)]
 pub enum Operator {
     Add,
     Sub,
@@ -14,8 +16,7 @@ pub enum Operator {
 ///
 /// A single Expression node. Represents either a value or complex
 /// expression.
-#[derive(Debug)]
-pub enum Expression<'a> {
+pub enum Expression {
     /// Value Expression
     ///
     /// Represents a simple numeric value
@@ -31,28 +32,68 @@ pub enum Expression<'a> {
     /// Represents a unary prefix operator
     PrefixOperatorExpression {
         operator: Operator,
-        expression: &'a Expression<'a>,
+        expression: Box<Expression>,
     },
 
     /// Binary Operator Expression
     ///
     /// Represents a binary operator.
     BinaryOperatorExpression {
-        lhs: &'a Expression<'a>,
+        lhs: Box<Expression>,
         operator: Operator,
-        rhs: &'a Expression<'a>,
+        rhs: Box<Expression>,
     },
+}
+
+impl Display for Expression {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
+        match self {
+            &Expression::ValueExpression(ref val) => write!(f, "{}", val),
+            &Expression::VariableExpression(ref var) => write!(f, "{}", var),
+            &Expression::PrefixOperatorExpression{ref operator, ref expression} => {
+                write!(f, "({:?} {})", operator, *expression)
+            }
+            &Expression::BinaryOperatorExpression{ref lhs, ref operator, ref rhs} => {
+                write!(f, "({} {:?} {})", *lhs, operator, *rhs)
+            }
+        }
+    }
+}
+
+impl Expression {
+    pub fn from_value(val: i64) -> Self {
+        Expression::ValueExpression(val)
+    }
+
+    pub fn from_ident(identifier: &str) -> Self {
+        Expression::VariableExpression(identifier.to_string())
+    }
+
+    pub fn from_prefix_op(op: Operator, expression: Expression) -> Expression {
+        Expression::PrefixOperatorExpression {
+            operator: op,
+            expression: Box::new(expression),
+        }
+    }
+
+    pub fn from_binary_op(lhs: Expression, op: Operator, rhs: Expression) -> Expression {
+        Expression::BinaryOperatorExpression {
+            lhs: Box::new(lhs),
+            operator: op,
+            rhs: Box::new(rhs),
+        }
+    }
 }
 
 #[cfg(test)]
 mod test {
 
+    use super::{Expression, Operator};
     use super::Expression::*;
-    use super::Operator;
 
     #[test]
     pub fn test_create_value_expression() {
-        let expr = ValueExpression(32);
+        let expr = Expression::from_value(32);
         match expr {
             ValueExpression(value) => assert_eq!(value, 32),
             _ => panic!(),
@@ -61,7 +102,7 @@ mod test {
 
     #[test]
     pub fn test_create_variable_expression() {
-        let expr = VariableExpression("hello".to_string());
+        let expr = Expression::from_ident("hello");
         match expr {
             VariableExpression(name) => assert_eq!(name, "hello".to_string()),
             _ => panic!(),
@@ -70,15 +111,12 @@ mod test {
 
     #[test]
     pub fn test_create_prefix_operation_expression() {
-        let value_expr = ValueExpression(64);
-        let expr = PrefixOperatorExpression {
-            operator: Operator::Add,
-            expression: &value_expr,
-        };
+        let value_expr = Expression::from_value(64);
+        let expr = Expression::from_prefix_op(Operator::Add, value_expr);
         match expr {
             PrefixOperatorExpression{ operator, expression } => {
                 assert_eq!(Operator::Add, operator);
-                if let &ValueExpression(value) = expression {
+                if let ValueExpression(value) = *expression {
                     assert_eq!(64, value)
                 } else {
                     panic!();
@@ -90,21 +128,18 @@ mod test {
 
     #[test]
     pub fn test_create_binary_operator_expression() {
-        let lhs_expr = ValueExpression(111);
-        let rhs_expr = ValueExpression(222);
-        let expr = BinaryOperatorExpression {
-            lhs: &lhs_expr,
-            operator: Operator::Add,
-            rhs: &rhs_expr,
-        };
+        let lhs_expr = Expression::from_value(111);
+        let rhs_expr = Expression::from_value(222);
+        let expr = Expression::from_binary_op(lhs_expr, Operator::Add, rhs_expr);
+
         match expr {
             BinaryOperatorExpression { lhs, operator, rhs } => {
-                match lhs {
-                    &ValueExpression(value) => assert_eq!(value, 111),
+                match *lhs {
+                    ValueExpression(value) => assert_eq!(value, 111),
                     _ => panic!(),
                 };
-                match rhs {
-                    &ValueExpression(value) => assert_eq!(value, 222),
+                match *rhs {
+                    ValueExpression(value) => assert_eq!(value, 222),
                     _ => panic!(),
                 };
                 assert_eq!(operator, Operator::Add)
