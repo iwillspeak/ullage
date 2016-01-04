@@ -10,6 +10,7 @@ pub enum Operator {
     Sub,
     Mul,
     Div,
+    Assign,
 }
 
 /// Expression
@@ -47,13 +48,14 @@ pub enum Expression {
 
 impl Display for Expression {
     fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
+        use super::expression::Expression::*;
         match self {
-            &Expression::ValueExpression(ref val) => write!(f, "{}", val),
-            &Expression::VariableExpression(ref var) => write!(f, "{}", var),
-            &Expression::PrefixOperatorExpression{ref operator, ref expression} => {
+            &ValueExpression(ref val) => write!(f, "{}", val),
+            &VariableExpression(ref var) => write!(f, "{}", var),
+            &PrefixOperatorExpression{ref operator, ref expression} => {
                 write!(f, "({:?} {})", operator, *expression)
             }
-            &Expression::BinaryOperatorExpression{ref lhs, ref operator, ref rhs} => {
+            &BinaryOperatorExpression{ref lhs, ref operator, ref rhs} => {
                 write!(f, "({} {:?} {})", *lhs, operator, *rhs)
             }
         }

@@ -20,6 +20,14 @@ mod parser {
     }
 
     impl BinOpParselet {
+
+        fn new(binding_power: i32, op: Operator) -> Self {
+            BinOpParselet {
+                binding_power: binding_power,
+                op: op,
+            }
+        }
+
         pub fn parse(&self, parser: &mut Parser, lhs: Expression) -> Result<Expression> {
 
             let rhs = try!(parser.parse(self.binding_power));
@@ -50,26 +58,15 @@ mod parser {
     }
 
     fn get_infix_parselet(token: Option<&Token>) -> Option<BinOpParselet> {
-        token.and_then(|token| {
-            if let &Token::Operator(op) = token {
-                match op {
-                    Operator::Add | Operator::Sub => {
-                        Some(BinOpParselet {
-                            binding_power: 2,
-                            op: op,
-                        })
-                    }
-                    Operator::Mul | Operator::Div => {
-                        Some(BinOpParselet {
-                            binding_power: 3,
-                            op: op,
-                        })
-                    }
-                }
-            } else {
-                None
+        if let Some(&Token::Operator(op)) = token {
+            match op {
+                Operator::Assign => Some(BinOpParselet::new(1, op)),
+                Operator::Add | Operator::Sub => Some(BinOpParselet::new(2, op)),
+                Operator::Mul | Operator::Div => Some(BinOpParselet::new(3, op)),
             }
-        })
+        } else {
+            None
+        }
     }
 
     /// Parser

@@ -76,6 +76,7 @@ impl Tokeniser {
         let token = chars.next().and_then(|c| {
             te += 1;
             match c {
+                '=' => Some(Token::Operator(Operator::Assign)),
                 '+' => Some(Token::Operator(Operator::Add)),
                 '-' => Some(Token::Operator(Operator::Sub)),
                 '*' => Some(Token::Operator(Operator::Mul)),
@@ -121,13 +122,13 @@ mod test {
 
     #[test]
     pub fn test_operator_tokens() {
-        let mut ts = create_tokeniser("+ - * /");
+        let mut ts = create_tokeniser("+ - * / =");
         let mut ops = Vec::new();
         while let Some(Token::Operator(op)) = ts.next_token() {
             ops.push(op);
         }
         assert_eq!(ops,
-                   [Operator::Add, Operator::Sub, Operator::Mul, Operator::Div]);
+                   [Operator::Add, Operator::Sub, Operator::Mul, Operator::Div, Operator::Assign]);
     }
 
     #[test]
