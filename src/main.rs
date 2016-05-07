@@ -10,6 +10,12 @@ mod parser {
     /// Parser Result
     pub type Result<T> = ::std::result::Result<T, Error>;
 
+    trait InfixParselet {
+        fn parse(&self, parser: &mut Parser, lhs: Expression) -> Result<Expression>;
+
+        fn binding_power(&self) -> i32;
+    }
+
     /// Binary Operator Parselet
     ///
     /// Represents the state required to parse an infix operator. This
@@ -20,18 +26,23 @@ mod parser {
     }
 
     impl BinOpParselet {
-
         fn new(binding_power: i32, op: Operator) -> Self {
             BinOpParselet {
                 binding_power: binding_power,
                 op: op,
             }
         }
+    }
 
-        pub fn parse(&self, parser: &mut Parser, lhs: Expression) -> Result<Expression> {
+    impl InfixParselet for BinOpParselet {
+        fn parse(&self, parser: &mut Parser, lhs: Expression) -> Result<Expression> {
 
             let rhs = try!(parser.parse(self.binding_power));
             Ok(Expression::from_binary_op(lhs, self.op, rhs))
+        }
+
+        fn binding_power(&self) -> i32 {
+            self.binding_power
         }
     }
 
