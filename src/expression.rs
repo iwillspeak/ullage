@@ -44,6 +44,12 @@ pub enum Expression {
         operator: Operator,
         rhs: Box<Expression>,
     },
+
+    /// Function Call Expression
+    FnCall {
+        callee_expr: Box<Expression>,
+        params: Vec<Expression>
+    }
 }
 
 impl Display for Expression {
@@ -57,6 +63,13 @@ impl Display for Expression {
             }
             &BinaryOperatorExpression{ref lhs, ref operator, ref rhs} => {
                 write!(f, "({} {:?} {})", *lhs, operator, *rhs)
+            }
+            &FnCall{ref callee_expr, ref params} => {
+                try!(write!(f, "{}.call(", *callee_expr));
+                for param in params {
+                    try!(write!(f, "{}", param));
+                }
+                write!(f, ")")
             }
         }
     }
@@ -83,6 +96,13 @@ impl Expression {
             lhs: Box::new(lhs),
             operator: op,
             rhs: Box::new(rhs),
+        }
+    }
+
+    pub fn from_function_call(calee: Expression, params: Vec<Expression>) -> Self {
+        Expression::FnCall {
+            callee_expr: Box::new(calee),
+            params: params,
         }
     }
 }
