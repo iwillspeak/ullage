@@ -1,4 +1,4 @@
-use super::expression::Operator;
+use super::super::Operator;
 
 /// Token Class
 ///
@@ -107,7 +107,7 @@ impl Tokeniser {
 #[cfg(test)]
 mod test {
 
-    use expression::Operator;
+    use ::Operator;
     use super::{Token, Tokeniser};
 
     fn create_tokeniser(str: &str) -> Tokeniser {
