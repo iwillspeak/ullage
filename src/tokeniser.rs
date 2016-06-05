@@ -1,35 +1,4 @@
-use super::super::Operator;
-
-/// Token Class
-///
-/// Represents a terminal in the grammar.
-#[derive(Debug, PartialEq)]
-pub enum Token {
-    /// Identifier
-    ///
-    /// Represents a reference to a variable.
-    Identifier(String),
-
-    /// Number
-    ///
-    /// Represents a numerical constant
-    Number(i64),
-
-    /// Operator
-    ///
-    /// Represents an operator
-    Operator(Operator),
-
-    /// Open Bracket
-    ///
-    /// Opening bracket.
-    OpenBracket,
-
-    /// Close Bracket
-    ///
-    /// Closing bracket
-    CloseBracket,
-}
+use super::token::Token;
 
 /// Tokeniser
 ///
@@ -52,7 +21,7 @@ impl Iterator for Tokeniser {
 
 impl Tokeniser {
     /// Create a Tokeniser
-    ///
+    ///x
     /// Creates a new tokeniser instance for the given string. This
     /// tokeniser will then yield tokens lexed from the string.
     pub fn new(string: &str) -> Self {
@@ -76,11 +45,11 @@ impl Tokeniser {
         let token = chars.next().and_then(|c| {
             te += 1;
             match c {
-                '=' => Some(Token::Operator(Operator::Assign)),
-                '+' => Some(Token::Operator(Operator::Add)),
-                '-' => Some(Token::Operator(Operator::Sub)),
-                '*' => Some(Token::Operator(Operator::Mul)),
-                '/' => Some(Token::Operator(Operator::Div)),
+                '=' => Some(Token::Equals),
+                '+' => Some(Token::Plus),
+                '-' => Some(Token::Minus),
+                '*' => Some(Token::Star),
+                '/' => Some(Token::Slash),
                 '(' => Some(Token::OpenBracket),
                 ')' => Some(Token::CloseBracket),
                 '0'...'9' => {
@@ -107,8 +76,8 @@ impl Tokeniser {
 #[cfg(test)]
 mod test {
 
-    use ::Operator;
-    use super::{Token, Tokeniser};
+    use super::Tokeniser;
+    use super::super::token::Token;
 
     fn create_tokeniser(str: &str) -> Tokeniser {
         Tokeniser::new(str)
@@ -122,13 +91,10 @@ mod test {
 
     #[test]
     pub fn test_operator_tokens() {
-        let mut ts = create_tokeniser("+ - * / =");
-        let mut ops = Vec::new();
-        while let Some(Token::Operator(op)) = ts.next_token() {
-            ops.push(op);
-        }
+        let ts = create_tokeniser("+ - * / =");
+        let ops: Vec<Token> = ts.collect();
         assert_eq!(ops,
-                   [Operator::Add, Operator::Sub, Operator::Mul, Operator::Div, Operator::Assign]);
+                   [Token::Plus, Token::Minus, Token::Star, Token::Slash, Token::Equals]);
     }
 
     #[test]
@@ -139,17 +105,17 @@ mod test {
         assert_eq!(tokens,
                    [Token::OpenBracket,
                     Token::Identifier("a".to_string()),
-                    Token::Operator(Operator::Mul),
+                    Token::Star,
                     Token::OpenBracket,
                     Token::Number(213),
-                    Token::Operator(Operator::Add),
+                    Token::Plus,
                     Token::OpenBracket,
                     Token::Identifier("b".to_string()),
-                    Token::Operator(Operator::Sub),
+                    Token::Minus,
                     Token::Number(99),
                     Token::CloseBracket,
                     Token::CloseBracket,
-                    Token::Operator(Operator::Div),
+                    Token::Slash,
                     Token::Number(8),
                     Token::CloseBracket]);
     }
@@ -229,16 +195,6 @@ mod test {
         let tok = Token::Number(1234);
         if let Token::Number(num) = tok {
             assert_eq!(num, 1234);
-        } else {
-            panic!();
-        }
-    }
-
-    #[test]
-    pub fn test_create_operator_token_succeeds() {
-        let tok = Token::Operator(Operator::Add);
-        if let Token::Operator(op) = tok {
-            assert_eq!(op, Operator::Add);
         } else {
             panic!();
         }

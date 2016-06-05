@@ -1,9 +1,6 @@
-pub mod tokeniser;
-
 use std::iter::Peekable;
 
-use super::{Expression, Operator};
-use self::tokeniser::{Tokeniser, Token};
+use super::{Expression,Operator,Token,Tokeniser};
 
 /// Parser Result
 pub type Result<T> = ::std::result::Result<T, Error>;
@@ -131,22 +128,13 @@ impl InfixParselet {
 /// Looks up an infix parselet, if one exists, for a given token.
 fn get_infix_parselet(token: Option<&Token>) -> Option<InfixParselet> {
     match token {
-        Some(&Token::Operator(op)) => Some(parser_for_op(op)),
+        Some(&Token::Equals) => Some(InfixParselet::bin_op(1, Operator::Assign)),
+        Some(&Token::Plus) => Some(InfixParselet::bin_op(2, Operator::Add)),
+        Some(&Token::Minus) => Some(InfixParselet::bin_op(2, Operator::Sub)),
+        Some(&Token::Star) => Some(InfixParselet::bin_op(3, Operator::Mul)),
+        Some(&Token::Slash) => Some(InfixParselet::bin_op(3, Operator::Div)),
         Some(&Token::OpenBracket) => Some(InfixParselet::fn_call()),
         _ => None,
-    }
-}
-
-/// Get Parser for Operator
-///
-/// Given an operator returns an infix parselet instance capable
-/// of parsing that operator.
-fn parser_for_op(op: Operator) -> InfixParselet
-{
-    match op {
-        Operator::Assign => InfixParselet::bin_op(1, op),
-        Operator::Add | Operator::Sub => InfixParselet::bin_op(2, op),
-        Operator::Mul | Operator::Div => InfixParselet::bin_op(3, op),
     }
 }
 
@@ -190,7 +178,11 @@ impl Parser {
         Ok(lhs)
     }
 
-    fn expect(&mut self, expected: Token) -> Result<Token> {
+    /// Expect
+    ///
+    /// Advance the token stream, returning an error if the token is
+    /// not of the expeted type.
+    pub fn expect(&mut self, expected: Token) -> Result<Token> {
         let expecting = format!("{:?}", expected);
         self.ts.next()
             .map_or(
@@ -212,28 +204,9 @@ impl Parser {
 
     fn parse_prefix_expression(&mut self) -> Result<Expression> {
 
-        if let Some(token) = self.ts.next() {
-            match token {
-                Token::Identifier(id) => Ok(Expression::from_ident(&id)),
-                Token::Number(n) => Ok(Expression::from_value(n)),
-                Token::Operator(op) => {
-                    let suffix = try!(self.parse(100));
-                    Ok(Expression::from_prefix_op(op, suffix))
-                }
-                Token::OpenBracket => {
-                    let expr = try!(self.parse(0));
-                    try!(self.expect(Token::CloseBracket));
-                    Ok(expr)
-                }
-                t => {
-                    Err(Error::Unexpected {
-                        expecting: "Identifier, number or '('".to_string(),
-                        found: Some(t),
-                    })
-                }
-            }
-        } else {
-            Err(Error::Incomplete)
+        match self.ts.next() {
+            Some(token) => token.prefix(self),
+            None => Err(Error::Incomplete),
         }
     }
 }
