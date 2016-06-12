@@ -8,7 +8,6 @@ use super::{Token, Expression, PrefixOp, InfixOp};
 pub use self::error::{Error, Result};
 
 impl Expression {
-
     /// Parse expression from string. Takes a reference to an
     /// expression and returns a result containing the parsed
     /// expression, or an error if none could be parsed.
@@ -53,6 +52,8 @@ impl Tokeniser {
                 '/' => Some(Token::Slash),
                 '(' => Some(Token::OpenBracket),
                 ')' => Some(Token::CloseBracket),
+                '[' => Some(Token::OpenSqBracket),
+                ']' => Some(Token::CloseSqBracket),
                 ',' => Some(Token::Comma),
                 '0'...'9' => {
                     te += chars.take_while(|c| *c >= '0' && *c <= '9').count();
@@ -125,7 +126,7 @@ impl Parser {
 
     /// Moves the token stream on by a single token, if the
     /// token's lexeme is of the given type.
-    pub fn advance_if(&mut self, expected: Token) -> Result<()> {
+    pub fn expect(&mut self, expected: Token) -> Result<()> {
         if !self.next_is(expected) {
             return Err(Error::Unexpected);
         }
@@ -172,7 +173,6 @@ impl Parser {
 }
 
 impl Token {
-
     /// Left binding power. This controls the precedence of
     /// the symbol when being parsed as an infix operator.
     ///
@@ -183,11 +183,14 @@ impl Token {
         match *self {
             Token::Equals => 10,
 
+            // ternary if
+            Token::Word(ref kw) if kw == "if" => 20,
+
             Token::Plus | Token::Minus => 50,
 
             Token::Star | Token::Slash => 60,
 
-            Token::OpenBracket => 80,
+            Token::OpenBracket | Token::OpenSqBracket => 80,
 
             _ => 0,
         }
@@ -207,6 +210,11 @@ impl Token {
             Token::Minus => {
                 let rhs = try!(parser.expression(100));
                 Ok(Expression::Prefix(PrefixOp::Negate, Box::new(rhs)))
+            }
+            Token::OpenBracket => {
+                let expr = try!(parser.expression(0));
+                try!(parser.expect(Token::CloseBracket));
+                Ok(expr)
             }
             _ => Err(Error::Unexpected),
         }
@@ -232,6 +240,13 @@ impl Token {
                 Ok(Infix(Box::new(lhs), op, Box::new(rhs)))
             }
 
+            // array indexing
+            Token::OpenSqBracket => {
+                let index = try!(parser.expression(0));
+                try!(parser.expect(Token::CloseSqBracket));
+                Ok(Index(Box::new(lhs), Box::new(index)))
+            }
+
             // Function call
             Token::OpenBracket => {
                 let mut params = Vec::new();
@@ -239,11 +254,19 @@ impl Token {
                     let param = try!(parser.expression(0));
                     params.push(param);
                     if !parser.next_is(Token::CloseBracket) {
-                        try!(parser.advance_if(Token::Comma));
+                        try!(parser.expect(Token::Comma));
                     }
                 }
-                try!(parser.advance_if(Token::CloseBracket));
+                try!(parser.expect(Token::CloseBracket));
                 Ok(Expression::Call(Box::new(lhs), params))
+            }
+
+            // <x> if <y> else <z> ternary
+            Token::Word(ref kw) if kw == "if" => {
+                let condition = try!(parser.expression(0));
+                try!(parser.expect(Token::Word("else".to_string())));
+                let fallback = try!(parser.expression(0));
+                Ok(Expression::Ternary(Box::new(lhs), Box::new(condition), Box::new(fallback)))
             }
 
             _ => Err(Error::Unexpected),
@@ -337,5 +360,45 @@ mod test {
                                Prefix(PrefixOp::Negate,
                                       Box::new(Identifier("world".to_string())))]));
 
+    }
+
+
+    #[test]
+    fn parse_groups_with_parens() {
+        check_parse!("(1 + 2) * 3",
+                     Infix(Box::new(Infix(Box::new(Literal(1)),
+                                          InfixOp::Add,
+                                          Box::new(Literal(2)))),
+                           InfixOp::Mul,
+                           Box::new(Literal(3))));
+    }
+
+    #[test]
+    fn parse_indexing() {
+        check_parse!("hello[world](1, 2[3])",
+                     Call(Box::new(Index(Box::new(Identifier("hello".to_string())),
+                                         Box::new(Identifier("world".to_string())))),
+                          vec![Literal(1), Index(Box::new(Literal(2)), Box::new(Literal(3)))]));
+    }
+
+    #[test]
+    fn parse_ternary_if() {
+        check_parse!("1 if 2 else 3",
+                     Ternary(Box::new(Literal(1)),
+                             Box::new(Literal(2)),
+                             Box::new(Literal(3))));
+        check_parse!("hello(1) if foo[23] else world[1 if foo else 2]",
+        Ternary(
+            Box::new(Call(
+                Box::new(Identifier("hello".to_string())),
+                vec![Literal(1)])),
+            Box::new(Index(
+                Box::new(Identifier("foo".to_string())),
+                Box::new(Literal(23)))),
+            Box::new(Index(
+                Box::new(Identifier("world".to_string())),
+                Box::new(Ternary(Box::new(Literal(1)),
+                        Box::new(Identifier("foo".to_string())),
+                        Box::new(Literal(2))))))));
     }
 }

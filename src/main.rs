@@ -42,6 +42,12 @@ pub enum Token {
     /// The `)` character
     CloseBracket,
 
+    /// The `[` character
+    OpenSqBracket,
+
+    /// The `]` character
+    CloseSqBracket,
+
     /// The `,` character
     Comma,
 }
@@ -85,6 +91,8 @@ pub enum Expression {
     Prefix(PrefixOp, Box<Expression>),
     Infix(Box<Expression>, InfixOp, Box<Expression>),
     Call(Box<Expression>, Vec<Expression>),
+    Index(Box<Expression>, Box<Expression>),
+    Ternary(Box<Expression>, Box<Expression>, Box<Expression>),
 }
 
 #[cfg(not(test))]
