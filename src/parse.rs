@@ -29,6 +29,7 @@ struct Tokeniser {
 }
 
 impl Tokeniser {
+
     /// Creates a new tokeniser from the given string slice.
     pub fn new_from_str(source: &str) -> Tokeniser {
         Tokeniser {
@@ -37,13 +38,16 @@ impl Tokeniser {
         }
     }
 
+    /// Retrieve the next 'raw' token. This is the next lexical match
+    /// in the buffer, and may include whitespace and other trivia
+    /// tokens.
     fn next_raw(&mut self) -> Option<Token> {
 
         let ts = self.idx;
         let mut te = ts;
         let mut chars = self.buff[ts..].chars();
         let tok = chars.next().and_then(|c| {
-            te += 1;
+            te += c.len_utf8();
             match c {
                 '=' => Some(Token::Equals),
                 '+' => Some(Token::Plus),
@@ -64,12 +68,12 @@ impl Tokeniser {
                 }
                 c if c.is_alphabetic() || c == '_' => {
                     te += chars.take_while(|c| c.is_alphanumeric() || *c == '_')
-                               .count();
+                        .fold(0, |l, c| l + c.len_utf8());
                     Some(Token::Word(self.buff[ts..te].to_string()))
                 }
                 c if c.is_whitespace() => {
                     te += chars.take_while(|c| c.is_whitespace())
-                               .count();
+                        .fold(0, |l, c| l + c.len_utf8());
                     Some(Token::Whitespace(self.buff[ts..te].to_string()))
                 }
                 _ => None,
@@ -114,7 +118,7 @@ impl Parser {
     }
 
     /// Moves the token stream on by a single token
-    fn advance(&mut self) -> Result<()> {
+    pub fn advance(&mut self) -> Result<()> {
         match self.lexer.peek() {
             Some(_) => {
                 self.lexer.next();
@@ -400,5 +404,13 @@ mod test {
                 Box::new(Ternary(Box::new(Literal(1)),
                         Box::new(Identifier("foo".to_string())),
                         Box::new(Literal(2))))))));
+    }
+
+    #[test]
+    fn parse_unicode_identifiers() {
+        check_parse!("  übåℝ * ßeåk  ",
+                     Infix(Box::new(Identifier("übåℝ".to_string())),
+                           InfixOp::Mul,
+                           Box::new(Identifier("ßeåk".to_string()))));
     }
 }
