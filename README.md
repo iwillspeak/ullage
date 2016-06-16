@@ -4,4 +4,4 @@ Ullage started as an attempt to implement a top-down operator precedence parser 
 
 ## License
 
-Ullage is open source, under the [MIT License](License.md).
+Ullage is open source, under the [MIT License](LICENSE.md).
