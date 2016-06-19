@@ -7,51 +7,6 @@
 
 mod parse;
 
-/// This structure represents a single token from the input source
-/// buffer.
-#[derive(Debug,PartialEq)]
-pub enum Token {
-    /// Represents a string of alphabetic characters. This could be a
-    /// language keyword or a variable or type identifier.
-    Word(String),
-
-    /// Whitespace trivia
-    Whitespace(String),
-
-    /// Constant numerical value.
-    Literal(i64),
-
-    /// The `=` character
-    Equals,
-
-    /// The `+` character
-    Plus,
-
-    /// The `-` character
-    Minus,
-
-    /// The `*` character
-    Star,
-
-    /// The `/` character
-    Slash,
-
-    /// The `(` character
-    OpenBracket,
-
-    /// The `)` character
-    CloseBracket,
-
-    /// The `[` character
-    OpenSqBracket,
-
-    /// The `]` character
-    CloseSqBracket,
-
-    /// The `,` character
-    Comma,
-}
-
 /// Represents an AST prefix operator.
 #[derive(Debug,PartialEq)]
 pub enum PrefixOp {
@@ -66,21 +21,6 @@ pub enum InfixOp {
     Sub,
     Mul,
     Div,
-}
-
-impl InfixOp {
-    fn for_token(tok: &Token) -> Option<Self> {
-        use InfixOp::*;
-        use Token::*;
-        match *tok {
-            Equals => Some(Assign),
-            Star => Some(Mul),
-            Slash => Some(Div),
-            Plus => Some(Add),
-            Minus => Some(Sub),
-            _ => None,
-        }
-    }
 }
 
 /// Represents an AST expression.

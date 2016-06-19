@@ -3,7 +3,7 @@
 
 use std::iter::Peekable;
 
-use super::{Token, Expression, PrefixOp, InfixOp};
+use super::{Expression, PrefixOp, InfixOp};
 
 pub use self::error::{Error, Result};
 
@@ -18,6 +18,67 @@ impl Expression {
     }
 }
 
+/// This structure represents a single token from the input source
+/// buffer.
+#[derive(Debug,PartialEq)]
+pub enum Token {
+    /// Represents a string of alphabetic characters. This could be a
+    /// language keyword or a variable or type identifier.
+    Word(String),
+
+    /// Whitespace trivia
+    Whitespace(String),
+
+    /// Constant numerical value.
+    Literal(i64),
+
+    /// The `=` character
+    Equals,
+
+    /// The `+` character
+    Plus,
+
+    /// The `-` character
+    Minus,
+
+    /// The `*` character
+    Star,
+
+    /// The `/` character
+    Slash,
+
+    /// The `(` character
+    OpenBracket,
+
+    /// The `)` character
+    CloseBracket,
+
+    /// The `[` character
+    OpenSqBracket,
+
+    /// The `]` character
+    CloseSqBracket,
+
+    /// The `,` character
+    Comma,
+}
+
+impl InfixOp {
+
+    /// Get infix operator from token
+    fn for_token(tok: &Token) -> Option<Self> {
+        use InfixOp::*;
+        use self::Token::*;
+        match *tok {
+            Equals => Some(Assign),
+            Star => Some(Mul),
+            Slash => Some(Div),
+            Plus => Some(Add),
+            Minus => Some(Sub),
+            _ => None,
+        }
+    }
+}
 
 /// Tokeniser
 ///
