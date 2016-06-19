@@ -11,10 +11,10 @@ impl Expression {
     /// Parse expression from string. Takes a reference to an
     /// expression and returns a result containing the parsed
     /// expression, or an error if none could be parsed.
-    pub fn parse_str(s: &str) -> Result<Expression> {
+    pub fn parse_str(s: &str) -> Result<Vec<Expression>> {
         let t = Tokeniser::new_from_str(s);
         let mut p = Parser::new(t);
-        p.expression(0)
+        p.expressions()
     }
 }
 
@@ -210,6 +210,14 @@ impl Parser {
             left = try!(self.parse_led(left));
         }
         Ok(left)
+    }
+
+    pub fn expressions(&mut self) -> Result<Vec<Expression>> {
+        let mut expressions = Vec::new();
+        while self.lexer.peek().is_some() {
+            expressions.push(try!(self.expression(0)));
+        }
+        Ok(expressions)
     }
 
     /// Returns true if the next token's lbp is > the given rbp
