@@ -212,6 +212,7 @@ impl Parser {
         Ok(left)
     }
 
+    /// Atttempt to parse a list of expressions
     pub fn expressions(&mut self) -> Result<Vec<Expression>> {
         let mut expressions = Vec::new();
         while self.lexer.peek().is_some() {
@@ -257,7 +258,7 @@ impl Token {
             Token::Equals => 10,
 
             // ternary if
-            Token::Word(ref kw) if kw == "if" => 20,
+            Token::Word(ref kw) if kw == "if" || kw == "unless" => 20,
 
             Token::Plus | Token::Minus => 50,
 
@@ -334,7 +335,8 @@ impl Token {
                 Ok(Expression::Call(Box::new(lhs), params))
             }
 
-            // <x> if <y> else <z> ternary
+            // Ternay statement:
+            // <x> if <y> else <z>
             Token::Word(ref kw) if kw == "if" => {
                 let condition = try!(parser.expression(0));
                 try!(parser.expect(Token::Word("else".to_string())));
@@ -342,6 +344,15 @@ impl Token {
                 Ok(Expression::Ternary(Box::new(lhs), Box::new(condition), Box::new(fallback)))
             }
 
+            // Ternay statement:
+            // <x> unless <y> else <z>
+            Token::Word(ref kw) if kw == "unless" => {
+                let condition = try!(parser.expression(0));
+                try!(parser.expect(Token::Word("else".to_string())));
+                let fallback = try!(parser.expression(0));
+                Ok(Expression::Ternary(Box::new(fallback), Box::new(condition), Box::new(lhs)))
+            }
+            
             _ => Err(Error::Unexpected),
         }
     }
@@ -473,6 +484,10 @@ mod test {
                 Box::new(Ternary(Box::new(Literal(1)),
                         Box::new(Identifier("foo".to_string())),
                         Box::new(Literal(2))))))));
+        check_parse!("0 unless 1 else 2",
+                     Ternary(Box::new(Literal(2)),
+                             Box::new(Literal(1)),
+                             Box::new(Literal(0))));
     }
 
     #[test]
