@@ -61,6 +61,9 @@ pub enum Token {
 
     /// The `,` character
     Comma,
+
+    /// An unrecognised token
+    Unknown(char)
 }
 
 impl InfixOp {
@@ -137,7 +140,7 @@ impl Tokeniser {
                         .fold(0, |l, c| l + c.len_utf8());
                     Some(Token::Whitespace(self.buff[ts..te].to_string()))
                 }
-                _ => None,
+                _ => Some(Token::Unknown(c)),
             }
         });
         self.idx = te;
