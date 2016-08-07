@@ -33,19 +33,25 @@ pub enum Expression {
     Call(Box<Expression>, Vec<Expression>),
     Index(Box<Expression>, Box<Expression>),
     Ternary(Box<Expression>, Box<Expression>, Box<Expression>),
+    Function(Box<Expression>, Vec<Expression>, Vec<Expression>)
 }
 
 #[cfg(not(test))]
 fn main() {
     use std::io;
     use std::io::prelude::*;
+    let mut buffered = String::new();
 
     let stdin = io::stdin();
     for line_io in stdin.lock().lines() {
         if let Ok(line) = line_io {
-            match Expression::parse_str(&line) {
-                Ok(parsed) => println!("OK > {:?}", parsed),
-                Err(err) => println!("Error: {:?}", err),
+            buffered.push_str(&line);
+            match Expression::parse_str(&buffered) {
+                Ok(parsed) => {
+                    println!("OK > {:?}", parsed);
+                    buffered.clear();
+                },
+                Err(err) => println!("Error: {:?} ({})", err, buffered)
             };
         };
     }

@@ -224,6 +224,15 @@ impl Parser {
         Ok(expressions)
     }
 
+    pub fn block(&mut self) -> Result<Vec<Expression>> {
+        let mut expressions = Vec::new();
+        while self.lexer.peek().is_some() &&
+            !self.next_is(Token::Word("end".to_string())) {
+            expressions.push(try!(self.expression(0)));
+        }
+        Ok(expressions)
+    }
+
     /// Returns true if the next token's lbp is > the given rbp
     fn next_binds_tighter_than(&mut self, rbp: u32) -> bool {
         match self.lexer.peek() {
@@ -281,6 +290,17 @@ impl Token {
     /// expressions
     fn nud(&self, parser: &mut Parser) -> Result<Expression> {
         match *self {
+            Token::Word(ref kw) if kw == "fn" => {
+                let identifier = try!(parser.expression(100));
+                try!(parser.expect(Token::OpenBracket));
+                try!(parser.expect(Token::CloseBracket));
+                let body = try!(parser.block());
+                try!(parser.expect(Token::Word("end".to_string())));
+                Ok(Expression::Function(
+                    Box::new(identifier),
+                    Vec::new(),
+                    body))
+            }
             Token::Word(ref word) => Ok(Expression::Identifier(word.clone())),
             Token::Literal(i) => Ok(Expression::Literal(i)),
             Token::Plus => parser.expression(100),
@@ -499,5 +519,24 @@ mod test {
                      Infix(Box::new(Identifier("übåℝ".to_string())),
                            InfixOp::Mul,
                            Box::new(Identifier("ßeåk".to_string()))));
+    }
+
+    #[test]
+    fn parse_function_def() {
+        check_parse!(
+            "fn test() 100 end",
+            Function(Box::new(Identifier("test".to_string())),
+                     Vec::new(),
+                     vec![Literal(100)]));
+
+        check_parse!(
+            "fn ünécød3()
+                0 if 74 else 888
+             end",
+            Function(Box::new(Identifier("ünécød3".to_string())),
+                     Vec::new(),
+                     vec![Ternary(Box::new(Literal(0)),
+                                  Box::new(Literal(74)),
+                                  Box::new(Literal(888)))]));
     }
 }
