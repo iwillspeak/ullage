@@ -275,7 +275,7 @@ impl<'a> Token<'a> {
             Token::Equals => 10,
 
             // ternary if
-            Token::Word(kw) if kw == "if" || kw == "unless" => 20,
+            Token::Word("if") | Token::Word("unless") => 20,
 
             Token::Plus | Token::Minus => 50,
 
@@ -295,7 +295,7 @@ impl<'a> Token<'a> {
     /// expressions
     fn nud(&self, parser: &mut Parser) -> Result<Expression> {
         match *self {
-            Token::Word(kw) if kw == "fn" => {
+            Token::Word("fn") => {
                 let identifier = try!(parser.expression(100));
                 try!(parser.expect(Token::OpenBracket));
                 try!(parser.expect(Token::CloseBracket));
@@ -365,7 +365,7 @@ impl<'a> Token<'a> {
 
             // Ternay statement:
             // <x> if <y> else <z>
-            Token::Word(kw) if kw == "if" => {
+            Token::Word("if") => {
                 let condition = try!(parser.expression(0));
                 try!(parser.expect(Token::Word("else")));
                 let fallback = try!(parser.expression(0));
@@ -374,7 +374,7 @@ impl<'a> Token<'a> {
 
             // Ternay statement:
             // <x> unless <y> else <z>
-            Token::Word(kw) if kw == "unless" => {
+            Token::Word("unless") => {
                 let condition = try!(parser.expression(0));
                 try!(parser.expect(Token::Word("else")));
                 let fallback = try!(parser.expression(0));
