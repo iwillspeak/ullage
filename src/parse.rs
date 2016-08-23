@@ -206,10 +206,14 @@ impl<'a> Parser<'a> {
     /// Moves the token stream on by a single token, if the
     /// token's lexeme is of the given type.
     pub fn expect(&mut self, expected: Token) -> Result<()> {
-        if !self.next_is(expected) {
-            return Err(Error::Unexpected);
-        }
-        self.advance()
+        match self.lexer.peek() {
+            Some(token) if token == &expected => Ok(()),
+            Some(_) => Err(Error::Unexpected),
+            None => Err(Error::Incomplete)
+        }.map(|ok| {
+            self.lexer.next();
+            ok
+        })
     }
 
     /// Checks that the next token is of the given type
@@ -405,7 +409,7 @@ impl<'a> Token<'a> {
                 Ok(Expression::Ternary(Box::new(fallback), Box::new(condition), Box::new(lhs)))
             }
 
-            _ => Err(Error::Unexpected),
+            _ => Err(Error::Incomplete),
         }
     }
 }
