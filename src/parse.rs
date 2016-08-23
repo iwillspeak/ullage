@@ -8,6 +8,7 @@ use super::{Expression, PrefixOp, InfixOp};
 pub use self::error::{Error, Result};
 
 impl Expression {
+
     /// Parse expression from string. Takes a reference to an
     /// expression and returns a result containing the parsed
     /// expression, or an error if none could be parsed.
@@ -21,13 +22,13 @@ impl Expression {
 /// This structure represents a single token from the input source
 /// buffer.
 #[derive(Debug,PartialEq)]
-pub enum Token {
+pub enum Token<'a> {
     /// Represents a string of alphabetic characters. This could be a
     /// language keyword or a variable or type identifier.
-    Word(String),
+    Word(&'a str),
 
     /// Whitespace trivia
-    Whitespace(String),
+    Whitespace(&'a str),
 
     /// Constant numerical value.
     Literal(i64),
@@ -87,17 +88,17 @@ impl InfixOp {
 ///
 /// An object which can run a regex state machine over an input
 /// buffer, producing tokens when each new lexeme is matched.
-struct Tokeniser {
-    buff: String,
+struct Tokeniser<'a> {
+    buff: &'a str,
     idx: usize,
 }
 
-impl Tokeniser {
+impl<'a> Tokeniser<'a> {
 
     /// Creates a new tokeniser from the given string slice.
-    pub fn new_from_str(source: &str) -> Tokeniser {
+    pub fn new_from_str(source: &'a str) -> Tokeniser {
         Tokeniser {
-            buff: source.to_string(),
+            buff: source,
             idx: 0,
         }
     }
@@ -105,7 +106,7 @@ impl Tokeniser {
     /// Retrieve the next 'raw' token. This is the next lexical match
     /// in the buffer, and may include whitespace and other trivia
     /// tokens.
-    fn next_raw(&mut self) -> Option<Token> {
+    fn next_raw(&mut self) -> Option<Token<'a>> {
 
         let ts = self.idx;
         let mut te = ts;
@@ -133,12 +134,12 @@ impl Tokeniser {
                 c if c.is_alphabetic() || c == '_' => {
                     te += chars.take_while(|c| c.is_alphanumeric() || *c == '_')
                         .fold(0, |l, c| l + c.len_utf8());
-                    Some(Token::Word(self.buff[ts..te].to_string()))
+                    Some(Token::Word(&self.buff[ts..te]))
                 }
                 c if c.is_whitespace() => {
                     te += chars.take_while(|c| c.is_whitespace())
                         .fold(0, |l, c| l + c.len_utf8());
-                    Some(Token::Whitespace(self.buff[ts..te].to_string()))
+                    Some(Token::Whitespace(&self.buff[ts..te]))
                 }
                 _ => Some(Token::Unknown(c)),
             }
@@ -154,8 +155,8 @@ impl Tokeniser {
 /// stream. The next method filters out whitespace tokens from the
 /// tokeniser too. This means the `Tokeniser` doesn't have to worry
 /// about skipping certain lexemes in the grammar.
-impl Iterator for Tokeniser {
-    type Item = Token;
+impl<'a> Iterator for Tokeniser<'a> {
+    type Item = Token<'a>;
 
     /// Iterator next method. This method returns the next
     /// non-whitespace token in the `Tokeniser`'s stream of `Token`s.
@@ -172,12 +173,14 @@ impl Iterator for Tokeniser {
 
 /// Expression parser. Given a stream of tokens this will produce
 /// an expression tree, or a parse error.
-struct Parser {
-    lexer: Peekable<Tokeniser>,
+struct Parser<'a> {
+    lexer: Peekable<Tokeniser<'a>>,
 }
 
-impl Parser {
-    pub fn new(t: Tokeniser) -> Parser {
+impl<'a> Parser<'a> {
+
+    /// Create a new Parser from a given token stream.
+    pub fn new(t: Tokeniser<'a>) -> Self {
         Parser { lexer: t.peekable() }
     }
 
@@ -203,7 +206,9 @@ impl Parser {
 
     /// Checks that the next token is of the given type
     pub fn next_is(&mut self, expected: Token) -> bool {
-        self.lexer.peek() == Some(&expected)
+        self.lexer.peek().map_or(false, |token| {
+            token == &expected
+        })
     }
 
     /// Attempt to parse a single expression
@@ -227,7 +232,7 @@ impl Parser {
     pub fn block(&mut self) -> Result<Vec<Expression>> {
         let mut expressions = Vec::new();
         while self.lexer.peek().is_some() &&
-            !self.next_is(Token::Word("end".to_string())) {
+            !self.next_is(Token::Word("end")) {
             expressions.push(try!(self.expression(0)));
         }
         Ok(expressions)
@@ -258,7 +263,7 @@ impl Parser {
     }
 }
 
-impl Token {
+impl<'a> Token<'a> {
     /// Left binding power. This controls the precedence of
     /// the symbol when being parsed as an infix operator.
     ///
@@ -270,7 +275,7 @@ impl Token {
             Token::Equals => 10,
 
             // ternary if
-            Token::Word(ref kw) if kw == "if" || kw == "unless" => 20,
+            Token::Word(kw) if kw == "if" || kw == "unless" => 20,
 
             Token::Plus | Token::Minus => 50,
 
@@ -290,18 +295,18 @@ impl Token {
     /// expressions
     fn nud(&self, parser: &mut Parser) -> Result<Expression> {
         match *self {
-            Token::Word(ref kw) if kw == "fn" => {
+            Token::Word(kw) if kw == "fn" => {
                 let identifier = try!(parser.expression(100));
                 try!(parser.expect(Token::OpenBracket));
                 try!(parser.expect(Token::CloseBracket));
                 let body = try!(parser.block());
-                try!(parser.expect(Token::Word("end".to_string())));
+                try!(parser.expect(Token::Word("end")));
                 Ok(Expression::Function(
                     Box::new(identifier),
                     Vec::new(),
                     body))
             }
-            Token::Word(ref word) => Ok(Expression::Identifier(word.clone())),
+            Token::Word(word) => Ok(Expression::Identifier(word.to_string())),
             Token::Literal(i) => Ok(Expression::Literal(i)),
             Token::Plus => parser.expression(100),
             Token::Minus => {
@@ -360,18 +365,18 @@ impl Token {
 
             // Ternay statement:
             // <x> if <y> else <z>
-            Token::Word(ref kw) if kw == "if" => {
+            Token::Word(kw) if kw == "if" => {
                 let condition = try!(parser.expression(0));
-                try!(parser.expect(Token::Word("else".to_string())));
+                try!(parser.expect(Token::Word("else")));
                 let fallback = try!(parser.expression(0));
                 Ok(Expression::Ternary(Box::new(lhs), Box::new(condition), Box::new(fallback)))
             }
 
             // Ternay statement:
             // <x> unless <y> else <z>
-            Token::Word(ref kw) if kw == "unless" => {
+            Token::Word(kw) if kw == "unless" => {
                 let condition = try!(parser.expression(0));
-                try!(parser.expect(Token::Word("else".to_string())));
+                try!(parser.expect(Token::Word("else")));
                 let fallback = try!(parser.expression(0));
                 Ok(Expression::Ternary(Box::new(fallback), Box::new(condition), Box::new(lhs)))
             }
