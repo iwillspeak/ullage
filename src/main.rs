@@ -23,6 +23,17 @@ pub enum InfixOp {
     Div,
 }
 
+/// Represents a reference to a type
+#[derive(Debug,PartialEq)]
+pub struct TypeReference(String);
+
+/// An identifier, with an optional type attached
+#[derive(Debug,PartialEq)]
+pub struct TypedId {
+    typ: Option<TypeReference>,
+    id: Expression,
+}
+
 /// Represents an AST expression.
 #[derive(Debug,PartialEq)]
 pub enum Expression {
@@ -33,7 +44,7 @@ pub enum Expression {
     Call(Box<Expression>, Vec<Expression>),
     Index(Box<Expression>, Box<Expression>),
     Ternary(Box<Expression>, Box<Expression>, Box<Expression>),
-    Function(Box<Expression>, Vec<Expression>, Vec<Expression>)
+    Function(Box<Expression>, TypeReference, Vec<TypedId>, Vec<Expression>),
 }
 
 #[cfg(not(test))]
@@ -46,12 +57,13 @@ fn main() {
     for line_io in stdin.lock().lines() {
         if let Ok(line) = line_io {
             buffered.push_str(&line);
+            buffered.push('\n');
             match Expression::parse_str(&buffered) {
                 Ok(parsed) => {
                     println!("OK > {:?}", parsed);
                     buffered.clear();
-                },
-                Err(err) => println!("Error: {:?} ({})", err, buffered)
+                }
+                Err(err) => println!("Error: {:?} ({})", err, buffered),
             };
         };
     }

@@ -3,7 +3,7 @@
 
 use std::iter::Peekable;
 
-use super::{Expression, PrefixOp, InfixOp};
+use super::{Expression, TypeReference, PrefixOp, InfixOp};
 
 pub use self::error::{Error, Result};
 
@@ -63,12 +63,14 @@ pub enum Token<'a> {
     /// The `,` character
     Comma,
 
+    /// The `:` character
+    Colon,
+
     /// An unrecognised token
-    Unknown(char)
+    Unknown(char),
 }
 
 impl InfixOp {
-
     /// Get infix operator from token
     fn for_token(tok: &Token) -> Option<Self> {
         use InfixOp::*;
@@ -124,6 +126,12 @@ impl<'a> Tokeniser<'a> {
                 '[' => Some(Token::OpenSqBracket),
                 ']' => Some(Token::CloseSqBracket),
                 ',' => Some(Token::Comma),
+                ':' => Some(Token::Colon),
+                '#' => {
+                    te += chars.take_while(|c| *c != '\n')
+                        .fold(0, |l, c| l + c.len_utf8());
+                    Some(Token::Whitespace(&self.buff[ts..te]))
+                }
                 '0'...'9' => {
                     te += chars.take_while(|c| *c >= '0' && *c <= '9').count();
                     let token_str = &self.buff[ts..te];
@@ -229,6 +237,20 @@ impl<'a> Parser<'a> {
         Ok(expressions)
     }
 
+    /// Attempt to parse a type reference, this is a single
+    /// `:` followed by a type name.
+    pub fn type_ref(&mut self) -> Result<TypeReference> {
+        try!(self.expect(Token::Colon));
+        match self.lexer.peek(){
+            Some(&Token::Word(t)) => {
+                try!(self.advance());
+                Ok(TypeReference(t.to_string()))
+            }
+            _ => Err(Error::Unexpected),
+        }
+    }
+
+    /// Attempt to parse a block of expressions
     pub fn block(&mut self) -> Result<Vec<Expression>> {
         let mut expressions = Vec::new();
         while self.lexer.peek().is_some() &&
@@ -299,10 +321,12 @@ impl<'a> Token<'a> {
                 let identifier = try!(parser.expression(100));
                 try!(parser.expect(Token::OpenBracket));
                 try!(parser.expect(Token::CloseBracket));
+                let typ = try!(parser.type_ref());
                 let body = try!(parser.block());
                 try!(parser.expect(Token::Word("end")));
                 Ok(Expression::Function(
                     Box::new(identifier),
+                    typ,
                     Vec::new(),
                     body))
             }
@@ -380,7 +404,7 @@ impl<'a> Token<'a> {
                 let fallback = try!(parser.expression(0));
                 Ok(Expression::Ternary(Box::new(fallback), Box::new(condition), Box::new(lhs)))
             }
-            
+
             _ => Err(Error::Unexpected),
         }
     }
@@ -528,20 +552,20 @@ mod test {
 
     #[test]
     fn parse_function_def() {
-        check_parse!(
-            "fn test() 100 end",
-            Function(Box::new(Identifier("test".to_string())),
-                     Vec::new(),
-                     vec![Literal(100)]));
+        check_parse!("fn test() :Num 100 end",
+                     Function(Box::new(Identifier("test".to_string())),
+                              TypeReference("Num".to_string()),
+                              Vec::new(),
+                              vec![Literal(100)]));
 
-        check_parse!(
-            "fn ünécød3()
+        check_parse!("fn ünécød3() :Num
                 0 if 74 else 888
              end",
-            Function(Box::new(Identifier("ünécød3".to_string())),
-                     Vec::new(),
-                     vec![Ternary(Box::new(Literal(0)),
-                                  Box::new(Literal(74)),
-                                  Box::new(Literal(888)))]));
+                     Function(Box::new(Identifier("ünécød3".to_string())),
+                              TypeReference("Num".to_string()),
+                              Vec::new(),
+                              vec![Ternary(Box::new(Literal(0)),
+                                           Box::new(Literal(74)),
+                                           Box::new(Literal(888)))]));
     }
 }
