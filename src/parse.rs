@@ -334,6 +334,13 @@ impl<'a> Token<'a> {
                     Vec::new(),
                     body))
             }
+            Token::Word("while") => {
+                let condition = try!(parser.expression(0));
+                let block = try!(parser.block());
+                try!(parser.expect(Token::Word("end")));
+                Ok(Expression::Loop(Box::new(condition),
+                                    block))
+            }
             Token::Word(word) => Ok(Expression::Identifier(word.to_string())),
             Token::Literal(i) => Ok(Expression::Literal(i)),
             Token::Plus => parser.expression(100),
@@ -571,5 +578,11 @@ mod test {
                               vec![Ternary(Box::new(Literal(0)),
                                            Box::new(Literal(74)),
                                            Box::new(Literal(888)))]));
+    }
+
+    #[test]
+    fn parse_while_loop() {
+        check_parse!("while 1 end",
+                     Loop(Box::new(Literal(1)), Vec::new()));
     }
 }

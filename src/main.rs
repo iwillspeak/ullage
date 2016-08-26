@@ -45,6 +45,7 @@ pub enum Expression {
     Index(Box<Expression>, Box<Expression>),
     Ternary(Box<Expression>, Box<Expression>, Box<Expression>),
     Function(Box<Expression>, TypeReference, Vec<TypedId>, Vec<Expression>),
+    Loop(Box<Expression>, Vec<Expression>)
 }
 
 #[cfg(not(test))]
