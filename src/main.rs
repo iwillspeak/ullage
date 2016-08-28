@@ -234,10 +234,17 @@ fn main() {
             buffered.push('\n');
             match Expression::parse_str(&buffered) {
                 Ok(parsed) => {
-                    println!("OK > {:?}", parsed);
                     buffered.clear();
+                    println!("OK > {:?}", parsed);
                 }
-                Err(err) => println!("Error: {:?} ({})", err, buffered),
+                Err(parse::Error::Incomplete) => {
+                    print!("> ");
+                    io::stdout().flush().unwrap();
+                }
+                Err(err) => {
+                    buffered.clear();
+                    println!("Error: {:?} ({})", err, buffered);
+                }
             };
         };
     }
