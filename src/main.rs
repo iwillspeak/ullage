@@ -225,8 +225,11 @@ impl From<FunctionDeclarationBuilder> for Expression {
 fn main() {
     use std::io;
     use std::io::prelude::*;
-    let mut buffered = String::new();
+    use std::process::*;
 
+    let mut failures = 0;
+
+    let mut buffered = String::new();
     let stdin = io::stdin();
     for line_io in stdin.lock().lines() {
         if let Ok(line) = line_io {
@@ -243,9 +246,12 @@ fn main() {
                 }
                 Err(err) => {
                     buffered.clear();
+                    failures += 1;
                     println!("Error: {:?} ({})", err, buffered);
                 }
             };
         };
     }
+
+    exit(failures);
 }
