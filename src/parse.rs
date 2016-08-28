@@ -3,7 +3,7 @@
 
 use std::iter::Peekable;
 
-use super::{Expression, TypeReference, PrefixOp, InfixOp};
+use super::{Expression, TypeReference, TypedId, PrefixOp, InfixOp};
 
 pub use self::error::{Error, Result};
 
@@ -258,6 +258,22 @@ impl<'a> Parser<'a> {
         }
     }
 
+    /// Parse an optional type reference
+    pub fn optional_type_ref(&mut self) -> Option<TypeReference> {
+        if self.next_is(Token::Colon) {
+            self.type_ref().ok()
+        } else {
+            None
+        }
+    }
+
+    /// Parse an identifier, with an optional type
+    pub fn typed_id(&mut self) -> Result<TypedId> {
+        let id = try!(self.identifier());
+        let typ = self.optional_type_ref();
+        Ok(TypedId { id: id, typ: typ })
+    }
+
     /// Attempt to parse a block of expressions
     pub fn block(&mut self) -> Result<Vec<Expression>> {
         let mut expressions = Vec::new();
@@ -328,6 +344,13 @@ impl<'a> Token<'a> {
                 let identifier = try!(parser.identifier());
                 let mut res = Expression::function(identifier);
                 try!(parser.expect(Token::OpenBracket));
+                if !parser.next_is(Token::CloseBracket) {
+                    res = res.with_arg(try!(parser.typed_id()));
+                }
+                while !parser.next_is(Token::CloseBracket) {
+                    try!(parser.expect(Token::Comma));
+                    res = res.with_arg(try!(parser.typed_id()));
+                }
                 try!(parser.expect(Token::CloseBracket));
                 res = res.with_return_type(try!(parser.type_ref()))
                          .with_body(try!(parser.block()));
@@ -591,5 +614,33 @@ mod test {
                      Expression::loop_while(Expression::constant_num(0),
                                             vec![Expression::constant_num(44),
                                                  Expression::constant_num(234)]));
+    }
+
+    #[test]
+    fn parse_function_with_args() {
+        check_parse!("fn neg(i: Num): Num - i end",
+                     Expression::function("neg".to_string())
+                     .with_arg(TypedId::new("i".to_string(), TypeReference("Num".to_string())))
+                     .with_return_type(TypeReference("Num".to_string()))
+                     .with_body(vec![
+                         Expression::prefix(PrefixOp::Negate, Expression::identifier("i".to_string()))
+                     ])
+                     .into());
+
+        check_parse!("fn test(i: Num, j, k: String): String i + j + k end",
+                     Expression::function("test".to_string())
+                     .with_arg(TypedId::new("i".to_string(), TypeReference("Num".to_string())))
+                     .with_arg(TypedId::new_without_type("j".to_string()))
+                     .with_arg(TypedId::new("k".to_string(), TypeReference("String".to_string())))
+                     .with_return_type(TypeReference("String".to_string()))
+                     .with_body(vec![
+                         Expression::infix(
+                             Expression::infix(
+                                 Expression::identifier("i".to_string()),
+                                 InfixOp::Add,
+                                 Expression::identifier("j".to_string())),
+                             InfixOp::Add,
+                             Expression::identifier("k".to_string()))])
+                     .into());
     }
 }

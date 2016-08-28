@@ -34,6 +34,22 @@ pub struct TypedId {
     id: String,
 }
 
+impl TypedId {
+    pub fn new(id: String, typ: TypeReference) -> Self {
+        TypedId {
+            id: id,
+            typ: Some(typ)
+        }
+    }
+
+    pub fn new_without_type(id: String) -> Self {
+        TypedId {
+            id: id,
+            typ: None
+        }
+    }
+}
+
 /// Literal / Constant Value
 #[derive(Debug,PartialEq)]
 pub enum Constant {
@@ -168,8 +184,8 @@ impl FunctionDeclarationBuilder {
     /// # Returns
     ///
     /// The modified builder, to continue building this declaration.
-    pub fn with_arg(mut self, id: String, typ: Option<TypeReference>) -> Self {
-        self.args.push(TypedId { id: id, typ: typ });
+    pub fn with_arg(mut self, param: TypedId) -> Self {
+        self.args.push(param);
         self
     }
 
