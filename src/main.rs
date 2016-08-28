@@ -31,21 +31,147 @@ pub struct TypeReference(String);
 #[derive(Debug,PartialEq)]
 pub struct TypedId {
     typ: Option<TypeReference>,
-    id: Expression,
+    id: String,
+}
+
+/// Literal / Constant Value
+#[derive(Debug,PartialEq)]
+pub enum Constant {
+    Number(i64),
+    String(String),
 }
 
 /// Represents an AST expression.
 #[derive(Debug,PartialEq)]
 pub enum Expression {
     Identifier(String),
-    Literal(i64),
+    Literal(Constant),
     Prefix(PrefixOp, Box<Expression>),
     Infix(Box<Expression>, InfixOp, Box<Expression>),
     Call(Box<Expression>, Vec<Expression>),
     Index(Box<Expression>, Box<Expression>),
-    Ternary(Box<Expression>, Box<Expression>, Box<Expression>),
-    Function(Box<Expression>, TypeReference, Vec<TypedId>, Vec<Expression>),
-    Loop(Box<Expression>, Vec<Expression>)
+    IfThenElse(Box<Expression>, Box<Expression>, Box<Expression>),
+    Function(String, TypeReference, Vec<TypedId>, Vec<Expression>),
+    Loop(Box<Expression>, Vec<Expression>),
+}
+
+impl Expression {
+    /// # New Identifier Expression
+    ///
+    /// A reference to an identifier, either as a variable reference
+    /// or declaration, part of a function definition or function call.
+    pub fn identifier(s: String) -> Self {
+        Expression::Identifier(s.into())
+    }
+
+    /// # New Numeric Constant
+    ///
+    /// A constant numeric value, either specified inline using a
+    /// numeric literal or compputed from other known compile-time
+    /// constants.
+    pub fn constant_num(n: i64) -> Self {
+        Expression::Literal(Constant::Number(n))
+    }
+
+    /// # New String Constant
+    ///
+    /// A constant string value, either specified inline using a
+    /// string literal or computed from other known compile-time
+    /// constants.
+    pub fn constant_string(s: String) -> Self {
+        Expression::Literal(Constant::String(s))
+    }
+
+    /// # New Prefix Operator Expression
+    ///
+    /// Represents the application of a prefix unary operator to
+    /// another expression.
+    pub fn prefix(op: PrefixOp, expr: Expression) -> Self {
+        Expression::Prefix(op, Box::new(expr))
+    }
+
+    /// # New Infix Operator Expression
+    ///
+    /// Represents the application of an infix binary operator to two
+    /// expression operands.
+    pub fn infix(lhs: Expression, op: InfixOp, rhs: Expression) -> Self {
+        Expression::Infix(Box::new(lhs), op, Box::new(rhs))
+    }
+
+    /// # New Function Call Expression
+    ///
+    /// Represents calling a given function with a numer of arguments.
+    pub fn call(callee: Expression, args: Vec<Expression>) -> Self {
+        Expression::Call(Box::new(callee), args)
+    }
+
+    /// # New Index Expression
+    ///
+    /// Represents indexing one expression by another. This could be
+    /// an array lookup, or slice operation.
+    pub fn index(lhs: Expression, index: Expression) -> Self {
+        Expression::Index(Box::new(lhs), Box::new(index))
+    }
+
+    /// # New If Then Else Expression
+    ///
+    /// Represents either a single conditional expression, or a
+    /// ternary expression.
+    pub fn if_then_else(iff: Expression, then: Expression, els: Expression) -> Self {
+        Expression::IfThenElse(Box::new(iff), Box::new(then), Box::new(els))
+    }
+
+    /// # New Function Definition
+    ///
+    /// Create a function delcaration builder. This can be used to
+    /// create a function expression.
+    pub fn function(id: String) -> FunctionDeclarationBuilder {
+        FunctionDeclarationBuilder {
+            id: id,
+            typ: TypeReference("()".to_string()),
+            args: Vec::new(),
+            body: Vec::new(),
+        }
+    }
+
+    /// # New Loop Expression
+    ///
+    /// Represents the repeated evaluation of an expression until a
+    /// condition changes.
+    pub fn loop_while(condition: Expression, body: Vec<Expression>) -> Self {
+        Expression::Loop(Box::new(condition), body)
+    }
+}
+
+/// # Builder Struct for Function Declarations
+pub struct FunctionDeclarationBuilder {
+    id: String,
+    typ: TypeReference,
+    args: Vec<TypedId>,
+    body: Vec<Expression>,
+}
+
+impl FunctionDeclarationBuilder {
+    pub fn with_arg(mut self, id: String, typ: Option<TypeReference>) -> Self {
+        self.args.push(TypedId { id: id, typ: typ });
+        self
+    }
+
+    pub fn with_return_type(mut self, typ: TypeReference) -> Self {
+        self.typ = typ;
+        self
+    }
+
+    pub fn with_body(mut self, body: Vec<Expression>) -> Self {
+        self.body = body;
+        self
+    }
+}
+
+impl From<FunctionDeclarationBuilder> for Expression {
+    fn from(builder: FunctionDeclarationBuilder) -> Expression {
+        Expression::Function(builder.id, builder.typ, builder.args, builder.body)
+    }
 }
 
 #[cfg(not(test))]

@@ -8,7 +8,6 @@ use super::{Expression, TypeReference, PrefixOp, InfixOp};
 pub use self::error::{Error, Result};
 
 impl Expression {
-
     /// Parse expression from string. Takes a reference to an
     /// expression and returns a result containing the parsed
     /// expression, or an error if none could be parsed.
@@ -96,7 +95,6 @@ struct Tokeniser<'a> {
 }
 
 impl<'a> Tokeniser<'a> {
-
     /// Creates a new tokeniser from the given string slice.
     pub fn new_from_str(source: &'a str) -> Tokeniser {
         Tokeniser {
@@ -129,7 +127,7 @@ impl<'a> Tokeniser<'a> {
                 ':' => Some(Token::Colon),
                 '#' => {
                     te += chars.take_while(|c| *c != '\n')
-                        .fold(0, |l, c| l + c.len_utf8());
+                               .fold(0, |l, c| l + c.len_utf8());
                     Some(Token::Whitespace(&self.buff[ts..te]))
                 }
                 '0'...'9' => {
@@ -141,12 +139,12 @@ impl<'a> Tokeniser<'a> {
                 }
                 c if c.is_alphabetic() || c == '_' => {
                     te += chars.take_while(|c| c.is_alphanumeric() || *c == '_')
-                        .fold(0, |l, c| l + c.len_utf8());
+                               .fold(0, |l, c| l + c.len_utf8());
                     Some(Token::Word(&self.buff[ts..te]))
                 }
                 c if c.is_whitespace() => {
                     te += chars.take_while(|c| c.is_whitespace())
-                        .fold(0, |l, c| l + c.len_utf8());
+                               .fold(0, |l, c| l + c.len_utf8());
                     Some(Token::Whitespace(&self.buff[ts..te]))
                 }
                 _ => Some(Token::Unknown(c)),
@@ -186,7 +184,6 @@ struct Parser<'a> {
 }
 
 impl<'a> Parser<'a> {
-
     /// Create a new Parser from a given token stream.
     pub fn new(t: Tokeniser<'a>) -> Self {
         Parser { lexer: t.peekable() }
@@ -209,8 +206,9 @@ impl<'a> Parser<'a> {
         match self.lexer.peek() {
             Some(token) if token == &expected => Ok(()),
             Some(_) => Err(Error::Unexpected),
-            None => Err(Error::Incomplete)
-        }.map(|ok| {
+            None => Err(Error::Incomplete),
+        }
+        .map(|ok| {
             self.lexer.next();
             ok
         })
@@ -218,12 +216,18 @@ impl<'a> Parser<'a> {
 
     /// Checks that the next token is of the given type
     pub fn next_is(&mut self, expected: Token) -> bool {
-        self.lexer.peek().map_or(false, |token| {
-            token == &expected
-        })
+        self.lexer.peek().map_or(false, |token| token == &expected)
     }
 
-    /// Attempt to parse a single expression
+    /// Attempt to parse an identifier
+    pub fn identifier(&mut self) -> Result<String> {
+        match try!(self.expression(100)) {
+            Expression::Identifier(string) => Ok(string),
+            _ => Err(Error::Unexpected),
+        }
+    }
+
+    /// Attempt to parse a single expressiond
     pub fn expression(&mut self, rbp: u32) -> Result<Expression> {
         let mut left = try!(self.parse_nud());
         while self.next_binds_tighter_than(rbp) {
@@ -245,7 +249,7 @@ impl<'a> Parser<'a> {
     /// `:` followed by a type name.
     pub fn type_ref(&mut self) -> Result<TypeReference> {
         try!(self.expect(Token::Colon));
-        match self.lexer.peek(){
+        match self.lexer.peek() {
             Some(&Token::Word(t)) => {
                 try!(self.advance());
                 Ok(TypeReference(t.to_string()))
@@ -257,8 +261,7 @@ impl<'a> Parser<'a> {
     /// Attempt to parse a block of expressions
     pub fn block(&mut self) -> Result<Vec<Expression>> {
         let mut expressions = Vec::new();
-        while self.lexer.peek().is_some() &&
-            !self.next_is(Token::Word("end")) {
+        while self.lexer.peek().is_some() && !self.next_is(Token::Word("end")) {
             expressions.push(try!(self.expression(0)));
         }
         Ok(expressions)
@@ -322,31 +325,27 @@ impl<'a> Token<'a> {
     fn nud(&self, parser: &mut Parser) -> Result<Expression> {
         match *self {
             Token::Word("fn") => {
-                let identifier = try!(parser.expression(100));
+                let identifier = try!(parser.identifier());
+                let mut res = Expression::function(identifier);
                 try!(parser.expect(Token::OpenBracket));
                 try!(parser.expect(Token::CloseBracket));
-                let typ = try!(parser.type_ref());
-                let body = try!(parser.block());
+                res = res.with_return_type(try!(parser.type_ref()))
+                         .with_body(try!(parser.block()));
                 try!(parser.expect(Token::Word("end")));
-                Ok(Expression::Function(
-                    Box::new(identifier),
-                    typ,
-                    Vec::new(),
-                    body))
+                Ok(Expression::from(res))
             }
             Token::Word("while") => {
                 let condition = try!(parser.expression(0));
                 let block = try!(parser.block());
                 try!(parser.expect(Token::Word("end")));
-                Ok(Expression::Loop(Box::new(condition),
-                                    block))
+                Ok(Expression::loop_while(condition, block))
             }
-            Token::Word(word) => Ok(Expression::Identifier(word.to_string())),
-            Token::Literal(i) => Ok(Expression::Literal(i)),
+            Token::Word(word) => Ok(Expression::identifier(String::from(word))),
+            Token::Literal(i) => Ok(Expression::constant_num(i)),
             Token::Plus => parser.expression(100),
             Token::Minus => {
                 let rhs = try!(parser.expression(100));
-                Ok(Expression::Prefix(PrefixOp::Negate, Box::new(rhs)))
+                Ok(Expression::prefix(PrefixOp::Negate, rhs))
             }
             Token::OpenBracket => {
                 let expr = try!(parser.expression(0));
@@ -363,7 +362,6 @@ impl<'a> Token<'a> {
     /// This is responsible for parsing infix operators and function
     /// calls.
     fn led(&self, parser: &mut Parser, lhs: Expression) -> Result<Expression> {
-        use Expression::*;
         match *self {
 
             // Binary infix operator
@@ -374,14 +372,14 @@ impl<'a> Token<'a> {
             Token::Slash => {
                 let rhs = try!(parser.expression(self.lbp()));
                 let op = InfixOp::for_token(self).unwrap();
-                Ok(Infix(Box::new(lhs), op, Box::new(rhs)))
+                Ok(Expression::infix(lhs, op, rhs))
             }
 
             // array indexing
             Token::OpenSqBracket => {
                 let index = try!(parser.expression(0));
                 try!(parser.expect(Token::CloseSqBracket));
-                Ok(Index(Box::new(lhs), Box::new(index)))
+                Ok(Expression::index(lhs, index))
             }
 
             // Function call
@@ -395,7 +393,7 @@ impl<'a> Token<'a> {
                     }
                 }
                 try!(parser.expect(Token::CloseBracket));
-                Ok(Expression::Call(Box::new(lhs), params))
+                Ok(Expression::call(lhs, params))
             }
 
             // Ternay statement:
@@ -404,7 +402,7 @@ impl<'a> Token<'a> {
                 let condition = try!(parser.expression(0));
                 try!(parser.expect(Token::Word("else")));
                 let fallback = try!(parser.expression(0));
-                Ok(Expression::Ternary(Box::new(lhs), Box::new(condition), Box::new(fallback)))
+                Ok(Expression::if_then_else(condition, lhs, fallback))
             }
 
             // Ternay statement:
@@ -413,7 +411,7 @@ impl<'a> Token<'a> {
                 let condition = try!(parser.expression(0));
                 try!(parser.expect(Token::Word("else")));
                 let fallback = try!(parser.expression(0));
-                Ok(Expression::Ternary(Box::new(fallback), Box::new(condition), Box::new(lhs)))
+                Ok(Expression::if_then_else(condition, fallback, lhs))
             }
 
             _ => Err(Error::Incomplete),
@@ -466,123 +464,132 @@ mod test {
     #[test]
     fn parse_simple_string() {
         check_parse!("hello + 123",
-                     Infix(Box::new(Identifier("hello".to_string())),
-                           InfixOp::Add,
-                           Box::new(Literal(123))));
+                     Expression::infix(Expression::identifier("hello".to_string()),
+                                       InfixOp::Add,
+                                       Expression::constant_num(123)));
     }
 
     #[test]
     fn parse_with_precedence() {
         check_parse!("1 + 2 * 3",
-                     Infix(Box::new(Literal(1)),
-                           InfixOp::Add,
-                           Box::new(Infix(Box::new(Literal(2)),
-                                          InfixOp::Mul,
-                                          Box::new(Literal(3))))));
+                     Expression::infix(Expression::constant_num(1),
+                                       InfixOp::Add,
+                                       Expression::infix(Expression::constant_num(2),
+                                                         InfixOp::Mul,
+                                                         Expression::constant_num(3))));
     }
 
     #[test]
     fn parse_prefix_expressions() {
         check_parse!("+1 * -2 + +3",
-                     Infix(Box::new(Infix(Box::new(Literal(1)),
+                     Expression::infix(Expression::infix(Expression::constant_num(1),
                                           InfixOp::Mul,
-                                          Box::new(Prefix(PrefixOp::Negate,
-                                                          Box::new(Literal(2)))))),
+                                          Expression::prefix(PrefixOp::Negate,
+                                                                      Expression::constant_num(2))),
                            InfixOp::Add,
-                           Box::new(Literal(3))));
+                           Expression::constant_num(3)));
     }
 
     #[test]
     fn parse_simple_call() {
         check_parse!("foo()",
-                     Call(Box::new(Identifier("foo".to_string())), Vec::new()));
+                     Expression::call(Expression::identifier("foo".to_string()), Vec::new()));
     }
 
     #[test]
     fn parse_complex_call() {
         check_parse!("hello(1, 1 + 23, -world)",
-                     Call(Box::new(Identifier("hello".to_string())),
-                          vec![Literal(1),
-                               Infix(Box::new(Literal(1)), InfixOp::Add, Box::new(Literal(23))),
-                               Prefix(PrefixOp::Negate,
-                                      Box::new(Identifier("world".to_string())))]));
-
+                     Expression::call(Expression::identifier("hello".to_string()),
+                                      vec![Expression::constant_num(1),
+                               Expression::infix(Expression::constant_num(1),
+                                                 InfixOp::Add,
+                                                 Expression::constant_num(23)),
+                               Expression::prefix(PrefixOp::Negate,
+                                                  Expression::identifier("world".to_string()))]));
     }
 
 
     #[test]
     fn parse_groups_with_parens() {
         check_parse!("(1 + 2) * 3",
-                     Infix(Box::new(Infix(Box::new(Literal(1)),
+                     Infix(Box::new(Infix(Box::new(Expression::constant_num(1)),
                                           InfixOp::Add,
-                                          Box::new(Literal(2)))),
+                                          Box::new(Expression::constant_num(2)))),
                            InfixOp::Mul,
-                           Box::new(Literal(3))));
+                           Box::new(Expression::constant_num(3))));
     }
 
     #[test]
     fn parse_indexing() {
         check_parse!("hello[world](1, 2[3])",
-                     Call(Box::new(Index(Box::new(Identifier("hello".to_string())),
-                                         Box::new(Identifier("world".to_string())))),
-                          vec![Literal(1), Index(Box::new(Literal(2)), Box::new(Literal(3)))]));
+                     Expression::call(Expression::index(Expression::identifier("hello"
+                                                                                   .to_string()),
+                                                        Expression::identifier("world"
+                                                                                   .to_string())),
+                                      vec![Expression::constant_num(1),
+                                           Expression::index(Expression::constant_num(2),
+                                                             Expression::constant_num(3))]));
     }
 
     #[test]
     fn parse_ternary_if() {
         check_parse!("1 if 2 else 3",
-                     Ternary(Box::new(Literal(1)),
-                             Box::new(Literal(2)),
-                             Box::new(Literal(3))));
+                     Expression::if_then_else(Expression::constant_num(2),
+                                              Expression::constant_num(1),
+                                              Expression::constant_num(3)));
         check_parse!("hello(1) if foo[23] else world[1 if foo else 2]",
-        Ternary(
-            Box::new(Call(
-                Box::new(Identifier("hello".to_string())),
-                vec![Literal(1)])),
-            Box::new(Index(
-                Box::new(Identifier("foo".to_string())),
-                Box::new(Literal(23)))),
-            Box::new(Index(
-                Box::new(Identifier("world".to_string())),
-                Box::new(Ternary(Box::new(Literal(1)),
-                        Box::new(Identifier("foo".to_string())),
-                        Box::new(Literal(2))))))));
+                     Expression::if_then_else(
+                         Expression::index(
+                             Expression::identifier("foo".to_string()),
+                             Expression::constant_num(23)),
+                         Expression::call(
+                             Expression::identifier("hello".to_string()),
+                             vec![Expression::constant_num(1)]),
+                         Expression::index(
+                             Expression::identifier("world".to_string()),
+                             Expression::if_then_else(
+                                 Expression::identifier("foo".to_string()),
+                                 Expression::constant_num(1),
+                                 Expression::constant_num(2)))));
         check_parse!("0 unless 1 else 2",
-                     Ternary(Box::new(Literal(2)),
-                             Box::new(Literal(1)),
-                             Box::new(Literal(0))));
+                     Expression::if_then_else(Expression::constant_num(1),
+                                              Expression::constant_num(2),
+                                              Expression::constant_num(0)));
     }
 
     #[test]
     fn parse_unicode_identifiers() {
         check_parse!("  übåℝ * ßeåk  ",
-                     Infix(Box::new(Identifier("übåℝ".to_string())),
-                           InfixOp::Mul,
-                           Box::new(Identifier("ßeåk".to_string()))));
+                     Expression::infix(Expression::identifier("übåℝ".to_string()),
+                                       InfixOp::Mul,
+                                       Expression::identifier("ßeåk".to_string())));
     }
 
     #[test]
     fn parse_function_def() {
         check_parse!("fn test() :Num 100 end",
-                     Function(Box::new(Identifier("test".to_string())),
-                              TypeReference("Num".to_string()),
-                              Vec::new(),
-                              vec![Literal(100)]));
-
+                     Expression::function("test".to_string())
+                         .with_return_type(TypeReference("Num".to_string()))
+                         .with_body(vec![Expression::constant_num(100)])
+                         .into());
         check_parse!("fn ünécød3() :Num
                 0 if 74 else 888
              end",
-                     Function(Box::new(Identifier("ünécød3".to_string())),
-                              TypeReference("Num".to_string()),
-                              Vec::new(),
-                              vec![Ternary(Box::new(Literal(0)),
-                                           Box::new(Literal(74)),
-                                           Box::new(Literal(888)))]));
+                     Expression::function("ünécød3".to_string())
+                         .with_return_type(TypeReference("Num".to_string()))
+                         .with_body(vec![Expression::if_then_else(Expression::constant_num(74),
+                                                                  Expression::constant_num(0),
+                                                                  Expression::constant_num(888))])
+                         .into());
     }
 
     #[test]
     fn parse_while_loop() {
         check_parse!("while 1 end",
-                     Loop(Box::new(Literal(1)), Vec::new()));
+                     Expression::loop_while(Expression::constant_num(1), Vec::new()));
+        check_parse!("while 0 44 234 end",
+                     Expression::loop_while(Expression::constant_num(0),
+                                            vec![Expression::constant_num(44),
+                                                 Expression::constant_num(234)]));
     }
 }
