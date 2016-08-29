@@ -4,7 +4,6 @@
 use std::iter::Peekable;
 
 use super::{Expression, TypeReference, TypedId, PrefixOp, InfixOp};
-
 pub use self::error::{Error, Result};
 
 impl Expression {
@@ -34,6 +33,15 @@ pub enum Token<'a> {
 
     /// The `=` character
     Equals,
+
+    /// The `==` operator
+    DoubleEquals,
+
+    /// The `!` character
+    Bang,
+    
+    /// The `!=` operator
+    BangEquals,
 
     /// The `+` character
     Plus,
@@ -65,6 +73,12 @@ pub enum Token<'a> {
     /// The `:` character
     Colon,
 
+    /// The `<` character
+    LessThan,
+
+    /// The `>` character
+    MoreThan,
+
     /// An unrecognised token
     Unknown(char),
 }
@@ -75,7 +89,11 @@ impl InfixOp {
         use InfixOp::*;
         use self::Token::*;
         match *tok {
+            DoubleEquals => Some(Eq),
             Equals => Some(Assign),
+            BangEquals => Some(NotEq),
+            LessThan => Some(Lt),
+            MoreThan => Some(Gt),
             Star => Some(Mul),
             Slash => Some(Div),
             Plus => Some(Add),
@@ -114,7 +132,20 @@ impl<'a> Tokeniser<'a> {
         let tok = chars.next().and_then(|c| {
             te += c.len_utf8();
             match c {
-                '=' => Some(Token::Equals),
+                '=' => match chars.next() {
+                    Some('=') => {
+                        te += 1;
+                        Some(Token::DoubleEquals)
+                    },
+                    _ => Some(Token::Equals)
+                },
+                '!' => match chars.next() {
+                    Some('=') => {
+                        te += 1;
+                        Some(Token::BangEquals)
+                    },
+                    _ => Some(Token::Bang)
+                },
                 '+' => Some(Token::Plus),
                 '-' => Some(Token::Minus),
                 '*' => Some(Token::Star),
@@ -125,6 +156,8 @@ impl<'a> Tokeniser<'a> {
                 ']' => Some(Token::CloseSqBracket),
                 ',' => Some(Token::Comma),
                 ':' => Some(Token::Colon),
+                '<' => Some(Token::LessThan),
+                '>' => Some(Token::MoreThan),
                 '#' => {
                     te += chars.take_while(|c| *c != '\n')
                                .fold(0, |l, c| l + c.len_utf8());
@@ -321,11 +354,16 @@ impl<'a> Token<'a> {
 
             // ternary if
             Token::Word("if") | Token::Word("unless") => 20,
+            
+            // boolean conditional operators
+            Token::DoubleEquals | Token::BangEquals | Token::LessThan | Token::MoreThan => 40,
 
+            // Arithmetic operators
             Token::Plus | Token::Minus => 50,
 
             Token::Star | Token::Slash => 60,
 
+            // Grouping operators
             Token::OpenBracket | Token::OpenSqBracket => 80,
 
             _ => 0,
@@ -382,6 +420,10 @@ impl<'a> Token<'a> {
                 let rhs = try!(parser.expression(100));
                 Ok(Expression::prefix(PrefixOp::Negate, rhs))
             }
+            Token::Bang => {
+                let rhs = try!(parser.expression(100));
+                Ok(Expression::prefix(PrefixOp::Not, rhs))
+            }
             Token::OpenBracket => {
                 let expr = try!(parser.expression(0));
                 try!(parser.expect(Token::CloseBracket));
@@ -400,6 +442,10 @@ impl<'a> Token<'a> {
         match *self {
 
             // Binary infix operator
+            Token::DoubleEquals |
+            Token::BangEquals |
+            Token::LessThan |
+            Token::MoreThan |
             Token::Equals |
             Token::Plus |
             Token::Minus |
@@ -505,6 +551,55 @@ mod test {
     }
 
     #[test]
+    fn parse_operators() {
+        check_parse!("a = b",
+                     Expression::infix(
+                         Expression::identifier("a".to_string()),
+                         InfixOp::Assign,
+                         Expression::identifier("b".to_string())));
+        check_parse!("a + b",
+                     Expression::infix(
+                         Expression::identifier("a".to_string()),
+                         InfixOp::Add,
+                         Expression::identifier("b".to_string())));
+        check_parse!("a - b",
+                     Expression::infix(
+                         Expression::identifier("a".to_string()),
+                         InfixOp::Sub,
+                         Expression::identifier("b".to_string())));
+        check_parse!("a * b",
+                     Expression::infix(
+                         Expression::identifier("a".to_string()),
+                         InfixOp::Mul,
+                         Expression::identifier("b".to_string())));
+        check_parse!("a / b",
+                     Expression::infix(
+                         Expression::identifier("a".to_string()),
+                         InfixOp::Div,
+                         Expression::identifier("b".to_string())));
+        check_parse!("a == b",
+                     Expression::infix(
+                         Expression::identifier("a".to_string()),
+                         InfixOp::Eq,
+                         Expression::identifier("b".to_string())));
+        check_parse!("a != b",
+                     Expression::infix(
+                         Expression::identifier("a".to_string()),
+                         InfixOp::NotEq,
+                         Expression::identifier("b".to_string())));
+        check_parse!("a < b",
+                     Expression::infix(
+                         Expression::identifier("a".to_string()),
+                         InfixOp::Lt,
+                         Expression::identifier("b".to_string())));
+        check_parse!("a > b",
+                     Expression::infix(
+                         Expression::identifier("a".to_string()),
+                         InfixOp::Gt,
+                         Expression::identifier("b".to_string())));
+    }
+
+    #[test]
     fn parse_with_precedence() {
         check_parse!("1 + 2 * 3",
                      Expression::infix(Expression::constant_num(1),
@@ -522,7 +617,20 @@ mod test {
                                           Expression::prefix(PrefixOp::Negate,
                                                                       Expression::constant_num(2))),
                            InfixOp::Add,
-                           Expression::constant_num(3)));
+                                       Expression::constant_num(3)));
+        check_parse!("!a",
+                     Expression::prefix(
+                         PrefixOp::Not,
+                         Expression::identifier("a".to_string())));
+        check_parse!("!a != !b",
+                     Expression::infix(
+                         Expression::prefix(
+                             PrefixOp::Not,
+                             Expression::identifier("a".to_string())),
+                         InfixOp::NotEq,
+                         Expression::prefix(
+                             PrefixOp::Not,
+                             Expression::identifier("b".to_string()))));
     }
 
     #[test]

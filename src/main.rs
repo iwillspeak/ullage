@@ -15,6 +15,7 @@ pub mod meta {
 #[derive(Debug,PartialEq)]
 pub enum PrefixOp {
     Negate,
+    Not,
 }
 
 /// Represents an AST infix operator
@@ -25,6 +26,10 @@ pub enum InfixOp {
     Sub,
     Mul,
     Div,
+    Eq,
+    NotEq,
+    Lt,
+    Gt,
 }
 
 /// Represents a reference to a type

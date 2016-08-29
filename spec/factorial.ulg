@@ -1,0 +1,15 @@
+fn factorial(n: Num): Num
+
+    let acc: Num = 0
+	
+    while n > 0
+        acc = acc * n
+        n = n - 1
+    end
+
+	# 'return' the result in the acc
+	acc
+end
+
+
+factorial(5) # => 120
