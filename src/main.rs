@@ -7,6 +7,10 @@
 
 mod parse;
 
+mod meta {
+    pub const VERSION: Option<&'static str> = option_env!("CARGO_PKG_VERSION");
+}
+
 /// Represents an AST prefix operator.
 #[derive(Debug,PartialEq)]
 pub enum PrefixOp {
@@ -240,11 +244,24 @@ impl From<FunctionDeclarationBuilder> for Expression {
 
 #[cfg(not(test))]
 fn main() {
+
     use std::io;
     use std::io::prelude::*;
     use std::process::*;
 
+    fn prompt(c: char) {
+        print!("{0}{0}{0} ", c);
+        io::stdout().flush().unwrap();
+    }
+    
     let mut failures = 0;
+
+    println!("ullage ({})", meta::VERSION.unwrap_or("unknown"));
+    prompt('>');
+
+    let quit_expr = vec![Expression::call(
+        Expression::identifier("quit".to_string()),
+        vec![])];
 
     let mut buffered = String::new();
     let stdin = io::stdin();
@@ -253,18 +270,20 @@ fn main() {
             buffered.push_str(&line);
             buffered.push('\n');
             match Expression::parse_str(&buffered) {
+                Ok(ref expr) if expr == &quit_expr => break,
                 Ok(parsed) => {
                     buffered.clear();
                     println!("OK > {:?}", parsed);
+                    prompt('>');
                 }
                 Err(parse::Error::Incomplete) => {
-                    print!("> ");
-                    io::stdout().flush().unwrap();
+                    prompt('.');
                 }
                 Err(err) => {
                     buffered.clear();
                     failures += 1;
                     println!("Error: {:?} ({})", err, buffered);
+                    prompt('>');
                 }
             };
         };
