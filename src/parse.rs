@@ -363,6 +363,18 @@ impl<'a> Token<'a> {
                 try!(parser.expect(Token::Word("end")));
                 Ok(Expression::loop_while(condition, block))
             }
+            Token::Word("let") => {
+                let id = try!(parser.identifier());
+                let typ = parser.optional_type_ref();
+                try!(parser.expect(Token::Equals));
+                let rhs = try!(parser.expression(0));
+                Ok(Expression::sequence(vec![
+                    Expression::variable(TypedId::from_parts(id.clone(), typ)),
+                    Expression::infix(
+                        Expression::identifier(id),
+                        InfixOp::Assign,
+                        rhs)]))
+            }
             Token::Word(word) => Ok(Expression::identifier(String::from(word))),
             Token::Literal(i) => Ok(Expression::constant_num(i)),
             Token::Plus => parser.expression(100),
@@ -642,5 +654,17 @@ mod test {
                              InfixOp::Add,
                              Expression::identifier("k".to_string()))])
                      .into());
+    }
+
+    #[test]
+    fn parse_simple_let() {
+        check_parse!("let foo = 100",
+                     Expression::sequence(vec![
+                         Expression::variable(TypedId::from_parts("foo".to_string(), None)),
+                         Expression::infix(
+                             Expression::identifier("foo".to_string()),
+                             InfixOp::Assign,
+                             Expression::constant_num(100))
+                     ]));
     }
 }

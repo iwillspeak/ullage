@@ -36,16 +36,17 @@ pub struct TypedId {
 
 impl TypedId {
     pub fn new(id: String, typ: TypeReference) -> Self {
-        TypedId {
-            id: id,
-            typ: Some(typ)
-        }
+        Self::from_parts(id, Some(typ))
     }
 
     pub fn new_without_type(id: String) -> Self {
+        Self::from_parts(id, None)
+    }
+
+    pub fn from_parts(id: String, typ: Option<TypeReference>) -> Self {
         TypedId {
             id: id,
-            typ: None
+            typ: typ
         }
     }
 }
@@ -69,6 +70,8 @@ pub enum Expression {
     IfThenElse(Box<Expression>, Box<Expression>, Box<Expression>),
     Function(String, TypeReference, Vec<TypedId>, Vec<Expression>),
     Loop(Box<Expression>, Vec<Expression>),
+    Variable(TypedId),
+    Sequence(Vec<Expression>),
 }
 
 impl Expression {
@@ -156,6 +159,20 @@ impl Expression {
     /// condition changes.
     pub fn loop_while(condition: Expression, body: Vec<Expression>) -> Self {
         Expression::Loop(Box::new(condition), body)
+    }
+
+    /// # New Variable Declaration
+    ///
+    /// Represents the declaration of a local variable.
+    pub fn variable(var: TypedId) -> Self {
+        Expression::Variable(var)
+    }
+
+    /// # New Sequence Expression
+    ///
+    /// Represents a sequence of expressions evaluated one after the other.
+    pub fn sequence(exprs: Vec<Expression>) -> Self {
+        Expression::Sequence(exprs)
     }
 }
 
