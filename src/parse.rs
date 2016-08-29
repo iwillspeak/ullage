@@ -641,11 +641,13 @@ mod test {
 
         check_parse!("fn test(i: Num, j, k: String): String i + j + k end",
                      Expression::function("test".to_string())
-                     .with_arg(TypedId::new("i".to_string(), TypeReference("Num".to_string())))
-                     .with_arg(TypedId::new_without_type("j".to_string()))
-                     .with_arg(TypedId::new("k".to_string(), TypeReference("String".to_string())))
-                     .with_return_type(TypeReference("String".to_string()))
-                     .with_body(vec![
+                         .with_arg(TypedId::new("i".to_string(),
+                                                TypeReference("Num".to_string())))
+                         .with_arg(TypedId::new_without_type("j".to_string()))
+                         .with_arg(TypedId::new("k".to_string(),
+                                                TypeReference("String".to_string())))
+                         .with_return_type(TypeReference("String".to_string()))
+                         .with_body(vec![
                          Expression::infix(
                              Expression::infix(
                                  Expression::identifier("i".to_string()),
@@ -653,7 +655,7 @@ mod test {
                                  Expression::identifier("j".to_string())),
                              InfixOp::Add,
                              Expression::identifier("k".to_string()))])
-                     .into());
+                         .into());
     }
 
     #[test]

@@ -7,7 +7,7 @@
 
 mod parse;
 
-mod meta {
+pub mod meta {
     pub const VERSION: Option<&'static str> = option_env!("CARGO_PKG_VERSION");
 }
 
@@ -48,10 +48,7 @@ impl TypedId {
     }
 
     pub fn from_parts(id: String, typ: Option<TypeReference>) -> Self {
-        TypedId {
-            id: id,
-            typ: typ
-        }
+        TypedId { id: id, typ: typ }
     }
 }
 
@@ -253,15 +250,13 @@ fn main() {
         print!("{0}{0}{0} ", c);
         io::stdout().flush().unwrap();
     }
-    
+
     let mut failures = 0;
 
     println!("ullage ({})", meta::VERSION.unwrap_or("unknown"));
     prompt('>');
 
-    let quit_expr = vec![Expression::call(
-        Expression::identifier("quit".to_string()),
-        vec![])];
+    let quit_expr = vec![Expression::call(Expression::identifier("quit".to_string()), vec![])];
 
     let mut buffered = String::new();
     let stdin = io::stdin();
