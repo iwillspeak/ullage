@@ -39,7 +39,7 @@ pub enum Token<'a> {
 
     /// The `!` character
     Bang,
-    
+
     /// The `!=` operator
     BangEquals,
 
@@ -132,20 +132,24 @@ impl<'a> Tokeniser<'a> {
         let tok = chars.next().and_then(|c| {
             te += c.len_utf8();
             match c {
-                '=' => match chars.next() {
-                    Some('=') => {
-                        te += 1;
-                        Some(Token::DoubleEquals)
-                    },
-                    _ => Some(Token::Equals)
-                },
-                '!' => match chars.next() {
-                    Some('=') => {
-                        te += 1;
-                        Some(Token::BangEquals)
-                    },
-                    _ => Some(Token::Bang)
-                },
+                '=' => {
+                    match chars.next() {
+                        Some('=') => {
+                            te += 1;
+                            Some(Token::DoubleEquals)
+                        }
+                        _ => Some(Token::Equals),
+                    }
+                }
+                '!' => {
+                    match chars.next() {
+                        Some('=') => {
+                            te += 1;
+                            Some(Token::BangEquals)
+                        }
+                        _ => Some(Token::Bang),
+                    }
+                }
                 '+' => Some(Token::Plus),
                 '-' => Some(Token::Minus),
                 '*' => Some(Token::Star),
@@ -354,7 +358,7 @@ impl<'a> Token<'a> {
 
             // ternary if
             Token::Word("if") | Token::Word("unless") => 20,
-            
+
             // boolean conditional operators
             Token::DoubleEquals | Token::BangEquals | Token::LessThan | Token::MoreThan => 40,
 
@@ -553,50 +557,41 @@ mod test {
     #[test]
     fn parse_operators() {
         check_parse!("a = b",
-                     Expression::infix(
-                         Expression::identifier("a".to_string()),
-                         InfixOp::Assign,
-                         Expression::identifier("b".to_string())));
+                     Expression::infix(Expression::identifier("a".to_string()),
+                                       InfixOp::Assign,
+                                       Expression::identifier("b".to_string())));
         check_parse!("a + b",
-                     Expression::infix(
-                         Expression::identifier("a".to_string()),
-                         InfixOp::Add,
-                         Expression::identifier("b".to_string())));
+                     Expression::infix(Expression::identifier("a".to_string()),
+                                       InfixOp::Add,
+                                       Expression::identifier("b".to_string())));
         check_parse!("a - b",
-                     Expression::infix(
-                         Expression::identifier("a".to_string()),
-                         InfixOp::Sub,
-                         Expression::identifier("b".to_string())));
+                     Expression::infix(Expression::identifier("a".to_string()),
+                                       InfixOp::Sub,
+                                       Expression::identifier("b".to_string())));
         check_parse!("a * b",
-                     Expression::infix(
-                         Expression::identifier("a".to_string()),
-                         InfixOp::Mul,
-                         Expression::identifier("b".to_string())));
+                     Expression::infix(Expression::identifier("a".to_string()),
+                                       InfixOp::Mul,
+                                       Expression::identifier("b".to_string())));
         check_parse!("a / b",
-                     Expression::infix(
-                         Expression::identifier("a".to_string()),
-                         InfixOp::Div,
-                         Expression::identifier("b".to_string())));
+                     Expression::infix(Expression::identifier("a".to_string()),
+                                       InfixOp::Div,
+                                       Expression::identifier("b".to_string())));
         check_parse!("a == b",
-                     Expression::infix(
-                         Expression::identifier("a".to_string()),
-                         InfixOp::Eq,
-                         Expression::identifier("b".to_string())));
+                     Expression::infix(Expression::identifier("a".to_string()),
+                                       InfixOp::Eq,
+                                       Expression::identifier("b".to_string())));
         check_parse!("a != b",
-                     Expression::infix(
-                         Expression::identifier("a".to_string()),
-                         InfixOp::NotEq,
-                         Expression::identifier("b".to_string())));
+                     Expression::infix(Expression::identifier("a".to_string()),
+                                       InfixOp::NotEq,
+                                       Expression::identifier("b".to_string())));
         check_parse!("a < b",
-                     Expression::infix(
-                         Expression::identifier("a".to_string()),
-                         InfixOp::Lt,
-                         Expression::identifier("b".to_string())));
+                     Expression::infix(Expression::identifier("a".to_string()),
+                                       InfixOp::Lt,
+                                       Expression::identifier("b".to_string())));
         check_parse!("a > b",
-                     Expression::infix(
-                         Expression::identifier("a".to_string()),
-                         InfixOp::Gt,
-                         Expression::identifier("b".to_string())));
+                     Expression::infix(Expression::identifier("a".to_string()),
+                                       InfixOp::Gt,
+                                       Expression::identifier("b".to_string())));
     }
 
     #[test]
@@ -619,9 +614,7 @@ mod test {
                            InfixOp::Add,
                                        Expression::constant_num(3)));
         check_parse!("!a",
-                     Expression::prefix(
-                         PrefixOp::Not,
-                         Expression::identifier("a".to_string())));
+                     Expression::prefix(PrefixOp::Not, Expression::identifier("a".to_string())));
         check_parse!("!a != !b",
                      Expression::infix(
                          Expression::prefix(
@@ -740,12 +733,14 @@ mod test {
     fn parse_function_with_args() {
         check_parse!("fn neg(i: Num): Num - i end",
                      Expression::function("neg".to_string())
-                     .with_arg(TypedId::new("i".to_string(), TypeReference("Num".to_string())))
-                     .with_return_type(TypeReference("Num".to_string()))
-                     .with_body(vec![
-                         Expression::prefix(PrefixOp::Negate, Expression::identifier("i".to_string()))
-                     ])
-                     .into());
+                         .with_arg(TypedId::new("i".to_string(),
+                                                TypeReference("Num".to_string())))
+                         .with_return_type(TypeReference("Num".to_string()))
+                         .with_body(vec![
+                         Expression::prefix(
+                             PrefixOp::Negate,
+                             Expression::identifier("i".to_string()))])
+                         .into());
 
         check_parse!("fn test(i: Num, j, k: String): String i + j + k end",
                      Expression::function("test".to_string())
