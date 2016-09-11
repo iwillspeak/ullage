@@ -164,7 +164,7 @@ impl<'a> Tokeniser<'a> {
                 '>' => Some(Token::MoreThan),
                 '#' => {
                     te += chars.take_while(|c| *c != '\n')
-                               .fold(0, |l, c| l + c.len_utf8());
+                        .fold(0, |l, c| l + c.len_utf8());
                     Some(Token::Whitespace(&self.buff[ts..te]))
                 }
                 '0'...'9' => {
@@ -176,12 +176,12 @@ impl<'a> Tokeniser<'a> {
                 }
                 c if c.is_alphabetic() || c == '_' => {
                     te += chars.take_while(|c| c.is_alphanumeric() || *c == '_')
-                               .fold(0, |l, c| l + c.len_utf8());
+                        .fold(0, |l, c| l + c.len_utf8());
                     Some(Token::Word(&self.buff[ts..te]))
                 }
                 c if c.is_whitespace() => {
                     te += chars.take_while(|c| c.is_whitespace())
-                               .fold(0, |l, c| l + c.len_utf8());
+                        .fold(0, |l, c| l + c.len_utf8());
                     Some(Token::Whitespace(&self.buff[ts..te]))
                 }
                 _ => Some(Token::Unknown(c)),
@@ -241,14 +241,14 @@ impl<'a> Parser<'a> {
     /// token's lexeme is of the given type.
     pub fn expect(&mut self, expected: Token) -> Result<()> {
         match self.lexer.peek() {
-            Some(token) if token == &expected => Ok(()),
-            Some(_) => Err(Error::Unexpected),
-            None => Err(Error::Incomplete),
-        }
-        .map(|ok| {
-            self.lexer.next();
-            ok
-        })
+                Some(token) if token == &expected => Ok(()),
+                Some(_) => Err(Error::Unexpected),
+                None => Err(Error::Incomplete),
+            }
+            .map(|ok| {
+                self.lexer.next();
+                ok
+            })
     }
 
     /// Checks that the next token is of the given type
@@ -357,7 +357,8 @@ impl<'a> Token<'a> {
             Token::Equals => 10,
 
             // ternary if
-            Token::Word("if") | Token::Word("unless") => 20,
+            Token::Word("if") |
+            Token::Word("unless") => 20,
 
             // boolean conditional operators
             Token::DoubleEquals | Token::BangEquals | Token::LessThan | Token::MoreThan => 40,
@@ -395,7 +396,7 @@ impl<'a> Token<'a> {
                 }
                 try!(parser.expect(Token::CloseBracket));
                 res = res.with_return_type(try!(parser.type_ref()))
-                         .with_body(try!(parser.block()));
+                    .with_body(try!(parser.block()));
                 try!(parser.expect(Token::Word("end")));
                 Ok(Expression::from(res))
             }
@@ -446,15 +447,8 @@ impl<'a> Token<'a> {
         match *self {
 
             // Binary infix operator
-            Token::DoubleEquals |
-            Token::BangEquals |
-            Token::LessThan |
-            Token::MoreThan |
-            Token::Equals |
-            Token::Plus |
-            Token::Minus |
-            Token::Star |
-            Token::Slash => {
+            Token::DoubleEquals | Token::BangEquals | Token::LessThan | Token::MoreThan |
+            Token::Equals | Token::Plus | Token::Minus | Token::Star | Token::Slash => {
                 let rhs = try!(parser.expression(self.lbp()));
                 let op = InfixOp::for_token(self).unwrap();
                 Ok(Expression::infix(lhs, op, rhs))
@@ -637,11 +631,12 @@ mod test {
         check_parse!("hello(1, 1 + 23, -world)",
                      Expression::call(Expression::identifier("hello".to_string()),
                                       vec![Expression::constant_num(1),
-                               Expression::infix(Expression::constant_num(1),
-                                                 InfixOp::Add,
-                                                 Expression::constant_num(23)),
-                               Expression::prefix(PrefixOp::Negate,
-                                                  Expression::identifier("world".to_string()))]));
+                                           Expression::infix(Expression::constant_num(1),
+                                                             InfixOp::Add,
+                                                             Expression::constant_num(23)),
+                                           Expression::prefix(PrefixOp::Negate,
+                                                              Expression::identifier("world"
+                                                                  .to_string()))]));
     }
 
 
@@ -659,9 +654,9 @@ mod test {
     fn parse_indexing() {
         check_parse!("hello[world](1, 2[3])",
                      Expression::call(Expression::index(Expression::identifier("hello"
-                                                                                   .to_string()),
+                                                            .to_string()),
                                                         Expression::identifier("world"
-                                                                                   .to_string())),
+                                                            .to_string())),
                                       vec![Expression::constant_num(1),
                                            Expression::index(Expression::constant_num(2),
                                                              Expression::constant_num(3))]));

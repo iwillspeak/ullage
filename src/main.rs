@@ -6,6 +6,7 @@
 //! Pratt-style operator precedence parsing.
 
 mod parse;
+mod eval;
 
 pub mod meta {
     pub const VERSION: Option<&'static str> = option_env!("CARGO_PKG_VERSION");
@@ -251,6 +252,8 @@ fn main() {
     use std::io::prelude::*;
     use std::process::*;
 
+    use eval::Evaluator;
+
     fn prompt(c: char) {
         print!("{0}{0}{0} ", c);
         io::stdout().flush().unwrap();
@@ -263,6 +266,7 @@ fn main() {
 
     let quit_expr = vec![Expression::call(Expression::identifier("quit".to_string()), vec![])];
 
+    let mut eval = Evaluator::new();
     let mut buffered = String::new();
     let stdin = io::stdin();
     for line_io in stdin.lock().lines() {
@@ -274,6 +278,9 @@ fn main() {
                 Ok(parsed) => {
                     buffered.clear();
                     println!("OK > {:?}", parsed);
+                    for expr in parsed {
+                        println!("=> {:?}", eval.eval(expr));
+                    }
                     prompt('>');
                 }
                 Err(parse::Error::Incomplete) => {
