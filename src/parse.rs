@@ -322,26 +322,17 @@ impl<'a> Parser<'a> {
 
     /// Returns true if the next token's lbp is > the given rbp
     fn next_binds_tighter_than(&mut self, rbp: u32) -> bool {
-        match self.lexer.peek() {
-            Some(ref token) => token.lbp() > rbp,
-            None => false,
-        }
+        self.lexer.peek().map_or(false, |t| t.lbp() > rbp)
     }
 
     /// Attempt to parse a single left denotation
     fn parse_led(&mut self, lhs: Expression) -> Result<Expression> {
-        match self.lexer.next() {
-            Some(token) => token.led(self, lhs),
-            None => Err(Error::Incomplete),
-        }
+        self.lexer.next().map_or(Err(Error::Incomplete), |t| t.led(self, lhs))
     }
 
     /// Attempt to parse a single null denotation
     fn parse_nud(&mut self) -> Result<Expression> {
-        match self.lexer.next() {
-            Some(token) => token.nud(self),
-            None => Err(Error::Incomplete),
-        }
+        self.lexer.next().map_or(Err(Error::Incomplete), |t| t.nud(self))
     }
 }
 
