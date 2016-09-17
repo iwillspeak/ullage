@@ -86,7 +86,7 @@ pub enum Token<'a> {
 impl InfixOp {
     /// Get infix operator from token
     fn for_token(tok: &Token) -> Option<Self> {
-        use InfixOp::*;
+        use super::InfixOp::*;
         use self::Token::*;
         match *tok {
             DoubleEquals => Some(Eq),
@@ -514,7 +514,7 @@ pub mod error {
 mod test {
     use super::{Tokeniser, Parser};
     use super::super::*;
-    use Expression::*;
+    use super::super::Expression::*;
 
     macro_rules! check_parse {
         ($src:expr, $expected:expr) => {

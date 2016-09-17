@@ -1,7 +1,8 @@
 //! Expression Tree Evaluation
 
 use std::collections::HashMap;
-use super::{Expression, Constant, PrefixOp, InfixOp};
+use syntax::{Expression, Constant, PrefixOp, InfixOp, TypeReference, TypedId};
+use syntax::visit::Visitor;
 
 /// Ullage Expression Evaluation Context
 ///
@@ -18,57 +19,7 @@ impl Evaluator {
 
     /// Evaluate an Expression
     pub fn eval(&mut self, expr: Expression) -> Value {
-        match expr {
-            Expression::Identifier(id) => self.sym_tab.get(&id).unwrap().clone(),
-            Expression::Literal(c) => c.into(),
-            Expression::Prefix(PrefixOp::Negate, expr) => {
-                match self.eval(*expr) {
-                    Value::Num(i) => Value::Num(-i),
-                    _ => panic!("type mismatch"),
-                }
-            }
-            Expression::Prefix(PrefixOp::Not, expr) => {
-                match self.eval(*expr) {
-                    Value::Num(i) if i != 0 => Value::Num(0),
-                    Value::Num(i) if i == 0 => Value::Num(1),
-                    _ => panic!("type mismatch"),
-                }
-            }
-            Expression::Infix(lhs, op, rhs) => self.eval_infix(*lhs, op, *rhs),
-            Expression::Variable(typed_id) => {
-                self.sym_tab.insert(typed_id.id, Value::Num(0));
-                Value::Num(0)
-            }
-            Expression::Sequence(mut exprs) => {
-                exprs.reverse();
-                let mut value = Value::Num(0);
-                while let Some(e) = exprs.pop() {
-                    value = self.eval(e);
-                }
-                value
-            }
-            _ => panic!(format!("Unimplemented: {:?}", expr)),
-        }
-    }
-
-    fn eval_infix(&mut self, lhs: Expression, op: InfixOp, rhs: Expression) -> Value {
-        let rhs_val = self.eval(rhs);
-
-        if op == InfixOp::Assign {
-            let id = match lhs {
-                Expression::Identifier(id) => id,
-                _ => panic!("assing to something which isn't an id"),
-            };
-            self.sym_tab.insert(id, rhs_val.clone());
-            return rhs_val;
-        }
-
-        let lhs_val = self.eval(lhs);
-
-        match (lhs_val, rhs_val) {
-            (Value::Num(i), Value::Num(j)) => self.eval_infix_num(i, op, j),
-            _ => panic!("TODO"),
-        }
+        expr.visit(self)
     }
 
     fn eval_infix_num(&mut self, i: i64, op: InfixOp, j: i64) -> Value {
@@ -83,6 +34,87 @@ impl Evaluator {
             InfixOp::Gt => Value::Num(if i > j { 1 } else { 0 }),
             InfixOp::Assign => Value::Num(j),
         }
+    }
+}
+
+impl Visitor for Evaluator {
+    type Output = Value;
+
+    fn on_identifier(&mut self, id: String) -> Self::Output {
+        self.sym_tab.get(&id).unwrap().clone()
+    }
+
+    fn on_literal(&mut self, lit: Constant) -> Self::Output {
+        lit.into()
+    }
+
+    fn on_prefix(&mut self, op: PrefixOp, value: Expression) -> Self::Output {
+        let value = value.visit(self);
+        match op {
+            PrefixOp::Negate => match value {
+                Value::Num(i) => Value::Num(-i),
+                _ => panic!("type mismatch")
+            },
+            PrefixOp::Not => match value {
+                Value::Num(i) if i != 0 => Value::Num(0),
+                Value::Num(i) if i == 0 => Value::Num(1),
+                _ => panic!("type mismatch"),
+            }
+        }
+    }
+
+    fn on_infix(&mut self, lhs: Expression, op: InfixOp, rhs: Expression) -> Self::Output {
+        let rhs_val = rhs.visit(self);
+
+        if op == InfixOp::Assign {
+            let id = match lhs {
+                Expression::Identifier(id) => id,
+                _ => panic!("assing to something which isn't an id"),
+            };
+            self.sym_tab.insert(id, rhs_val.clone());
+            return rhs_val;
+        }
+
+        let lhs_val = lhs.visit(self);
+
+        match (lhs_val, rhs_val) {
+            (Value::Num(i), Value::Num(j)) => self.eval_infix_num(i, op, j),
+            _ => panic!("TODO"),
+        }
+    }
+
+    fn on_call(&mut self, calee: Expression, args: Vec<Expression>) -> Self::Output {
+        unimplemented!();
+    }
+
+    fn on_index(&mut self, target: Expression, index: Expression) -> Self::Output {
+        unimplemented!();
+    }
+
+    fn on_if(&mut self, cond: Expression, then: Expression, els: Expression) -> Self::Output {
+        unimplemented!();
+    }
+
+    fn on_function(&mut self, id: String, ty: TypeReference, args: Vec<TypedId>, body: Expression) -> Self::Output {
+        unimplemented!();
+    }
+
+    fn on_loop(&mut self, cond: Expression, body: Expression) -> Self::Output {
+        unimplemented!();
+    }
+
+    fn on_variable(&mut self, var: TypedId) -> Self::Output {
+        self.sym_tab.insert(var.id, Value::Num(0));
+        Value::Num(0)
+    }
+
+    fn on_sequence(&mut self, mut exprs: Vec<Expression>) -> Self::Output {
+        exprs.reverse();
+        let mut value = Value::Num(0);
+        while let Some(e) = exprs.pop() {
+            value = e.visit(self);
+        }
+        value
     }
 }
 
@@ -104,8 +136,8 @@ impl From<Constant> for Value {
 #[cfg(test)]
 mod test {
 
+    use syntax::*;
     use super::*;
-    use super::super::*;
 
     #[test]
     fn create_evaluator() {
