@@ -1,7 +1,8 @@
 //! Expression Tree Evaluation
 
 use std::collections::HashMap;
-use syntax::{Expression, Constant, PrefixOp, InfixOp, TypeReference, TypedId};
+use syntax::{Expression, Constant, TypeReference, TypedId};
+use syntax::operators::{PrefixOp, InfixOp};
 use syntax::visit::Visitor;
 
 /// Ullage Expression Evaluation Context
@@ -137,6 +138,7 @@ impl From<Constant> for Value {
 mod test {
 
     use syntax::*;
+    use syntax::operators::*;
     use super::*;
 
     #[test]

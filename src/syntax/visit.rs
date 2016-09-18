@@ -1,6 +1,7 @@
 //! Expression Visitor
 
 use super::*;
+use super::operators::*;
 
 /// Ullage Expression Visitor
 ///
