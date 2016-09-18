@@ -8,11 +8,10 @@ use super::operators::*;
 /// This trait defines a type which can observe each node in an
 /// expression tree.
 pub trait Visitor {
-
     /// The output type of this vistor. This can be used to allow
     /// expression visitors to transform the tree as they walk it.
     type Output;
-    
+
     /// Visit Identifier
     ///
     /// Represents a reference to a local or global value. This could
@@ -56,7 +55,12 @@ pub trait Visitor {
     /// Visit a Function Declaration
     ///
     /// Represents the introduction of a new funciton into the scope.
-    fn on_function(&mut self, id: String, ty: TypeReference, args: Vec<TypedId>, body: Expression) -> Self::Output;
+    fn on_function(&mut self,
+                   id: String,
+                   ty: TypeRef,
+                   args: Vec<TypedId>,
+                   body: Expression)
+                   -> Self::Output;
 
     /// Visit a Loop
     ///
@@ -77,10 +81,9 @@ pub trait Visitor {
 }
 
 impl Expression {
-
     /// Visit this Expression
     pub fn visit<V, O>(self, v: &mut V) -> O
-        where V: Visitor<Output=O>
+        where V: Visitor<Output = O>
     {
         match self {
             Expression::Identifier(id) => v.on_identifier(id),

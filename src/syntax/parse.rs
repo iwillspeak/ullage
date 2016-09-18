@@ -3,7 +3,7 @@
 
 use std::iter::Peekable;
 
-use super::{Expression, TypeReference, TypedId};
+use super::{Expression, TypeRef, TypedId};
 use super::operators::{InfixOp, PrefixOp};
 pub use self::error::{Error, Result};
 
@@ -285,19 +285,29 @@ impl<'a> Parser<'a> {
 
     /// Attempt to parse a type reference, this is a single
     /// `:` followed by a type name.
-    pub fn type_ref(&mut self) -> Result<TypeReference> {
+    pub fn type_ref(&mut self) -> Result<TypeRef> {
         try!(self.expect(Token::Colon));
+        self.ty()
+    }
+
+    pub fn ty(&mut self) -> Result<TypeRef> {
         match self.lexer.peek() {
             Some(&Token::Word(t)) => {
                 try!(self.advance());
-                Ok(TypeReference(t.to_string()))
+                Ok(TypeRef::simple(t))
+            }
+            Some(&Token::OpenSqBracket) => {
+                try!(self.advance());
+                let inner = try!(self.ty());
+                try!(self.expect(Token::CloseSqBracket));
+                Ok(TypeRef::array(inner))
             }
             _ => Err(Error::Unexpected),
         }
     }
 
     /// Parse an optional type reference
-    pub fn optional_type_ref(&mut self) -> Option<TypeReference> {
+    pub fn optional_type_ref(&mut self) -> Option<TypeRef> {
         if self.next_is(Token::Colon) {
             self.type_ref().ok()
         } else {
@@ -694,14 +704,14 @@ mod test {
     fn parse_function_def() {
         check_parse!("fn test() :Num 100 end",
                      Expression::function("test".to_string())
-                         .with_return_type(TypeReference("Num".to_string()))
+                         .with_return_type(TypeRef::simple("Num"))
                          .with_body(vec![Expression::constant_num(100)])
                          .into());
         check_parse!("fn ünécød3() :Num
                 0 if 74 else 888
              end",
                      Expression::function("ünécød3".to_string())
-                         .with_return_type(TypeReference("Num".to_string()))
+                         .with_return_type(TypeRef::simple("Num"))
                          .with_body(vec![Expression::if_then_else(Expression::constant_num(74),
                                                                   Expression::constant_num(0),
                                                                   Expression::constant_num(888))])
@@ -722,9 +732,8 @@ mod test {
     fn parse_function_with_args() {
         check_parse!("fn neg(i: Num): Num - i end",
                      Expression::function("neg".to_string())
-                         .with_arg(TypedId::new("i".to_string(),
-                                                TypeReference("Num".to_string())))
-                         .with_return_type(TypeReference("Num".to_string()))
+                         .with_arg(TypedId::new("i".to_string(), TypeRef::simple("Num")))
+                         .with_return_type(TypeRef::simple("Num"))
                          .with_body(vec![
                          Expression::prefix(
                              PrefixOp::Negate,
@@ -733,12 +742,10 @@ mod test {
 
         check_parse!("fn test(i: Num, j, k: String): String i + j + k end",
                      Expression::function("test".to_string())
-                         .with_arg(TypedId::new("i".to_string(),
-                                                TypeReference("Num".to_string())))
+                         .with_arg(TypedId::new("i".to_string(), TypeRef::simple("Num")))
                          .with_arg(TypedId::new_without_type("j".to_string()))
-                         .with_arg(TypedId::new("k".to_string(),
-                                                TypeReference("String".to_string())))
-                         .with_return_type(TypeReference("String".to_string()))
+                         .with_arg(TypedId::new("k".to_string(), TypeRef::simple("String")))
+                         .with_return_type(TypeRef::simple("String"))
                          .with_body(vec![
                          Expression::infix(
                              Expression::infix(
@@ -748,6 +755,20 @@ mod test {
                              InfixOp::Add,
                              Expression::identifier("k".to_string()))])
                          .into());
+    }
+
+    #[test]
+    fn parse_simple_array_type() {
+        check_parse!("let f: [Num] = 100",
+                     Expression::sequence(vec![
+                         Expression::variable(
+                             TypedId::from_parts(String::from("f"),
+                                                 Some(TypeRef::array(TypeRef::simple("Num"))))),
+                         Expression::infix(
+                             Expression::identifier(String::from("f")),
+                             InfixOp::Assign,
+                             Expression::constant_num(100))
+                     ]));
     }
 
     #[test]

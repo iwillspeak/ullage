@@ -10,25 +10,69 @@ use self::operators::*;
 
 /// Represents a reference to a type
 #[derive(Debug,PartialEq)]
-pub struct TypeReference(String);
+pub enum TypeRef {
+    Simple(String),
+    Unit,
+    Array(Box<TypeRef>),
+}
+
+impl TypeRef {
+    /// Create a New Simple Type
+    ///
+    /// A simple type is a direct reference to a non-generic non-array
+    /// type, such as `Num` or `String`.
+    fn simple(name: &str) -> Self {
+        TypeRef::Simple(String::from(name))
+    }
+
+    /// Create a new Unit Type Reference
+    ///
+    /// The unit type is represented as a struct with no contents. It
+    /// has special meaning in some areas as it can be used to idicate
+    /// the absence of a value.
+    fn unit() -> Self {
+        TypeRef::Unit
+    }
+
+    /// Create an Array Type
+    ///
+    /// An array type represents a contiguous collection of another
+    /// type.
+    fn array(inner: TypeRef) -> Self {
+        TypeRef::Array(Box::new(inner))
+    }
+}
 
 /// An identifier, with an optional type attached
 #[derive(Debug,PartialEq)]
 pub struct TypedId {
-    pub typ: Option<TypeReference>,
+    pub typ: Option<TypeRef>,
     pub id: String,
 }
 
 impl TypedId {
-    pub fn new(id: String, typ: TypeReference) -> Self {
+    /// Create an Id with a Known Type
+    ///
+    /// Constructs a new idnetifier declaration where the identifier
+    /// definitely has a known type.
+    pub fn new(id: String, typ: TypeRef) -> Self {
         Self::from_parts(id, Some(typ))
     }
 
+    /// Create an Id without a Known Type
+    ///
+    /// Constructs a new identifier declaraiton where the identifier
+    /// does not have a type specified in the source. This is used
+    /// where the type will be infered at a later date.
     pub fn new_without_type(id: String) -> Self {
         Self::from_parts(id, None)
     }
 
-    pub fn from_parts(id: String, typ: Option<TypeReference>) -> Self {
+    /// Create an Id from Constituent Parts
+    ///
+    /// Used to construct a new identifier when a type has only
+    /// optionally been specified.
+    pub fn from_parts(id: String, typ: Option<TypeRef>) -> Self {
         TypedId { id: id, typ: typ }
     }
 }
@@ -50,7 +94,7 @@ pub enum Expression {
     Call(Box<Expression>, Vec<Expression>),
     Index(Box<Expression>, Box<Expression>),
     IfThenElse(Box<Expression>, Box<Expression>, Box<Expression>),
-    Function(String, TypeReference, Vec<TypedId>, Box<Expression>),
+    Function(String, TypeRef, Vec<TypedId>, Box<Expression>),
     Loop(Box<Expression>, Box<Expression>),
     Variable(TypedId),
     Sequence(Vec<Expression>),
@@ -129,7 +173,7 @@ impl Expression {
     pub fn function(id: String) -> FunctionDeclarationBuilder {
         FunctionDeclarationBuilder {
             id: id,
-            typ: TypeReference("()".to_string()),
+            typ: TypeRef::unit(),
             args: Vec::new(),
             body: Vec::new(),
         }
@@ -162,7 +206,7 @@ impl Expression {
 /// # Builder Struct for Function Declarations
 pub struct FunctionDeclarationBuilder {
     id: String,
-    typ: TypeReference,
+    typ: TypeRef,
     args: Vec<TypedId>,
     body: Vec<Expression>,
 }
@@ -196,7 +240,7 @@ impl FunctionDeclarationBuilder {
     /// # Returns
     ///
     /// The modified builder, to continue building this declaration.
-    pub fn with_return_type(mut self, typ: TypeReference) -> Self {
+    pub fn with_return_type(mut self, typ: TypeRef) -> Self {
         self.typ = typ;
         self
     }

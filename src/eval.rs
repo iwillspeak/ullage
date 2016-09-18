@@ -1,7 +1,7 @@
 //! Expression Tree Evaluation
 
 use std::collections::HashMap;
-use syntax::{Expression, Constant, TypeReference, TypedId};
+use syntax::{Expression, Constant, TypeRef, TypedId};
 use syntax::operators::{PrefixOp, InfixOp};
 use syntax::visit::Visitor;
 
@@ -52,14 +52,18 @@ impl Visitor for Evaluator {
     fn on_prefix(&mut self, op: PrefixOp, value: Expression) -> Self::Output {
         let value = value.visit(self);
         match op {
-            PrefixOp::Negate => match value {
-                Value::Num(i) => Value::Num(-i),
-                _ => panic!("type mismatch")
-            },
-            PrefixOp::Not => match value {
-                Value::Num(i) if i != 0 => Value::Num(0),
-                Value::Num(i) if i == 0 => Value::Num(1),
-                _ => panic!("type mismatch"),
+            PrefixOp::Negate => {
+                match value {
+                    Value::Num(i) => Value::Num(-i),
+                    _ => panic!("type mismatch"),
+                }
+            }
+            PrefixOp::Not => {
+                match value {
+                    Value::Num(i) if i != 0 => Value::Num(0),
+                    Value::Num(i) if i == 0 => Value::Num(1),
+                    _ => panic!("type mismatch"),
+                }
             }
         }
     }
@@ -70,7 +74,7 @@ impl Visitor for Evaluator {
         if op == InfixOp::Assign {
             let id = match lhs {
                 Expression::Identifier(id) => id,
-                _ => panic!("assing to something which isn't an id"),
+                _ => panic!("assign to something which isn't an id"),
             };
             self.sym_tab.insert(id, rhs_val.clone());
             return rhs_val;
@@ -96,7 +100,12 @@ impl Visitor for Evaluator {
         unimplemented!();
     }
 
-    fn on_function(&mut self, _id: String, _ty: TypeReference, _args: Vec<TypedId>, _body: Expression) -> Self::Output {
+    fn on_function(&mut self,
+                   _id: String,
+                   _ty: TypeRef,
+                   _args: Vec<TypedId>,
+                   _body: Expression)
+                   -> Self::Output {
         unimplemented!();
     }
 
