@@ -84,23 +84,23 @@ impl Visitor for Evaluator {
         }
     }
 
-    fn on_call(&mut self, calee: Expression, args: Vec<Expression>) -> Self::Output {
+    fn on_call(&mut self, _calee: Expression, _args: Vec<Expression>) -> Self::Output {
         unimplemented!();
     }
 
-    fn on_index(&mut self, target: Expression, index: Expression) -> Self::Output {
+    fn on_index(&mut self, _target: Expression, _index: Expression) -> Self::Output {
         unimplemented!();
     }
 
-    fn on_if(&mut self, cond: Expression, then: Expression, els: Expression) -> Self::Output {
+    fn on_if(&mut self, _cond: Expression, _then: Expression, _els: Expression) -> Self::Output {
         unimplemented!();
     }
 
-    fn on_function(&mut self, id: String, ty: TypeReference, args: Vec<TypedId>, body: Expression) -> Self::Output {
+    fn on_function(&mut self, _id: String, _ty: TypeReference, _args: Vec<TypedId>, _body: Expression) -> Self::Output {
         unimplemented!();
     }
 
-    fn on_loop(&mut self, cond: Expression, body: Expression) -> Self::Output {
+    fn on_loop(&mut self, _cond: Expression, _body: Expression) -> Self::Output {
         unimplemented!();
     }
 
