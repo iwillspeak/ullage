@@ -283,6 +283,8 @@ impl<'a> Parser<'a> {
         Ok(expressions)
     }
 
+    /// Parse Type Reference
+    ///
     /// Attempt to parse a type reference, this is a single
     /// `:` followed by a type name.
     pub fn type_ref(&mut self) -> Result<TypeRef> {
@@ -290,6 +292,10 @@ impl<'a> Parser<'a> {
         self.ty()
     }
 
+    /// Parse Type
+    ///
+    /// Attempt to parse a type. This could be a simple type name, or
+    /// it could be a more complex one such as an array type or tuple.
     pub fn ty(&mut self) -> Result<TypeRef> {
         match self.lexer.peek() {
             Some(&Token::Word(t)) => {
@@ -302,11 +308,27 @@ impl<'a> Parser<'a> {
                 try!(self.expect(Token::CloseSqBracket));
                 Ok(TypeRef::array(inner))
             }
+            Some(&Token::OpenBracket) => {
+                try!(self.advance());
+                let mut types = Vec::new();
+                if !self.next_is(Token::CloseBracket) {
+                    types.push(try!(self.ty()));
+                }
+                while !self.next_is(Token::CloseBracket) {
+                    try!(self.expect(Token::Comma));
+                    types.push(try!(self.ty()));
+                }
+                try!(self.expect(Token::CloseBracket));
+                Ok(TypeRef::tuple(types))
+            }
             _ => Err(Error::Unexpected),
         }
     }
 
     /// Parse an optional type reference
+    ///
+    /// If there is a type refernece then parse it and return it. If
+    /// there is no type we may have to infer it later.
     pub fn optional_type_ref(&mut self) -> Option<TypeRef> {
         if self.next_is(Token::Colon) {
             self.type_ref().ok()
@@ -781,5 +803,29 @@ mod test {
                              InfixOp::Assign,
                              Expression::constant_num(100))
                      ]));
+    }
+
+    #[test]
+    fn parse_simple_tuple() {
+        check_parse!("let f: (Num) = 100",
+                     Expression::sequence(vec![
+                         Expression::variable(
+                             TypedId::from_parts(String::from("f"),
+                                                 Some(TypeRef::tuple(vec![TypeRef::simple("Num")])))),
+                         Expression::infix(
+                             Expression::identifier(String::from("f")),
+                             InfixOp::Assign,
+                             Expression::constant_num(100))
+                         ]));
+        check_parse!("let f: (Num, [String]) = 100",
+                     Expression::sequence(vec![
+                         Expression::variable(
+                             TypedId::from_parts(String::from("f"),
+                                                 Some(TypeRef::tuple(vec![TypeRef::simple("Num"), TypeRef::array(TypeRef::simple("String"))])))),
+                         Expression::infix(
+                             Expression::identifier(String::from("f")),
+                             InfixOp::Assign,
+                             Expression::constant_num(100))
+                         ]));
     }
 }

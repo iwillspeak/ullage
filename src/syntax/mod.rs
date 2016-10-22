@@ -1,3 +1,5 @@
+//! Syntax parsing and expression tree
+//!
 //! This crate provides a simple abstract syntax tree, and a parser
 //! implementation which recognises a simple lanugage using
 //! Pratt-style operator precedence parsing.
@@ -8,11 +10,15 @@ pub mod operators;
 
 use self::operators::*;
 
-/// Represents a reference to a type
+/// Type Reference
+///
+/// Represents a reference to a type. This could be a simple reference
+/// to a named type or a complex type such as an array or Tuple.
 #[derive(Debug,PartialEq)]
 pub enum TypeRef {
     Simple(String),
     Unit,
+    Tuple(Vec<TypeRef>),
     Array(Box<TypeRef>),
 }
 
@@ -32,6 +38,18 @@ impl TypeRef {
     /// the absence of a value.
     fn unit() -> Self {
         TypeRef::Unit
+    }
+
+    /// Create a Tuple Type
+    ///
+    /// A tuple type is an ordered collection of values. Each value
+    /// can be of a different type.
+    fn tuple(inner: Vec<TypeRef>) -> Self {
+        if inner.len() == 0 {
+            Self::unit()
+        } else {
+            TypeRef::Tuple(inner)
+        }
     }
 
     /// Create an Array Type
