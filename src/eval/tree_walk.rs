@@ -1,28 +1,32 @@
-//! Expression Tree Evaluation
-
 use std::collections::HashMap;
+
 use syntax::{Expression, Constant, TypeRef, TypedId};
 use syntax::operators::{PrefixOp, InfixOp};
 use syntax::visit::Visitor;
 
+use super::{Evaluator, Value};
+
 /// Ullage Expression Evaluation Context
 ///
 /// Holds all of the state require to evaluate expressions.
-pub struct Evaluator {
+pub struct TreeWalkEvaluator {
     sym_tab: HashMap<String, Value>,
 }
 
-impl Evaluator {
-    /// Construct an Evaluator
-    pub fn new() -> Self {
-        Evaluator { sym_tab: HashMap::new() }
-    }
-
+impl Evaluator for TreeWalkEvaluator {
     /// Evaluate an Expression
-    pub fn eval(&mut self, expr: Expression) -> Value {
+    fn eval(&mut self, expr: Expression) -> Value {
         expr.visit(self)
     }
+}
 
+impl TreeWalkEvaluator {
+    /// Construct an TreeWalkEvaluator
+    pub fn new() -> Self {
+        TreeWalkEvaluator { sym_tab: HashMap::new() }
+    }
+
+    /// Evaluate an infix operator on two numbers
     fn eval_infix_num(&mut self, i: i64, op: InfixOp, j: i64) -> Value {
         match op {
             InfixOp::Add => Value::Num(i + j),
@@ -38,7 +42,8 @@ impl Evaluator {
     }
 }
 
-impl Visitor for Evaluator {
+
+impl Visitor for TreeWalkEvaluator {
     type Output = Value;
 
     fn on_identifier(&mut self, id: String) -> Self::Output {
@@ -128,43 +133,30 @@ impl Visitor for Evaluator {
     }
 }
 
-#[derive(PartialEq,Debug,Clone)]
-pub enum Value {
-    Num(i64),
-    String(String),
-}
-
-impl From<Constant> for Value {
-    fn from(c: Constant) -> Self {
-        match c {
-            Constant::Number(i) => Value::Num(i),
-            Constant::String(s) => Value::String(s),
-        }
-    }
-}
-
 #[cfg(test)]
 mod test {
 
     use syntax::*;
     use syntax::operators::*;
+
     use super::*;
+    use super::super::*;
 
     #[test]
     fn create_evaluator() {
-        let _ = Evaluator::new();
+        let _ = TreeWalkEvaluator::new();
     }
 
     #[test]
     fn evaluate_constant_expression_returns_value() {
-        let mut e = Evaluator::new();
+        let mut e = TreeWalkEvaluator::new();
         let expr = Expression::constant_num(1337);
         assert_eq!(Value::Num(1337), e.eval(expr));
     }
 
     #[test]
     fn evaluate_prefix_expression() {
-        let mut e = Evaluator::new();
+        let mut e = TreeWalkEvaluator::new();
         let expr = Expression::prefix(PrefixOp::Negate, Expression::constant_num(1234));
         assert_eq!(Value::Num(-1234), e.eval(expr));
         let expr1 = Expression::prefix(PrefixOp::Not,
@@ -175,7 +167,7 @@ mod test {
 
     #[test]
     fn evaluate_infix_operator() {
-        let mut e = Evaluator::new();
+        let mut e = TreeWalkEvaluator::new();
         let expr_add = Expression::infix(Expression::constant_num(1),
                                          InfixOp::Add,
                                          Expression::constant_num(2));

@@ -16,7 +16,7 @@ fn main() {
     use std::process::*;
 
     use syntax::*;
-    use eval::Evaluator;
+    use eval::*;
 
     fn prompt(c: char) {
         print!("{0}{0}{0} ", c);
@@ -30,7 +30,7 @@ fn main() {
 
     let quit_expr = vec![Expression::call(Expression::identifier("quit".to_string()), vec![])];
 
-    let mut eval = Evaluator::new();
+    let mut eval = eval::tree_walk::TreeWalkEvaluator::new();
     let mut buffered = String::new();
     let stdin = io::stdin();
     for line_io in stdin.lock().lines() {
