@@ -3,6 +3,7 @@
 use syntax::{Expression, Constant};
 
 pub mod tree_walk;
+pub mod jit;
 
 pub trait Evaluator {
     fn eval(&mut self, expr: Expression) -> Value;

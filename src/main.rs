@@ -30,7 +30,7 @@ fn main() {
 
     let quit_expr = vec![Expression::call(Expression::identifier("quit".to_string()), vec![])];
 
-    let mut eval = eval::tree_walk::TreeWalkEvaluator::new();
+    let mut eval = eval::jit::JitEvaluator::new();
     let mut buffered = String::new();
     let stdin = io::stdin();
     for line_io in stdin.lock().lines() {
