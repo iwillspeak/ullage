@@ -8,8 +8,8 @@ This module contains all of the logic required to parse source text into a synta
 
 * `Expression` - represents a node in the syntax expression tree.
 * `TypeRef` - Represents a reference to a type. This could be a simple type like `Num`, or a more complex one like `[Num]`.
-* `ExpressionVisitor` - a trait representing an object which will traverse an expression tree and transform each node into a new type.
-* `ExpressionTransform` - A trait which simplifies implementing `ExpressionVisitor`s when the visitor’s output type is also `Expression`.
+* `Visitor` - a trait representing an object which will traverse an expression tree and transform each node into a new type.
+* `ExpressionTransform` - A trait which simplifies implementing `Visitor`s when the visitor’s output type is also `Expression`.
 
 ## `sem`
 
