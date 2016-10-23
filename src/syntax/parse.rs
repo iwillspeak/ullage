@@ -810,8 +810,9 @@ mod test {
         check_parse!("let f: (Num) = 100",
                      Expression::sequence(vec![
                          Expression::variable(
-                             TypedId::from_parts(String::from("f"),
-                                                 Some(TypeRef::tuple(vec![TypeRef::simple("Num")])))),
+                             TypedId::from_parts(
+                                 String::from("f"),
+                                 Some(TypeRef::tuple(vec![TypeRef::simple("Num")])))),
                          Expression::infix(
                              Expression::identifier(String::from("f")),
                              InfixOp::Assign,
@@ -820,8 +821,12 @@ mod test {
         check_parse!("let f: (Num, [String]) = 100",
                      Expression::sequence(vec![
                          Expression::variable(
-                             TypedId::from_parts(String::from("f"),
-                                                 Some(TypeRef::tuple(vec![TypeRef::simple("Num"), TypeRef::array(TypeRef::simple("String"))])))),
+                             TypedId::from_parts(
+                                 String::from("f"),
+                                 Some(TypeRef::tuple(vec![
+                                     TypeRef::simple("Num"),
+                                     TypeRef::array(TypeRef::simple("String"))
+                                 ])))),
                          Expression::infix(
                              Expression::identifier(String::from("f")),
                              InfixOp::Assign,

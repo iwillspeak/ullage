@@ -17,13 +17,10 @@ use self::llvm_sys::{core, target, execution_engine};
 ///
 /// LLVM Jit Implemntation of the `Evaulator` Tratit.
 pub struct JitEvaluator {
-    context: *mut llvm_sys::LLVMContext
+    context: *mut llvm_sys::LLVMContext,
 }
 
 impl Evaluator for JitEvaluator {
-
-    
-
     fn eval(&mut self, expr: Expression) -> Value {
 
         let module = self.compile(expr);
@@ -41,7 +38,6 @@ impl Evaluator for JitEvaluator {
 }
 
 impl JitEvaluator {
-
     /// Create a new Jit
     ///
     /// Initialises a new LLVM Jit evaluator with the default
@@ -57,9 +53,7 @@ impl JitEvaluator {
                 panic!("Could not initialise ASM Printer");
             }
         }
-        JitEvaluator {
-            context: unsafe { core::LLVMContextCreate() }
-        }
+        JitEvaluator { context: unsafe { core::LLVMContextCreate() } }
     }
 
     /// Evaluate Module
@@ -80,22 +74,25 @@ impl JitEvaluator {
         // set up the arguments for the function
         let mut args = unsafe {
             [execution_engine::LLVMCreateGenericValueOfInt(int64, 1700, 0),
-             execution_engine::LLVMCreateGenericValueOfInt(int64, 1700, 0)] };
+             execution_engine::LLVMCreateGenericValueOfInt(int64, 1700, 0)]
+        };
 
         // Call the function
         let function_name = CStr::from_bytes_with_nul(b"test\0").unwrap();
         let result = unsafe {
             let function = core::LLVMGetNamedFunction(module, function_name.as_ptr());
-            execution_engine::LLVMRunFunction(
-                engine, function, args.len() as u32, args.as_mut_ptr())
+            execution_engine::LLVMRunFunction(engine,
+                                              function,
+                                              args.len() as u32,
+                                              args.as_mut_ptr())
         };
 
         // dispose of the engine now we are done with it
         unsafe {
             execution_engine::LLVMDisposeExecutionEngine(engine);
         }
-        
-        Value::Num(unsafe { execution_engine::LLVMGenericValueToInt(result, 1)  as i64})
+
+        Value::Num(unsafe { execution_engine::LLVMGenericValueToInt(result, 1) as i64 })
     }
 
     /// Compile an Expression
@@ -112,19 +109,16 @@ impl JitEvaluator {
         let mut param_types = [int64, int64];
 
         let function_type = unsafe {
-            core::LLVMFunctionType(
-                int64,
-                param_types.as_mut_ptr(),
-                param_types.len() as u32, 0) };
+            core::LLVMFunctionType(int64, param_types.as_mut_ptr(), param_types.len() as u32, 0)
+        };
 
         let function_name = CStr::from_bytes_with_nul(b"test\0").unwrap();
-        let function = unsafe {
-            core::LLVMAddFunction(module, function_name.as_ptr(), function_type) };
+        let function =
+            unsafe { core::LLVMAddFunction(module, function_name.as_ptr(), function_type) };
 
         // Create a basic block and add it to the function
         let block_name = CStr::from_bytes_with_nul(b"entry\0").unwrap();
-        let entry_block = unsafe {
-            core::LLVMAppendBasicBlock(function, block_name.as_ptr()) };
+        let entry_block = unsafe { core::LLVMAppendBasicBlock(function, block_name.as_ptr()) };
 
         // Fill in the body of the function. This is just placeholder for now
         unsafe {
