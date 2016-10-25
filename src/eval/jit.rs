@@ -5,9 +5,11 @@
 extern crate llvm_sys;
 
 use std::ffi::CStr;
+use std::ptr;
 use std::mem;
 
-use syntax::Expression;
+use syntax::*;
+use syntax::operators::*;
 use super::{Evaluator, Value};
 
 use self::llvm_sys::prelude::*;
@@ -22,18 +24,73 @@ pub struct JitEvaluator {
 
 impl Evaluator for JitEvaluator {
     fn eval(&mut self, expr: Expression) -> Value {
-
         let module = self.compile(expr);
+        self.eval_module(module)
+    }
+}
 
-        unsafe { core::LLVMDumpModule(module) }
+impl Drop for JitEvaluator {
+    fn drop(&mut self) {
+        unsafe { core::LLVMContextDispose(self.context) }
+    }
+}
 
-        let result = self.eval_module(module);
+impl visit::Visitor for JitEvaluator {
+    type Output = LLVMValueRef;
 
-        // TODO: Remove the module from the execution engine so it
-        // doesn't get disposed when the engine is disposed...
-        // unsafe { core::LLVMDisposeModule(module) }
+    fn on_identifier(&mut self, _id: String) -> Self::Output {
+        unimplemented!();
+    }
 
-        result
+    fn on_literal(&mut self, lit: Constant) -> Self::Output {
+        match lit {
+            Constant::Number(i) => unsafe {
+                let int64 = core::LLVMInt64Type();
+                core::LLVMConstInt(int64, i as u64, 1)
+            },
+            _ => unimplemented!()
+        }
+    }
+
+    fn on_prefix(&mut self, _op: PrefixOp, _value: Expression) -> Self::Output {
+        unimplemented!();
+    }
+
+    fn on_infix(&mut self, _lhs: Expression, _op: InfixOp, _rhs: Expression) -> Self::Output {
+        unimplemented!();
+    }
+
+    fn on_call(&mut self, _calee: Expression, _args: Vec<Expression>) -> Self::Output {
+        unimplemented!();
+    }
+
+    fn on_index(&mut self, _target: Expression, _index: Expression) -> Self::Output {
+        unimplemented!();
+    }
+
+    fn on_if(&mut self, _cond: Expression, _then: Expression, _els: Expression) -> Self::Output {
+        unimplemented!();
+    }
+
+    fn on_function(&mut self,
+                   _id: String,
+                   _ty: TypeRef,
+                   _args: Vec<TypedId>,
+                   _body: Expression)
+                   -> Self::Output {
+        unimplemented!();
+    }
+
+    fn on_loop(&mut self, _cond: Expression, _body: Expression) -> Self::Output {
+        unimplemented!();
+    }
+
+    fn on_variable(&mut self, _var: TypedId) -> Self::Output {
+        unimplemented!();
+    }
+
+    fn on_sequence(&mut self, mut _exprs: Vec<Expression>) -> Self::Output {
+        unimplemented!();
     }
 }
 
@@ -62,8 +119,6 @@ impl JitEvaluator {
     /// result as a `Value`
     fn eval_module(&mut self, module: LLVMModuleRef) -> Value {
 
-        let int64 = unsafe { core::LLVMInt64Type() };
-
         // Create an execution engine to run the function
         let mut engine = unsafe { mem::uninitialized() };
         let mut out = unsafe { mem::zeroed() };
@@ -71,20 +126,14 @@ impl JitEvaluator {
             execution_engine::LLVMCreateExecutionEngineForModule(&mut engine, module, &mut out)
         };
 
-        // set up the arguments for the function
-        let mut args = unsafe {
-            [execution_engine::LLVMCreateGenericValueOfInt(int64, 1700, 0),
-             execution_engine::LLVMCreateGenericValueOfInt(int64, 1700, 0)]
-        };
-
         // Call the function
-        let function_name = CStr::from_bytes_with_nul(b"test\0").unwrap();
+        let function_name = CStr::from_bytes_with_nul(b" \0").unwrap();
         let result = unsafe {
             let function = core::LLVMGetNamedFunction(module, function_name.as_ptr());
             execution_engine::LLVMRunFunction(engine,
                                               function,
-                                              args.len() as u32,
-                                              args.as_mut_ptr())
+                                              0,
+                                              ptr::null_mut())
         };
 
         // dispose of the engine now we are done with it
@@ -98,21 +147,22 @@ impl JitEvaluator {
     /// Compile an Expression
     ///
     /// Takes a given expression and compiles it into an LLVM Module
-    fn compile(&mut self, _expr: Expression) -> LLVMModuleRef {
+    fn compile(&mut self, expr: Expression) -> LLVMModuleRef {
 
         // Create a module to compile the expression into
         let mod_name = CStr::from_bytes_with_nul(b"temp\0").unwrap();
         let module = unsafe { core::LLVMModuleCreateWithName(mod_name.as_ptr()) };
 
-        // Create a function type and add a function of that type to the module
-        let int64 = unsafe { core::LLVMInt64Type() };
-        let mut param_types = [int64, int64];
+        // compile down the expression
+        let expression = expr.visit(self);
 
+        // Create a function to be used to evaluate our expression
         let function_type = unsafe {
-            core::LLVMFunctionType(int64, param_types.as_mut_ptr(), param_types.len() as u32, 0)
+            let int64 = core::LLVMInt64Type();
+            core::LLVMFunctionType(int64, ptr::null_mut(), 0, 0)
         };
 
-        let function_name = CStr::from_bytes_with_nul(b"test\0").unwrap();
+        let function_name = CStr::from_bytes_with_nul(b" \0").unwrap();
         let function =
             unsafe { core::LLVMAddFunction(module, function_name.as_ptr(), function_type) };
 
@@ -125,8 +175,7 @@ impl JitEvaluator {
             let builder = core::LLVMCreateBuilder();
             core::LLVMPositionBuilderAtEnd(builder, entry_block);
 
-            let fozzle = core::LLVMConstInt(int64, 1337, 1);
-            core::LLVMBuildRet(builder, fozzle);
+            core::LLVMBuildRet(builder, expression);
 
             core::LLVMDisposeBuilder(builder);
         }
@@ -135,8 +184,29 @@ impl JitEvaluator {
     }
 }
 
-impl Drop for JitEvaluator {
-    fn drop(&mut self) {
-        unsafe { core::LLVMContextDispose(self.context) }
+#[cfg(test)]
+mod test {
+
+    use syntax::*;
+    
+    use super::*;
+    use super::super::*;
+
+    #[test]
+    fn create_jit() {
+        let _ = JitEvaluator::new();
+    }
+
+    #[test]
+    fn evaulate_simple_expression() {
+        let mut e = JitEvaluator::new();
+        {
+            let expr = Expression::constant_num(1337);
+            assert_eq!(Value::Num(1337), e.eval(expr));
+        }
+        {
+            let expr = Expression::constant_num(-2000);
+            assert_eq!(Value::Num(-2000), e.eval(expr));
+        }
     }
 }
