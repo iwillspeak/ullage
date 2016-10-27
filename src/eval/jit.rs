@@ -5,6 +5,7 @@
 extern crate llvm_sys;
 
 use std::ffi::CStr;
+use std::sync::atomic;
 use std::ptr;
 use std::mem;
 
@@ -20,6 +21,7 @@ use self::llvm_sys::{core, target, execution_engine};
 /// LLVM Jit Implemntation of the `Evaulator` Tratit.
 pub struct JitEvaluator {
     context: *mut llvm_sys::LLVMContext,
+    builder: *mut llvm_sys::LLVMBuilder,
 }
 
 impl Evaluator for JitEvaluator {
@@ -31,7 +33,11 @@ impl Evaluator for JitEvaluator {
 
 impl Drop for JitEvaluator {
     fn drop(&mut self) {
-        unsafe { core::LLVMContextDispose(self.context) }
+        println!("GOING OUT OF SCOPE");
+        unsafe {
+            core::LLVMDisposeBuilder(self.builder);
+            core::LLVMContextDispose(self.context);
+        }
     }
 }
 
@@ -45,15 +51,22 @@ impl visit::Visitor for JitEvaluator {
     fn on_literal(&mut self, lit: Constant) -> Self::Output {
         match lit {
             Constant::Number(i) => unsafe {
-                let int64 = core::LLVMInt64Type();
+                let int64 = core::LLVMInt64TypeInContext(self.context);
                 core::LLVMConstInt(int64, i as u64, 1)
             },
-            _ => unimplemented!()
+            _ => unimplemented!(),
         }
     }
 
-    fn on_prefix(&mut self, _op: PrefixOp, _value: Expression) -> Self::Output {
-        unimplemented!();
+    fn on_prefix(&mut self, op: PrefixOp, expr: Expression) -> Self::Output {
+        let value = expr.visit(self);
+        match op {
+            PrefixOp::Negate => unsafe {
+                let temp_name = CStr::from_bytes_with_nul(b"neg\0").unwrap();
+                core::LLVMBuildNeg(self.builder, value, temp_name.as_ptr())
+            },
+            _ => unimplemented!(),
+        }
     }
 
     fn on_infix(&mut self, _lhs: Expression, _op: InfixOp, _rhs: Expression) -> Self::Output {
@@ -100,6 +113,23 @@ impl JitEvaluator {
     /// Initialises a new LLVM Jit evaluator with the default
     /// settings.
     pub fn new() -> JitEvaluator {
+        Self::ensure_initialised();
+        let context = unsafe { core::LLVMContextCreate() };
+        let builder = unsafe { core::LLVMCreateBuilderInContext(context) };
+        JitEvaluator {
+            context: context,
+            builder: builder,
+        }
+    }
+
+    fn ensure_initialised() {
+        static INITIALISED: atomic::AtomicBool = atomic::ATOMIC_BOOL_INIT;
+
+        // If this has already been called then don't do it again.
+        if INITIALISED.swap(true, atomic::Ordering::Relaxed) {
+            return;
+        }
+
         // initialise some things
         unsafe {
             execution_engine::LLVMLinkInMCJIT();
@@ -110,7 +140,7 @@ impl JitEvaluator {
                 panic!("Could not initialise ASM Printer");
             }
         }
-        JitEvaluator { context: unsafe { core::LLVMContextCreate() } }
+
     }
 
     /// Evaluate Module
@@ -129,11 +159,15 @@ impl JitEvaluator {
         // Call the function
         let function_name = CStr::from_bytes_with_nul(b" \0").unwrap();
         let result = unsafe {
-            let function = core::LLVMGetNamedFunction(module, function_name.as_ptr());
-            execution_engine::LLVMRunFunction(engine,
-                                              function,
-                                              0,
-                                              ptr::null_mut())
+            let mut function = mem::zeroed();
+
+            if execution_engine::LLVMFindFunction(engine,
+                                                  function_name.as_ptr(),
+                                                  &mut function as *mut LLVMValueRef) !=
+               0 {
+                panic!("Could not find function")
+            }
+            execution_engine::LLVMRunFunction(engine, function, 0, ptr::null_mut())
         };
 
         // dispose of the engine now we are done with it
@@ -151,14 +185,12 @@ impl JitEvaluator {
 
         // Create a module to compile the expression into
         let mod_name = CStr::from_bytes_with_nul(b"temp\0").unwrap();
-        let module = unsafe { core::LLVMModuleCreateWithName(mod_name.as_ptr()) };
-
-        // compile down the expression
-        let expression = expr.visit(self);
+        let module =
+            unsafe { core::LLVMModuleCreateWithNameInContext(mod_name.as_ptr(), self.context) };
 
         // Create a function to be used to evaluate our expression
         let function_type = unsafe {
-            let int64 = core::LLVMInt64Type();
+            let int64 = core::LLVMInt64TypeInContext(self.context);
             core::LLVMFunctionType(int64, ptr::null_mut(), 0, 0)
         };
 
@@ -168,16 +200,19 @@ impl JitEvaluator {
 
         // Create a basic block and add it to the function
         let block_name = CStr::from_bytes_with_nul(b"entry\0").unwrap();
-        let entry_block = unsafe { core::LLVMAppendBasicBlock(function, block_name.as_ptr()) };
+        let entry_block = unsafe {
+            core::LLVMAppendBasicBlockInContext(self.context, function, block_name.as_ptr())
+        };
 
-        // Fill in the body of the function. This is just placeholder for now
         unsafe {
-            let builder = core::LLVMCreateBuilder();
-            core::LLVMPositionBuilderAtEnd(builder, entry_block);
+            core::LLVMPositionBuilderAtEnd(self.builder, entry_block);
+        }
 
-            core::LLVMBuildRet(builder, expression);
+        // compile down the expression
+        let expression = expr.visit(self);
 
-            core::LLVMDisposeBuilder(builder);
+        unsafe {
+            core::LLVMBuildRet(self.builder, expression);
         }
 
         module
@@ -188,7 +223,8 @@ impl JitEvaluator {
 mod test {
 
     use syntax::*;
-    
+    use syntax::operators::*;
+
     use super::*;
     use super::super::*;
 
@@ -205,8 +241,17 @@ mod test {
             assert_eq!(Value::Num(1337), e.eval(expr));
         }
         {
-            let expr = Expression::constant_num(-2000);
-            assert_eq!(Value::Num(-2000), e.eval(expr));
+            let expr = Expression::constant_num(2000);
+            assert_eq!(Value::Num(2000), e.eval(expr));
+        }
+    }
+
+    #[test]
+    fn evaulate_prefix_op_applies_operation() {
+        let mut e = JitEvaluator::new();
+        {
+            let expr = Expression::prefix(PrefixOp::Negate, Expression::constant_num(9000));
+            assert_eq!(Value::Num(-9000), e.eval(expr));
         }
     }
 }
