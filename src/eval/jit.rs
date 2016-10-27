@@ -5,7 +5,6 @@
 extern crate llvm_sys;
 
 use std::ffi::CStr;
-use std::sync::atomic;
 use std::ptr;
 use std::mem;
 
@@ -123,24 +122,22 @@ impl JitEvaluator {
     }
 
     fn ensure_initialised() {
-        static INITIALISED: atomic::AtomicBool = atomic::ATOMIC_BOOL_INIT;
+        use std::sync::{Once, ONCE_INIT};
 
-        // If this has already been called then don't do it again.
-        if INITIALISED.swap(true, atomic::Ordering::Relaxed) {
-            return;
-        }
+        static INIT: Once = ONCE_INIT;
 
-        // initialise some things
-        unsafe {
-            execution_engine::LLVMLinkInMCJIT();
-            if target::LLVM_InitializeNativeTarget() != 0 {
-                panic!("Could not initialise target");
+        INIT.call_once(|| {
+            // Initialise LLVM
+            unsafe {
+                execution_engine::LLVMLinkInMCJIT();
+                if target::LLVM_InitializeNativeTarget() != 0 {
+                    panic!("Could not initialise target");
+                }
+                if target::LLVM_InitializeNativeAsmPrinter() != 0 {
+                    panic!("Could not initialise ASM Printer");
+                }
             }
-            if target::LLVM_InitializeNativeAsmPrinter() != 0 {
-                panic!("Could not initialise ASM Printer");
-            }
-        }
-
+        });
     }
 
     /// Evaluate Module
