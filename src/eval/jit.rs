@@ -4,7 +4,8 @@
 
 extern crate llvm_sys;
 
-use std::ffi::CStr;
+use std::ffi::{CStr, CString};
+use std::collections::HashMap;
 use std::ptr;
 use std::mem;
 
@@ -19,8 +20,10 @@ use self::llvm_sys::{core, target, execution_engine};
 ///
 /// LLVM Jit Implemntation of the `Evaulator` Tratit.
 pub struct JitEvaluator {
+    sym_tab: HashMap<String, LLVMValueRef>,
     context: *mut llvm_sys::LLVMContext,
     builder: *mut llvm_sys::LLVMBuilder,
+    current_function: Option<LLVMValueRef>,
 }
 
 impl Evaluator for JitEvaluator {
@@ -43,8 +46,8 @@ impl Drop for JitEvaluator {
 impl visit::Visitor for JitEvaluator {
     type Output = LLVMValueRef;
 
-    fn on_identifier(&mut self, _id: String) -> Self::Output {
-        unimplemented!();
+    fn on_identifier(&mut self, id: String) -> Self::Output {
+        self.sym_tab.get(&id).expect("Reference to ID not set!").clone()
     }
 
     fn on_literal(&mut self, lit: Constant) -> Self::Output {
@@ -68,8 +71,49 @@ impl visit::Visitor for JitEvaluator {
         }
     }
 
-    fn on_infix(&mut self, _lhs: Expression, _op: InfixOp, _rhs: Expression) -> Self::Output {
-        unimplemented!();
+    fn on_infix(&mut self, lhs: Expression, op: InfixOp, rhs: Expression) -> Self::Output {
+        use syntax::operators::InfixOp::*;
+
+        match op {
+            // arithmetic operators
+            Add => {
+                let rhs_val = rhs.visit(self);
+                let lhs_val = lhs.visit(self);
+                let name = CStr::from_bytes_with_nul(b"add\0").unwrap();
+                unsafe { core::LLVMBuildAdd(self.builder, lhs_val, rhs_val, name.as_ptr()) }
+            }
+            Sub => {
+                let rhs_val = rhs.visit(self);
+                let lhs_val = lhs.visit(self);
+                let name = CStr::from_bytes_with_nul(b"sub\0").unwrap();
+                unsafe { core::LLVMBuildSub(self.builder, lhs_val, rhs_val, name.as_ptr()) }
+            }
+            Mul => {
+                let rhs_val = rhs.visit(self);
+                let lhs_val = lhs.visit(self);
+                let name = CStr::from_bytes_with_nul(b"mul\0").unwrap();
+                unsafe { core::LLVMBuildMul(self.builder, lhs_val, rhs_val, name.as_ptr()) }
+            }
+            Div => {
+                let rhs_val = rhs.visit(self);
+                let lhs_val = lhs.visit(self);
+                let name = CStr::from_bytes_with_nul(b"div\0").unwrap();
+                unsafe { core::LLVMBuildSDiv(self.builder, lhs_val, rhs_val, name.as_ptr()) }
+            }
+
+            Assign => {
+                let rhs_value = rhs.visit(self);
+                if let Expression::Identifier(id) = lhs {
+                    self.sym_tab.insert(id, rhs_value);
+                } else {
+                    panic!("Assign to something which isn't an ID");
+                }
+                rhs_value
+            }
+
+            // Comparison operators
+            Eq | NotEq | Lt | Gt => unimplemented!(),
+        }
     }
 
     fn on_call(&mut self, _calee: Expression, _args: Vec<Expression>) -> Self::Output {
@@ -80,8 +124,51 @@ impl visit::Visitor for JitEvaluator {
         unimplemented!();
     }
 
-    fn on_if(&mut self, _cond: Expression, _then: Expression, _els: Expression) -> Self::Output {
-        unimplemented!();
+    fn on_if(&mut self, cond: Expression, then: Expression, els: Expression) -> Self::Output {
+        // First things first, let's compute the value of the condition
+        let cond_value = cond.visit(self);
+
+        // Create some basic blocks to hold the conditionally executed bits
+        let true_block = self.add_basic_block("on_true");
+        let false_block = self.add_basic_block("on_false");
+        let merge_block = self.add_basic_block("merge");
+
+        let int64 = unsafe { core::LLVMInt64TypeInContext(self.context) };
+
+        // A temp variable on the stack to hold the 'result' of the
+        // if. This will in almost all cases be trivially optimised by
+        // LLVM into a phi-node.
+        let result_name = CStr::from_bytes_with_nul(b"res\0").unwrap();
+        let result = unsafe { core::LLVMBuildAlloca(self.builder, int64, result_name.as_ptr()) };
+
+        let cond_name = CStr::from_bytes_with_nul(b"cond\0").unwrap();
+        unsafe {
+            // Compare the condition value to false (so we end up with
+            // a bool) and then branch based on it's value.
+            let false_int = core::LLVMConstInt(int64, 0 as u64, 1);
+            let cond_value = core::LLVMBuildICmp(self.builder,
+                                                 llvm_sys::LLVMIntPredicate::LLVMIntNE,
+                                                 cond_value,
+                                                 false_int,
+                                                 cond_name.as_ptr());
+            core::LLVMBuildCondBr(self.builder, cond_value, true_block, false_block);
+
+            // Move on to building the true block
+            core::LLVMPositionBuilderAtEnd(self.builder, true_block);
+            let then_value = then.visit(self);
+            core::LLVMBuildStore(self.builder, then_value, result);
+            core::LLVMBuildBr(self.builder, merge_block);
+
+            // Move on to the else boock
+            core::LLVMPositionBuilderAtEnd(self.builder, false_block);
+            let els_value = els.visit(self);
+            core::LLVMBuildStore(self.builder, els_value, result);
+            core::LLVMBuildBr(self.builder, merge_block);
+
+            // Then join the result together from both branches
+            core::LLVMPositionBuilderAtEnd(self.builder, merge_block);
+            core::LLVMBuildLoad(self.builder, result, result_name.as_ptr())
+        }
     }
 
     fn on_function(&mut self,
@@ -116,8 +203,10 @@ impl JitEvaluator {
         let context = unsafe { core::LLVMContextCreate() };
         let builder = unsafe { core::LLVMCreateBuilderInContext(context) };
         JitEvaluator {
+            sym_tab: HashMap::new(),
             context: context,
             builder: builder,
+            current_function: None,
         }
     }
 
@@ -192,17 +281,12 @@ impl JitEvaluator {
         };
 
         let function_name = CStr::from_bytes_with_nul(b" \0").unwrap();
-        let function =
-            unsafe { core::LLVMAddFunction(module, function_name.as_ptr(), function_type) };
+        self.current_function =
+            Some(unsafe { core::LLVMAddFunction(module, function_name.as_ptr(), function_type) });
 
-        // Create a basic block and add it to the function
-        let block_name = CStr::from_bytes_with_nul(b"entry\0").unwrap();
-        let entry_block = unsafe {
-            core::LLVMAppendBasicBlockInContext(self.context, function, block_name.as_ptr())
-        };
-
+        let main_block = self.add_basic_block("entry");
         unsafe {
-            core::LLVMPositionBuilderAtEnd(self.builder, entry_block);
+            core::LLVMPositionBuilderAtEnd(self.builder, main_block);
         }
 
         // compile down the expression
@@ -213,6 +297,14 @@ impl JitEvaluator {
         }
 
         module
+    }
+
+    /// Add a Basic Block
+    fn add_basic_block(&mut self, name: &str) -> LLVMBasicBlockRef {
+        // Create a basic block and add it to the function
+        let block_name = CString::new(name).unwrap();
+        let function = self.current_function.expect("not compiling a function!");
+        unsafe { core::LLVMAppendBasicBlockInContext(self.context, function, block_name.as_ptr()) }
     }
 }
 
@@ -249,6 +341,43 @@ mod test {
         {
             let expr = Expression::prefix(PrefixOp::Negate, Expression::constant_num(9000));
             assert_eq!(Value::Num(-9000), e.eval(expr));
+        }
+    }
+
+    #[test]
+    fn evaluate_infix_op_applies_operation() {
+        let mut e = JitEvaluator::new();
+        {
+            let expr = Expression::infix(Expression::constant_num(1300),
+                                         InfixOp::Add,
+                                         Expression::constant_num(37));
+            assert_eq!(Value::Num(1337), e.eval(expr));
+        }
+        {
+            let expr = Expression::infix(Expression::constant_num(0),
+                                         InfixOp::Sub,
+                                         Expression::constant_num(999));
+            assert_eq!(Value::Num(-999), e.eval(expr));
+        }
+    }
+
+    #[test]
+    fn evaluate_if() {
+        let mut e = JitEvaluator::new();
+        {
+            let expr = Expression::if_then_else(Expression::constant_num(1),
+                                                Expression::constant_num(2),
+                                                Expression::constant_num(3));
+            assert_eq!(Value::Num(2), e.eval(expr));
+        }
+        {
+            let expr =
+                Expression::if_then_else(Expression::if_then_else(Expression::constant_num(1),
+                                                                  Expression::constant_num(0),
+                                                                  Expression::constant_num(1)),
+                                         Expression::constant_num(2),
+                                         Expression::constant_num(3));
+            assert_eq!(Value::Num(3), e.eval(expr));
         }
     }
 }
