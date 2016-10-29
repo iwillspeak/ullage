@@ -179,16 +179,53 @@ impl visit::Visitor for JitEvaluator {
         unimplemented!();
     }
 
-    fn on_loop(&mut self, _cond: Expression, _body: Expression) -> Self::Output {
-        unimplemented!();
+    fn on_loop(&mut self, cond: Expression, body: Expression) -> Self::Output {
+        // Create some basic blocks to hold the conditionally executed bits
+        let cond_block = self.add_basic_block("condition");
+        let body_block = self.add_basic_block("loop_body");
+        let merge_block = self.add_basic_block("merge");
+
+        let cond_name = CStr::from_bytes_with_nul(b"cond\0").unwrap();
+        unsafe {
+            let int64 = core::LLVMInt64TypeInContext(self.context);
+            core::LLVMBuildBr(self.builder, cond_block);
+
+            core::LLVMPositionBuilderAtEnd(self.builder, cond_block);
+            let cond_value = cond.visit(self);
+
+            let false_int = core::LLVMConstInt(int64, 0 as u64, 1);
+            let cond_value = core::LLVMBuildICmp(self.builder,
+                                                 llvm_sys::LLVMIntPredicate::LLVMIntNE,
+                                                 cond_value,
+                                                 false_int,
+                                                 cond_name.as_ptr());
+            core::LLVMBuildCondBr(self.builder, cond_value, body_block, merge_block);
+
+
+            // Move on to building the body
+            core::LLVMPositionBuilderAtEnd(self.builder, body_block);
+            body.visit(self);
+
+            // back to the top of the loop
+            core::LLVMBuildBr(self.builder, cond_block);
+
+            // After the loop
+            core::LLVMPositionBuilderAtEnd(self.builder, merge_block);
+            false_int
+        }
     }
 
     fn on_variable(&mut self, _var: TypedId) -> Self::Output {
         unimplemented!();
     }
 
-    fn on_sequence(&mut self, mut _exprs: Vec<Expression>) -> Self::Output {
-        unimplemented!();
+    fn on_sequence(&mut self, mut exprs: Vec<Expression>) -> Self::Output {
+        exprs.drain(..).map(|exp| exp.visit(self)).last().unwrap_or_else(|| {
+            unsafe {
+                let int64 = core::LLVMInt64TypeInContext(self.context);
+                core::LLVMConstInt(int64, 0 as u64, 1)
+            }
+        })
     }
 }
 
