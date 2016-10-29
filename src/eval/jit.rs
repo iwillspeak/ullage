@@ -14,7 +14,7 @@ use syntax::operators::*;
 use super::{Evaluator, Value};
 
 use self::llvm_sys::prelude::*;
-use self::llvm_sys::{core, target, execution_engine};
+use self::llvm_sys::{analysis, core, target, execution_engine};
 
 /// Jit Evaluator
 ///
@@ -35,7 +35,6 @@ impl Evaluator for JitEvaluator {
 
 impl Drop for JitEvaluator {
     fn drop(&mut self) {
-        println!("GOING OUT OF SCOPE");
         unsafe {
             core::LLVMDisposeBuilder(self.builder);
             core::LLVMContextDispose(self.context);
@@ -281,8 +280,8 @@ impl JitEvaluator {
         };
 
         let function_name = CStr::from_bytes_with_nul(b" \0").unwrap();
-        self.current_function =
-            Some(unsafe { core::LLVMAddFunction(module, function_name.as_ptr(), function_type) });
+        let function =  unsafe { core::LLVMAddFunction(module, function_name.as_ptr(), function_type) };
+        self.current_function = Some(function);
 
         let main_block = self.add_basic_block("entry");
         unsafe {
@@ -292,8 +291,21 @@ impl JitEvaluator {
         // compile down the expression
         let expression = expr.visit(self);
 
-        unsafe {
+        let function_verified = unsafe {
             core::LLVMBuildRet(self.builder, expression);
+            analysis::LLVMVerifyFunction(function, analysis::LLVMVerifierFailureAction::LLVMReturnStatusAction)
+        };
+
+        if function_verified != 0 {
+            let mut message = ptr::null_mut();
+            unsafe {
+                if analysis::LLVMVerifyModule(module, analysis::LLVMVerifierFailureAction::LLVMReturnStatusAction, &mut message) != 0 {
+                    let err = CStr::from_ptr(message);
+                    println!("ERROR: {}", err.to_string_lossy());
+                    core::LLVMDisposeMessage(message);
+                }
+            }
+            panic!("Function did not verify!");
         }
 
         module
