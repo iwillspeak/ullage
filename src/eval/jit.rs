@@ -46,7 +46,9 @@ impl visit::Visitor for JitEvaluator {
     type Output = LLVMValueRef;
 
     fn on_identifier(&mut self, id: String) -> Self::Output {
-        self.sym_tab.get(&id).expect("Reference to ID not set!").clone()
+        let var = self.sym_tab.get(&id).expect("Reference to ID not set!").clone();
+        let loaded = CStr::from_bytes_with_nul(b"loaded\0").unwrap();
+        unsafe { core::LLVMBuildLoad(self.builder, var, loaded.as_ptr()) }
     }
 
     fn on_literal(&mut self, lit: Constant) -> Self::Output {
@@ -103,7 +105,12 @@ impl visit::Visitor for JitEvaluator {
             Assign => {
                 let rhs_value = rhs.visit(self);
                 if let Expression::Identifier(id) = lhs {
-                    self.sym_tab.insert(id, rhs_value);
+                    match self.sym_tab.get(&id) {
+                        Some(value) => unsafe {
+                            core::LLVMBuildStore(self.builder, rhs_value, *value);
+                        },
+                        None => panic!("Assig to variable that wasn't defined!")
+                    }
                 } else {
                     panic!("Assign to something which isn't an ID");
                 }
@@ -215,8 +222,12 @@ impl visit::Visitor for JitEvaluator {
         }
     }
 
-    fn on_variable(&mut self, _var: TypedId) -> Self::Output {
-        unimplemented!();
+    fn on_variable(&mut self, var: TypedId) -> Self::Output {
+        let int64 = unsafe { core::LLVMInt64TypeInContext(self.context) };
+        let var_name = CString::new(var.id.clone()).unwrap();
+        let var_slot = unsafe { core::LLVMBuildAlloca(self.builder, int64, var_name.as_ptr()) };
+        self.sym_tab.insert(var.id, var_slot.clone());
+        var_slot
     }
 
     fn on_sequence(&mut self, mut exprs: Vec<Expression>) -> Self::Output {
