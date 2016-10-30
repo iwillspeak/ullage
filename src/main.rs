@@ -42,9 +42,8 @@ fn main() {
                 Ok(parsed) => {
                     buffered.clear();
                     println!("OK > {:?}", parsed);
-                    for expr in parsed {
-                        println!("=> {:?}", eval.eval(expr));
-                    }
+                    let expr = Expression::sequence(parsed);
+                    println!("=> {:?}", eval.eval(expr));
                     prompt('>');
                 }
                 Err(parse::Error::Incomplete) => {
