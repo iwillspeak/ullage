@@ -4,6 +4,8 @@
 
 extern crate llvm_sys;
 
+pub mod low_loader;
+
 use std::ffi::{CStr, CString};
 use std::collections::HashMap;
 use std::ptr;
@@ -19,10 +21,12 @@ use self::llvm_sys::{analysis, core, target, execution_engine};
 /// Jit Evaluator
 ///
 /// LLVM Jit Implemntation of the `Evaulator` Tratit.
+///
+/// This strut holds global state which should live for the lifetime
+/// of the entire program.
 pub struct JitEvaluator {
     sym_tab: HashMap<String, LLVMValueRef>,
-    context: *mut llvm_sys::LLVMContext,
-    builder: *mut llvm_sys::LLVMBuilder,
+    ctx: low_loader::Context,
     current_function: Option<LLVMValueRef>,
 }
 
@@ -33,28 +37,19 @@ impl Evaluator for JitEvaluator {
     }
 }
 
-impl Drop for JitEvaluator {
-    fn drop(&mut self) {
-        unsafe {
-            core::LLVMDisposeBuilder(self.builder);
-            core::LLVMContextDispose(self.context);
-        }
-    }
-}
-
 impl visit::Visitor for JitEvaluator {
     type Output = LLVMValueRef;
 
     fn on_identifier(&mut self, id: String) -> Self::Output {
         let var = self.sym_tab.get(&id).expect("Reference to ID not set!").clone();
         let loaded = CStr::from_bytes_with_nul(b"loaded\0").unwrap();
-        unsafe { core::LLVMBuildLoad(self.builder, var, loaded.as_ptr()) }
+        unsafe { core::LLVMBuildLoad(self.ctx.as_builder_ptr(), var, loaded.as_ptr()) }
     }
 
     fn on_literal(&mut self, lit: Constant) -> Self::Output {
         match lit {
             Constant::Number(i) => unsafe {
-                let int64 = core::LLVMInt64TypeInContext(self.context);
+                let int64 = core::LLVMInt64TypeInContext(self.ctx.as_context_ptr());
                 core::LLVMConstInt(int64, i as u64, 1)
             },
             _ => unimplemented!(),
@@ -66,7 +61,7 @@ impl visit::Visitor for JitEvaluator {
         match op {
             PrefixOp::Negate => unsafe {
                 let temp_name = CStr::from_bytes_with_nul(b"neg\0").unwrap();
-                core::LLVMBuildNeg(self.builder, value, temp_name.as_ptr())
+                core::LLVMBuildNeg(self.ctx.as_builder_ptr(), value, temp_name.as_ptr())
             },
             _ => unimplemented!(),
         }
@@ -81,25 +76,25 @@ impl visit::Visitor for JitEvaluator {
                 let rhs_val = rhs.visit(self);
                 let lhs_val = lhs.visit(self);
                 let name = CStr::from_bytes_with_nul(b"add\0").unwrap();
-                unsafe { core::LLVMBuildAdd(self.builder, lhs_val, rhs_val, name.as_ptr()) }
+                unsafe { core::LLVMBuildAdd(self.ctx.as_builder_ptr(), lhs_val, rhs_val, name.as_ptr()) }
             }
             Sub => {
                 let rhs_val = rhs.visit(self);
                 let lhs_val = lhs.visit(self);
                 let name = CStr::from_bytes_with_nul(b"sub\0").unwrap();
-                unsafe { core::LLVMBuildSub(self.builder, lhs_val, rhs_val, name.as_ptr()) }
+                unsafe { core::LLVMBuildSub(self.ctx.as_builder_ptr(), lhs_val, rhs_val, name.as_ptr()) }
             }
             Mul => {
                 let rhs_val = rhs.visit(self);
                 let lhs_val = lhs.visit(self);
                 let name = CStr::from_bytes_with_nul(b"mul\0").unwrap();
-                unsafe { core::LLVMBuildMul(self.builder, lhs_val, rhs_val, name.as_ptr()) }
+                unsafe { core::LLVMBuildMul(self.ctx.as_builder_ptr(), lhs_val, rhs_val, name.as_ptr()) }
             }
             Div => {
                 let rhs_val = rhs.visit(self);
                 let lhs_val = lhs.visit(self);
                 let name = CStr::from_bytes_with_nul(b"div\0").unwrap();
-                unsafe { core::LLVMBuildSDiv(self.builder, lhs_val, rhs_val, name.as_ptr()) }
+                unsafe { core::LLVMBuildSDiv(self.ctx.as_builder_ptr(), lhs_val, rhs_val, name.as_ptr()) }
             }
 
             Assign => {
@@ -107,7 +102,7 @@ impl visit::Visitor for JitEvaluator {
                 if let Expression::Identifier(id) = lhs {
                     match self.sym_tab.get(&id) {
                         Some(value) => unsafe {
-                            core::LLVMBuildStore(self.builder, rhs_value, *value);
+                            core::LLVMBuildStore(self.ctx.as_builder_ptr(), rhs_value, *value);
                         },
                         None => panic!("Assig to variable that wasn't defined!")
                     }
@@ -139,41 +134,41 @@ impl visit::Visitor for JitEvaluator {
         let false_block = self.add_basic_block("on_false");
         let merge_block = self.add_basic_block("merge");
 
-        let int64 = unsafe { core::LLVMInt64TypeInContext(self.context) };
+        let int64 = unsafe { core::LLVMInt64TypeInContext(self.ctx.as_context_ptr()) };
 
         // A temp variable on the stack to hold the 'result' of the
         // if. This will in almost all cases be trivially optimised by
         // LLVM into a phi-node.
         let result_name = CStr::from_bytes_with_nul(b"res\0").unwrap();
-        let result = unsafe { core::LLVMBuildAlloca(self.builder, int64, result_name.as_ptr()) };
+        let result = unsafe { core::LLVMBuildAlloca(self.ctx.as_builder_ptr(), int64, result_name.as_ptr()) };
 
         let cond_name = CStr::from_bytes_with_nul(b"cond\0").unwrap();
         unsafe {
             // Compare the condition value to false (so we end up with
             // a bool) and then branch based on it's value.
             let false_int = core::LLVMConstInt(int64, 0 as u64, 1);
-            let cond_value = core::LLVMBuildICmp(self.builder,
+            let cond_value = core::LLVMBuildICmp(self.ctx.as_builder_ptr(),
                                                  llvm_sys::LLVMIntPredicate::LLVMIntNE,
                                                  cond_value,
                                                  false_int,
                                                  cond_name.as_ptr());
-            core::LLVMBuildCondBr(self.builder, cond_value, true_block, false_block);
+            core::LLVMBuildCondBr(self.ctx.as_builder_ptr(), cond_value, true_block, false_block);
 
             // Move on to building the true block
-            core::LLVMPositionBuilderAtEnd(self.builder, true_block);
+            core::LLVMPositionBuilderAtEnd(self.ctx.as_builder_ptr(), true_block);
             let then_value = then.visit(self);
-            core::LLVMBuildStore(self.builder, then_value, result);
-            core::LLVMBuildBr(self.builder, merge_block);
+            core::LLVMBuildStore(self.ctx.as_builder_ptr(), then_value, result);
+            core::LLVMBuildBr(self.ctx.as_builder_ptr(), merge_block);
 
             // Move on to the else boock
-            core::LLVMPositionBuilderAtEnd(self.builder, false_block);
+            core::LLVMPositionBuilderAtEnd(self.ctx.as_builder_ptr(), false_block);
             let els_value = els.visit(self);
-            core::LLVMBuildStore(self.builder, els_value, result);
-            core::LLVMBuildBr(self.builder, merge_block);
+            core::LLVMBuildStore(self.ctx.as_builder_ptr(), els_value, result);
+            core::LLVMBuildBr(self.ctx.as_builder_ptr(), merge_block);
 
             // Then join the result together from both branches
-            core::LLVMPositionBuilderAtEnd(self.builder, merge_block);
-            core::LLVMBuildLoad(self.builder, result, result_name.as_ptr())
+            core::LLVMPositionBuilderAtEnd(self.ctx.as_builder_ptr(), merge_block);
+            core::LLVMBuildLoad(self.ctx.as_builder_ptr(), result, result_name.as_ptr())
         }
     }
 
@@ -194,38 +189,38 @@ impl visit::Visitor for JitEvaluator {
 
         let cond_name = CStr::from_bytes_with_nul(b"cond\0").unwrap();
         unsafe {
-            let int64 = core::LLVMInt64TypeInContext(self.context);
-            core::LLVMBuildBr(self.builder, cond_block);
+            let int64 = core::LLVMInt64TypeInContext(self.ctx.as_context_ptr());
+            core::LLVMBuildBr(self.ctx.as_builder_ptr(), cond_block);
 
-            core::LLVMPositionBuilderAtEnd(self.builder, cond_block);
+            core::LLVMPositionBuilderAtEnd(self.ctx.as_builder_ptr(), cond_block);
             let cond_value = cond.visit(self);
 
             let false_int = core::LLVMConstInt(int64, 0 as u64, 1);
-            let cond_value = core::LLVMBuildICmp(self.builder,
+            let cond_value = core::LLVMBuildICmp(self.ctx.as_builder_ptr(),
                                                  llvm_sys::LLVMIntPredicate::LLVMIntNE,
                                                  cond_value,
                                                  false_int,
                                                  cond_name.as_ptr());
-            core::LLVMBuildCondBr(self.builder, cond_value, body_block, merge_block);
+            core::LLVMBuildCondBr(self.ctx.as_builder_ptr(), cond_value, body_block, merge_block);
 
 
             // Move on to building the body
-            core::LLVMPositionBuilderAtEnd(self.builder, body_block);
+            core::LLVMPositionBuilderAtEnd(self.ctx.as_builder_ptr(), body_block);
             body.visit(self);
 
             // back to the top of the loop
-            core::LLVMBuildBr(self.builder, cond_block);
+            core::LLVMBuildBr(self.ctx.as_builder_ptr(), cond_block);
 
             // After the loop
-            core::LLVMPositionBuilderAtEnd(self.builder, merge_block);
+            core::LLVMPositionBuilderAtEnd(self.ctx.as_builder_ptr(), merge_block);
             false_int
         }
     }
 
     fn on_variable(&mut self, var: TypedId) -> Self::Output {
-        let int64 = unsafe { core::LLVMInt64TypeInContext(self.context) };
+        let int64 = unsafe { core::LLVMInt64TypeInContext(self.ctx.as_context_ptr()) };
         let var_name = CString::new(var.id.clone()).unwrap();
-        let var_slot = unsafe { core::LLVMBuildAlloca(self.builder, int64, var_name.as_ptr()) };
+        let var_slot = unsafe { core::LLVMBuildAlloca(self.ctx.as_builder_ptr(), int64, var_name.as_ptr()) };
         self.sym_tab.insert(var.id, var_slot.clone());
         var_slot
     }
@@ -233,7 +228,7 @@ impl visit::Visitor for JitEvaluator {
     fn on_sequence(&mut self, mut exprs: Vec<Expression>) -> Self::Output {
         exprs.drain(..).map(|exp| exp.visit(self)).last().unwrap_or_else(|| {
             unsafe {
-                let int64 = core::LLVMInt64TypeInContext(self.context);
+                let int64 = core::LLVMInt64TypeInContext(self.ctx.as_context_ptr());
                 core::LLVMConstInt(int64, 0 as u64, 1)
             }
         })
@@ -246,34 +241,11 @@ impl JitEvaluator {
     /// Initialises a new LLVM Jit evaluator with the default
     /// settings.
     pub fn new() -> JitEvaluator {
-        Self::ensure_initialised();
-        let context = unsafe { core::LLVMContextCreate() };
-        let builder = unsafe { core::LLVMCreateBuilderInContext(context) };
         JitEvaluator {
             sym_tab: HashMap::new(),
-            context: context,
-            builder: builder,
+            ctx: low_loader::Context::new(),
             current_function: None,
         }
-    }
-
-    fn ensure_initialised() {
-        use std::sync::{Once, ONCE_INIT};
-
-        static INIT: Once = ONCE_INIT;
-
-        INIT.call_once(|| {
-            // Initialise LLVM
-            unsafe {
-                execution_engine::LLVMLinkInMCJIT();
-                if target::LLVM_InitializeNativeTarget() != 0 {
-                    panic!("Could not initialise target");
-                }
-                if target::LLVM_InitializeNativeAsmPrinter() != 0 {
-                    panic!("Could not initialise ASM Printer");
-                }
-            }
-        });
     }
 
     /// Evaluate Module
@@ -319,11 +291,11 @@ impl JitEvaluator {
         // Create a module to compile the expression into
         let mod_name = CStr::from_bytes_with_nul(b"temp\0").unwrap();
         let module =
-            unsafe { core::LLVMModuleCreateWithNameInContext(mod_name.as_ptr(), self.context) };
+            unsafe { core::LLVMModuleCreateWithNameInContext(mod_name.as_ptr(), self.ctx.as_context_ptr()) };
 
         // Create a function to be used to evaluate our expression
         let function_type = unsafe {
-            let int64 = core::LLVMInt64TypeInContext(self.context);
+            let int64 = core::LLVMInt64TypeInContext(self.ctx.as_context_ptr());
             core::LLVMFunctionType(int64, ptr::null_mut(), 0, 0)
         };
 
@@ -333,14 +305,14 @@ impl JitEvaluator {
 
         let main_block = self.add_basic_block("entry");
         unsafe {
-            core::LLVMPositionBuilderAtEnd(self.builder, main_block);
+            core::LLVMPositionBuilderAtEnd(self.ctx.as_builder_ptr(), main_block);
         }
 
         // compile down the expression
         let expression = expr.visit(self);
 
         let function_verified = unsafe {
-            core::LLVMBuildRet(self.builder, expression);
+            core::LLVMBuildRet(self.ctx.as_builder_ptr(), expression);
             analysis::LLVMVerifyFunction(function, analysis::LLVMVerifierFailureAction::LLVMReturnStatusAction)
         };
 
@@ -364,7 +336,7 @@ impl JitEvaluator {
         // Create a basic block and add it to the function
         let block_name = CString::new(name).unwrap();
         let function = self.current_function.expect("not compiling a function!");
-        unsafe { core::LLVMAppendBasicBlockInContext(self.context, function, block_name.as_ptr()) }
+        unsafe { core::LLVMAppendBasicBlockInContext(self.ctx.as_context_ptr(), function, block_name.as_ptr()) }
     }
 }
 
