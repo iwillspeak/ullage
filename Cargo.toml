@@ -5,3 +5,5 @@ authors = ["Will Speak <will@willspeak.me>"]
 
 [dependencies]
 llvm-sys = "*"
+docopt = "0.6"
+rustc-serialize = "0.3"
