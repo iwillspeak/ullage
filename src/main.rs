@@ -41,6 +41,7 @@ Options:
   -h --help                 Show this screen.
   --version                 Show version.
   -v, --verbose             Be verbose in Logging.
+  -b <b>, --backend <b>     The backend/evlauator to use [default: jit].
   -e <expr>, --eval <expr>  Evaluate <expr> and then exit.
 ";
 
@@ -54,7 +55,17 @@ struct Args {
     flag_version: bool,
     flag_verbose: bool,
     flag_eval: Option<String>,
+    flag_backend: EvalType,
     cmd_repl: bool,
+}
+
+/// Evaluator Type
+///
+/// The different types of evaluator available for use.
+#[derive(Debug, RustcDecodable)]
+enum EvalType {
+    Jit,
+    Interpreter,
 }
 
 /// Prompt for Input
@@ -80,7 +91,7 @@ fn prompt(c: char) {
 ///  * `eval` - The evaluator instance to use.
 ///  * `line` - The input line to parse and evaluate.
 ///  * `verbose` - Print out extra information about the parse result.
-fn evaluate(eval: &mut Evaluator, line: &str, verbose: bool) -> Result<i32,()> {
+fn evaluate(eval: &mut Evaluator, line: &str, verbose: bool) -> Result<i32, ()> {
     match Expression::parse_str(line) {
         Ok(parsed) => {
             if verbose {
@@ -125,9 +136,10 @@ fn run_repl(eval: &mut Evaluator, args: Args) -> i32 {
             match evaluate(eval, &buffered, args.flag_verbose) {
                 Ok(fails) => {
                     failures += fails;
+                    buffered.clear();
                     prompt('>')
-                },
-                Err(_) => prompt('.')
+                }
+                Err(_) => prompt('.'),
             };
         };
     }
@@ -152,10 +164,13 @@ fn main() {
         }
     }
 
-    let mut eval = eval::jit::JitEvaluator::new();
+    let mut eval: Box<Evaluator> = match args.flag_backend {
+        EvalType::Jit => Box::new(eval::jit::JitEvaluator::new()),
+        EvalType::Interpreter => Box::new(eval::tree_walk::TreeWalkEvaluator::new()),
+    };
 
     exit(if args.flag_eval.is_some() {
-        match evaluate(&mut eval, &args.flag_eval.unwrap(), args.flag_verbose) {
+        match evaluate(&mut *eval, &args.flag_eval.unwrap(), args.flag_verbose) {
             Ok(fails) => fails,
             Err(_) => {
                 let mut stderr = io::stderr();
@@ -164,6 +179,6 @@ fn main() {
             }
         }
     } else {
-        run_repl(&mut eval, args)
+        run_repl(&mut *eval, args)
     })
 }

@@ -92,7 +92,6 @@ pub trait Visitor {
 }
 
 impl Expression {
-
     /// Accept a Visitor
     ///
     /// Dispatches to the correct visitor for the current expression's

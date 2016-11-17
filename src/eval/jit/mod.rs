@@ -77,25 +77,33 @@ impl visit::Visitor for JitEvaluator {
                 let rhs_val = self.visit(rhs);
                 let lhs_val = self.visit(lhs);
                 let name = CStr::from_bytes_with_nul(b"add\0").unwrap();
-                unsafe { core::LLVMBuildAdd(self.ctx.as_builder_ptr(), lhs_val, rhs_val, name.as_ptr()) }
+                unsafe {
+                    core::LLVMBuildAdd(self.ctx.as_builder_ptr(), lhs_val, rhs_val, name.as_ptr())
+                }
             }
             Sub => {
                 let rhs_val = self.visit(rhs);
                 let lhs_val = self.visit(lhs);
                 let name = CStr::from_bytes_with_nul(b"sub\0").unwrap();
-                unsafe { core::LLVMBuildSub(self.ctx.as_builder_ptr(), lhs_val, rhs_val, name.as_ptr()) }
+                unsafe {
+                    core::LLVMBuildSub(self.ctx.as_builder_ptr(), lhs_val, rhs_val, name.as_ptr())
+                }
             }
             Mul => {
                 let rhs_val = self.visit(rhs);
                 let lhs_val = self.visit(lhs);
                 let name = CStr::from_bytes_with_nul(b"mul\0").unwrap();
-                unsafe { core::LLVMBuildMul(self.ctx.as_builder_ptr(), lhs_val, rhs_val, name.as_ptr()) }
+                unsafe {
+                    core::LLVMBuildMul(self.ctx.as_builder_ptr(), lhs_val, rhs_val, name.as_ptr())
+                }
             }
             Div => {
                 let rhs_val = self.visit(rhs);
                 let lhs_val = self.visit(lhs);
                 let name = CStr::from_bytes_with_nul(b"div\0").unwrap();
-                unsafe { core::LLVMBuildSDiv(self.ctx.as_builder_ptr(), lhs_val, rhs_val, name.as_ptr()) }
+                unsafe {
+                    core::LLVMBuildSDiv(self.ctx.as_builder_ptr(), lhs_val, rhs_val, name.as_ptr())
+                }
             }
 
             Assign => {
@@ -105,7 +113,7 @@ impl visit::Visitor for JitEvaluator {
                         Some(value) => unsafe {
                             core::LLVMBuildStore(self.ctx.as_builder_ptr(), rhs_value, *value);
                         },
-                        None => panic!("Assig to variable that wasn't defined!")
+                        None => panic!("Assig to variable that wasn't defined!"),
                     }
                 } else {
                     panic!("Assign to something which isn't an ID");
@@ -141,7 +149,9 @@ impl visit::Visitor for JitEvaluator {
         // if. This will in almost all cases be trivially optimised by
         // LLVM into a phi-node.
         let result_name = CStr::from_bytes_with_nul(b"res\0").unwrap();
-        let result = unsafe { core::LLVMBuildAlloca(self.ctx.as_builder_ptr(), int64, result_name.as_ptr()) };
+        let result = unsafe {
+            core::LLVMBuildAlloca(self.ctx.as_builder_ptr(), int64, result_name.as_ptr())
+        };
 
         let cond_name = CStr::from_bytes_with_nul(b"cond\0").unwrap();
         unsafe {
@@ -153,7 +163,10 @@ impl visit::Visitor for JitEvaluator {
                                                  cond_value,
                                                  false_int,
                                                  cond_name.as_ptr());
-            core::LLVMBuildCondBr(self.ctx.as_builder_ptr(), cond_value, true_block, false_block);
+            core::LLVMBuildCondBr(self.ctx.as_builder_ptr(),
+                                  cond_value,
+                                  true_block,
+                                  false_block);
 
             // Move on to building the true block
             core::LLVMPositionBuilderAtEnd(self.ctx.as_builder_ptr(), true_block);
@@ -202,7 +215,10 @@ impl visit::Visitor for JitEvaluator {
                                                  cond_value,
                                                  false_int,
                                                  cond_name.as_ptr());
-            core::LLVMBuildCondBr(self.ctx.as_builder_ptr(), cond_value, body_block, merge_block);
+            core::LLVMBuildCondBr(self.ctx.as_builder_ptr(),
+                                  cond_value,
+                                  body_block,
+                                  merge_block);
 
 
             // Move on to building the body
@@ -221,7 +237,8 @@ impl visit::Visitor for JitEvaluator {
     fn on_variable(&mut self, var: TypedId) -> Self::Output {
         let int64 = unsafe { core::LLVMInt64TypeInContext(self.ctx.as_context_ptr()) };
         let var_name = CString::new(var.id.clone()).unwrap();
-        let var_slot = unsafe { core::LLVMBuildAlloca(self.ctx.as_builder_ptr(), int64, var_name.as_ptr()) };
+        let var_slot =
+            unsafe { core::LLVMBuildAlloca(self.ctx.as_builder_ptr(), int64, var_name.as_ptr()) };
         self.sym_tab.insert(var.id, var_slot.clone());
         var_slot
     }
@@ -291,8 +308,9 @@ impl JitEvaluator {
 
         // Create a module to compile the expression into
         let mod_name = CStr::from_bytes_with_nul(b"temp\0").unwrap();
-        let module =
-            unsafe { core::LLVMModuleCreateWithNameInContext(mod_name.as_ptr(), self.ctx.as_context_ptr()) };
+        let module = unsafe {
+            core::LLVMModuleCreateWithNameInContext(mod_name.as_ptr(), self.ctx.as_context_ptr())
+        };
 
         // Create a function to be used to evaluate our expression
         let function_type = unsafe {
@@ -301,7 +319,8 @@ impl JitEvaluator {
         };
 
         let function_name = CStr::from_bytes_with_nul(b" \0").unwrap();
-        let function =  unsafe { core::LLVMAddFunction(module, function_name.as_ptr(), function_type) };
+        let function =
+            unsafe { core::LLVMAddFunction(module, function_name.as_ptr(), function_type) };
         self.current_function = Some(function);
 
         let main_block = self.add_basic_block("entry");
@@ -337,7 +356,11 @@ impl JitEvaluator {
         // Create a basic block and add it to the function
         let block_name = CString::new(name).unwrap();
         let function = self.current_function.expect("not compiling a function!");
-        unsafe { core::LLVMAppendBasicBlockInContext(self.ctx.as_context_ptr(), function, block_name.as_ptr()) }
+        unsafe {
+            core::LLVMAppendBasicBlockInContext(self.ctx.as_context_ptr(),
+                                                function,
+                                                block_name.as_ptr())
+        }
     }
 }
 

@@ -46,8 +46,7 @@ fn ensure_initialised() {
 /// individual function compilations and evaluations. This object is
 /// responsible for managing the underlying LLVM contex, builder and
 /// evaluator.
-pub struct Context{
-
+pub struct Context {
     /// Raw LLVM Context
     ///
     /// The LLVM context holds the global state for compilation. This
@@ -66,7 +65,6 @@ pub struct Context{
 }
 
 impl Context {
-
     /// Create Context
     ///
     /// You'll probably only need one of these per 'program' you want
@@ -86,7 +84,7 @@ impl Context {
         let ctx = unsafe { core::LLVMContextCreate() };
         Context {
             context: ctx,
-            builder: unsafe { core::LLVMCreateBuilderInContext(ctx) }
+            builder: unsafe { core::LLVMCreateBuilderInContext(ctx) },
         }
     }
 
@@ -121,6 +119,6 @@ mod test {
 
     #[test]
     fn create_jit_context_succeeds() {
-        let _  = Context::new();
+        let _ = Context::new();
     }
 }
