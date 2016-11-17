@@ -16,7 +16,7 @@ pub struct TreeWalkEvaluator {
 impl Evaluator for TreeWalkEvaluator {
     /// Evaluate an Expression
     fn eval(&mut self, expr: Expression) -> Value {
-        expr.visit(self)
+        self.visit(expr)
     }
 }
 
@@ -55,7 +55,7 @@ impl Visitor for TreeWalkEvaluator {
     }
 
     fn on_prefix(&mut self, op: PrefixOp, value: Expression) -> Self::Output {
-        let value = value.visit(self);
+        let value = self.visit(value);
         match op {
             PrefixOp::Negate => {
                 match value {
@@ -74,7 +74,7 @@ impl Visitor for TreeWalkEvaluator {
     }
 
     fn on_infix(&mut self, lhs: Expression, op: InfixOp, rhs: Expression) -> Self::Output {
-        let rhs_val = rhs.visit(self);
+        let rhs_val = self.visit(rhs);
 
         if op == InfixOp::Assign {
             let id = match lhs {
@@ -85,7 +85,7 @@ impl Visitor for TreeWalkEvaluator {
             return rhs_val;
         }
 
-        let lhs_val = lhs.visit(self);
+        let lhs_val = self.visit(lhs);
 
         match (lhs_val, rhs_val) {
             (Value::Num(i), Value::Num(j)) => self.eval_infix_num(i, op, j),
@@ -127,7 +127,7 @@ impl Visitor for TreeWalkEvaluator {
         exprs.reverse();
         let mut value = Value::Num(0);
         while let Some(e) = exprs.pop() {
-            value = e.visit(self);
+            value = self.visit(e);
         }
         value
     }

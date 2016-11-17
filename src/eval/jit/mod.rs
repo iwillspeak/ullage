@@ -12,11 +12,12 @@ use std::ptr;
 use std::mem;
 
 use syntax::*;
+use syntax::visit::*;
 use syntax::operators::*;
 use super::{Evaluator, Value};
 
 use self::llvm_sys::prelude::*;
-use self::llvm_sys::{analysis, core, target, execution_engine};
+use self::llvm_sys::{analysis, core, execution_engine};
 
 /// Jit Evaluator
 ///
@@ -57,7 +58,7 @@ impl visit::Visitor for JitEvaluator {
     }
 
     fn on_prefix(&mut self, op: PrefixOp, expr: Expression) -> Self::Output {
-        let value = expr.visit(self);
+        let value = self.visit(expr);
         match op {
             PrefixOp::Negate => unsafe {
                 let temp_name = CStr::from_bytes_with_nul(b"neg\0").unwrap();
@@ -73,32 +74,32 @@ impl visit::Visitor for JitEvaluator {
         match op {
             // arithmetic operators
             Add => {
-                let rhs_val = rhs.visit(self);
-                let lhs_val = lhs.visit(self);
+                let rhs_val = self.visit(rhs);
+                let lhs_val = self.visit(lhs);
                 let name = CStr::from_bytes_with_nul(b"add\0").unwrap();
                 unsafe { core::LLVMBuildAdd(self.ctx.as_builder_ptr(), lhs_val, rhs_val, name.as_ptr()) }
             }
             Sub => {
-                let rhs_val = rhs.visit(self);
-                let lhs_val = lhs.visit(self);
+                let rhs_val = self.visit(rhs);
+                let lhs_val = self.visit(lhs);
                 let name = CStr::from_bytes_with_nul(b"sub\0").unwrap();
                 unsafe { core::LLVMBuildSub(self.ctx.as_builder_ptr(), lhs_val, rhs_val, name.as_ptr()) }
             }
             Mul => {
-                let rhs_val = rhs.visit(self);
-                let lhs_val = lhs.visit(self);
+                let rhs_val = self.visit(rhs);
+                let lhs_val = self.visit(lhs);
                 let name = CStr::from_bytes_with_nul(b"mul\0").unwrap();
                 unsafe { core::LLVMBuildMul(self.ctx.as_builder_ptr(), lhs_val, rhs_val, name.as_ptr()) }
             }
             Div => {
-                let rhs_val = rhs.visit(self);
-                let lhs_val = lhs.visit(self);
+                let rhs_val = self.visit(rhs);
+                let lhs_val = self.visit(lhs);
                 let name = CStr::from_bytes_with_nul(b"div\0").unwrap();
                 unsafe { core::LLVMBuildSDiv(self.ctx.as_builder_ptr(), lhs_val, rhs_val, name.as_ptr()) }
             }
 
             Assign => {
-                let rhs_value = rhs.visit(self);
+                let rhs_value = self.visit(rhs);
                 if let Expression::Identifier(id) = lhs {
                     match self.sym_tab.get(&id) {
                         Some(value) => unsafe {
@@ -127,7 +128,7 @@ impl visit::Visitor for JitEvaluator {
 
     fn on_if(&mut self, cond: Expression, then: Expression, els: Expression) -> Self::Output {
         // First things first, let's compute the value of the condition
-        let cond_value = cond.visit(self);
+        let cond_value = self.visit(cond);
 
         // Create some basic blocks to hold the conditionally executed bits
         let true_block = self.add_basic_block("on_true");
@@ -156,13 +157,13 @@ impl visit::Visitor for JitEvaluator {
 
             // Move on to building the true block
             core::LLVMPositionBuilderAtEnd(self.ctx.as_builder_ptr(), true_block);
-            let then_value = then.visit(self);
+            let then_value = self.visit(then);
             core::LLVMBuildStore(self.ctx.as_builder_ptr(), then_value, result);
             core::LLVMBuildBr(self.ctx.as_builder_ptr(), merge_block);
 
             // Move on to the else boock
             core::LLVMPositionBuilderAtEnd(self.ctx.as_builder_ptr(), false_block);
-            let els_value = els.visit(self);
+            let els_value = self.visit(els);
             core::LLVMBuildStore(self.ctx.as_builder_ptr(), els_value, result);
             core::LLVMBuildBr(self.ctx.as_builder_ptr(), merge_block);
 
@@ -193,7 +194,7 @@ impl visit::Visitor for JitEvaluator {
             core::LLVMBuildBr(self.ctx.as_builder_ptr(), cond_block);
 
             core::LLVMPositionBuilderAtEnd(self.ctx.as_builder_ptr(), cond_block);
-            let cond_value = cond.visit(self);
+            let cond_value = self.visit(cond);
 
             let false_int = core::LLVMConstInt(int64, 0 as u64, 1);
             let cond_value = core::LLVMBuildICmp(self.ctx.as_builder_ptr(),
@@ -206,7 +207,7 @@ impl visit::Visitor for JitEvaluator {
 
             // Move on to building the body
             core::LLVMPositionBuilderAtEnd(self.ctx.as_builder_ptr(), body_block);
-            body.visit(self);
+            self.visit(body);
 
             // back to the top of the loop
             core::LLVMBuildBr(self.ctx.as_builder_ptr(), cond_block);
@@ -226,7 +227,7 @@ impl visit::Visitor for JitEvaluator {
     }
 
     fn on_sequence(&mut self, mut exprs: Vec<Expression>) -> Self::Output {
-        exprs.drain(..).map(|exp| exp.visit(self)).last().unwrap_or_else(|| {
+        exprs.drain(..).map(|exp| self.visit(exp)).last().unwrap_or_else(|| {
             unsafe {
                 let int64 = core::LLVMInt64TypeInContext(self.ctx.as_context_ptr());
                 core::LLVMConstInt(int64, 0 as u64, 1)
@@ -309,7 +310,7 @@ impl JitEvaluator {
         }
 
         // compile down the expression
-        let expression = expr.visit(self);
+        let expression = self.visit(expr);
 
         let function_verified = unsafe {
             core::LLVMBuildRet(self.ctx.as_builder_ptr(), expression);

@@ -4,8 +4,7 @@
 
 extern crate llvm_sys;
 
-use self::llvm_sys::prelude::*;
-use self::llvm_sys::{analysis, core, target, execution_engine};
+use self::llvm_sys::{core, target, execution_engine};
 
 /// Ensure Initialised
 ///

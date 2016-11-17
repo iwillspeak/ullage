@@ -77,12 +77,27 @@ pub trait Visitor {
     ///
     /// Represents a series of expressions evaluated one after the
     /// other.
-    fn on_sequence(&mut self, mut exprs: Vec<Expression>) -> Self::Output;
+    fn on_sequence(&mut self, exprs: Vec<Expression>) -> Self::Output;
+
+    /// Visit an Expression
+    ///
+    /// Visitors shouldn't need to overload this method. It can be
+    /// used to visit a given expression, rather than asking it
+    /// directly to `accept`.
+    fn visit(&mut self, expr: Expression) -> Self::Output
+        where Self: Sized
+    {
+        expr.accept(self)
+    }
 }
 
 impl Expression {
-    /// Visit this Expression
-    pub fn visit<V, O>(self, v: &mut V) -> O
+
+    /// Accept a Visitor
+    ///
+    /// Dispatches to the correct visitor for the current expression's
+    /// type.
+    pub fn accept<V, O>(self, v: &mut V) -> O
         where V: Visitor<Output = O>
     {
         match self {
