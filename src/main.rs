@@ -91,7 +91,12 @@ fn prompt(c: char) {
 ///  * `eval` - The evaluator instance to use.
 ///  * `line` - The input line to parse and evaluate.
 ///  * `verbose` - Print out extra information about the parse result.
-fn evaluate(eval: &mut Evaluator, line: &str, verbose: bool) -> Result<i32, ()> {
+///
+/// # Returns
+///
+/// A boolean representing the successful evaluation of the
+/// expression, or `None` if the expression was incomplete.
+fn evaluate(eval: &mut Evaluator, line: &str, verbose: bool) -> Option<bool> {
     match Expression::parse_str(line) {
         Ok(parsed) => {
             if verbose {
@@ -99,12 +104,12 @@ fn evaluate(eval: &mut Evaluator, line: &str, verbose: bool) -> Result<i32, ()> 
             }
             let expr = Expression::sequence(parsed);
             println!("=> {:?}", eval.eval(expr));
-            Ok(0)
+            Some(true)
         }
-        Err(parse::Error::Incomplete) => Err(()),
+        Err(parse::Error::Incomplete) => None,
         Err(err) => {
             println!("Error: {:?} ({})", err, line);
-            Ok(1)
+            Some(false)
         }
     }
 }
@@ -134,12 +139,12 @@ fn run_repl(eval: &mut Evaluator, args: Args) -> i32 {
             buffered.push_str(&line);
             buffered.push('\n');
             match evaluate(eval, &buffered, args.flag_verbose) {
-                Ok(fails) => {
-                    failures += fails;
+                Some(ok) => {
+                    if !ok { failures += 1 }
                     buffered.clear();
                     prompt('>')
                 }
-                Err(_) => prompt('.'),
+                None => prompt('.'),
             };
         };
     }
@@ -171,8 +176,8 @@ fn main() {
 
     exit(if args.flag_eval.is_some() {
         match evaluate(&mut *eval, &args.flag_eval.unwrap(), args.flag_verbose) {
-            Ok(fails) => fails,
-            Err(_) => {
+            Some(ok) => if ok { 0 } else { 1 },
+            None => {
                 let mut stderr = io::stderr();
                 writeln!(&mut stderr, "Incomplete expression!").unwrap();
                 1
