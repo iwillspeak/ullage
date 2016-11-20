@@ -6,6 +6,8 @@ extern crate llvm_sys;
 
 pub mod low_loader;
 
+mod value;
+
 use std::ffi::{CStr, CString};
 use std::collections::HashMap;
 use std::ptr;
@@ -49,10 +51,7 @@ impl visit::Visitor for JitEvaluator {
 
     fn on_literal(&mut self, lit: Constant) -> Self::Output {
         match lit {
-            Constant::Number(i) => unsafe {
-                let int64 = core::LLVMInt64TypeInContext(self.ctx.as_context_ptr());
-                core::LLVMConstInt(int64, i as u64, 1)
-            },
+            Constant::Number(i) => self.ctx.const_int(i).into(),
             _ => unimplemented!(),
         }
     }

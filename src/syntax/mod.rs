@@ -27,7 +27,7 @@ impl TypeRef {
     ///
     /// A simple type is a direct reference to a non-generic non-array
     /// type, such as `Num` or `String`.
-    fn simple(name: &str) -> Self {
+    pub fn simple(name: &str) -> Self {
         TypeRef::Simple(String::from(name))
     }
 
@@ -36,7 +36,7 @@ impl TypeRef {
     /// The unit type is represented as a struct with no contents. It
     /// has special meaning in some areas as it can be used to idicate
     /// the absence of a value.
-    fn unit() -> Self {
+    pub fn unit() -> Self {
         TypeRef::Unit
     }
 
@@ -44,7 +44,7 @@ impl TypeRef {
     ///
     /// A tuple type is an ordered collection of values. Each value
     /// can be of a different type.
-    fn tuple(inner: Vec<TypeRef>) -> Self {
+    pub fn tuple(inner: Vec<TypeRef>) -> Self {
         if inner.len() == 0 {
             Self::unit()
         } else {
@@ -56,7 +56,7 @@ impl TypeRef {
     ///
     /// An array type represents a contiguous collection of another
     /// type.
-    fn array(inner: TypeRef) -> Self {
+    pub fn array(inner: TypeRef) -> Self {
         TypeRef::Array(Box::new(inner))
     }
 }

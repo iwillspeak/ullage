@@ -4,7 +4,22 @@
 
 extern crate llvm_sys;
 
+use self::llvm_sys::prelude::*;
 use self::llvm_sys::{core, target, execution_engine};
+
+/// Wrapped Value Reference
+#[derive(Debug,PartialEq)]
+pub struct Value(LLVMValueRef);
+
+impl From<Value> for LLVMValueRef {
+    /// From Value
+    ///
+    /// Convert a wrapped value into a raw LLVM value reference.
+    fn from(v: Value) -> Self {
+        let Value(inner) = v;
+        inner
+    }
+}
 
 /// Ensure Initialised
 ///
@@ -88,6 +103,23 @@ impl Context {
         }
     }
 
+    /// Constant Int
+    ///
+    /// Creates a constant integer value in the given context. This
+    /// value can then be used during compilation as part of a
+    /// constant expression.
+    ///
+    /// # Arguments
+    ///
+    ///  * `val` - The 64 bit integer value to convert into an LLVM
+    ///  value.
+    pub fn const_int(&self, i: i64) -> Value {
+        Value(unsafe {
+            let int64 = core::LLVMInt64TypeInContext(self.context);
+            core::LLVMConstInt(int64, i as u64, 1)
+        })
+    }
+
     /// TODO: remove this!!
     pub fn as_context_ptr(&mut self) -> *mut llvm_sys::LLVMContext {
         self.context
@@ -115,10 +147,32 @@ impl Drop for Context {
 #[cfg(test)]
 mod test {
 
+    use std::ptr;
+
     use super::*;
 
     #[test]
     fn create_jit_context_succeeds() {
         let _ = Context::new();
+    }
+
+    #[test]
+    fn context_as_raw_builder_ptr_is_not_null() {
+        let mut ctx = Context::new();
+        let raw = ctx.as_builder_ptr();
+        assert_ne!(ptr::null_mut(), raw);
+    }
+
+    #[test]
+    fn context_as_raw_context_ptr_is_not_null() {
+        let mut ctx = Context::new();
+        let raw = ctx.as_context_ptr();
+        assert_ne!(ptr::null_mut(), raw);
+    }
+
+    #[test]
+    fn context_create_constant_int() {
+        let ctx = Context::new();
+        let _ = ctx.const_int(1234);
     }
 }
