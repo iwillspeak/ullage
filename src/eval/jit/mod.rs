@@ -11,15 +11,16 @@ mod value;
 use std::ffi::{CStr, CString};
 use std::collections::HashMap;
 use std::ptr;
-use std::mem;
 
 use syntax::*;
 use syntax::visit::*;
 use syntax::operators::*;
 use super::{Evaluator, Value};
 
+use self::low_loader::{Context, Module};
+
 use self::llvm_sys::prelude::*;
-use self::llvm_sys::{analysis, core, execution_engine};
+use self::llvm_sys::{analysis, core};
 
 /// Jit Evaluator
 ///
@@ -29,14 +30,14 @@ use self::llvm_sys::{analysis, core, execution_engine};
 /// of the entire program.
 pub struct JitEvaluator {
     sym_tab: HashMap<String, LLVMValueRef>,
-    ctx: low_loader::Context,
+    ctx: Context,
     current_function: Option<LLVMValueRef>,
 }
 
 impl Evaluator for JitEvaluator {
     fn eval(&mut self, expr: Expression) -> Value {
         let module = self.compile(expr);
-        self.eval_module(module)
+        self.eval_module(module).unwrap()
     }
 }
 
@@ -260,7 +261,7 @@ impl JitEvaluator {
     pub fn new() -> JitEvaluator {
         JitEvaluator {
             sym_tab: HashMap::new(),
-            ctx: low_loader::Context::new(),
+            ctx: Context::new(),
             current_function: None,
         }
     }
@@ -268,48 +269,19 @@ impl JitEvaluator {
     /// Evaluate Module
     ///
     /// Given an LLVM module run it and return a representation of the
-    /// result as a `Value`
-    fn eval_module(&mut self, module: LLVMModuleRef) -> Value {
-
-        // Create an execution engine to run the function
-        let mut engine = unsafe { mem::uninitialized() };
-        let mut out = unsafe { mem::zeroed() };
-        unsafe {
-            execution_engine::LLVMCreateExecutionEngineForModule(&mut engine, module, &mut out)
-        };
-
-        // Call the function
-        let function_name = CStr::from_bytes_with_nul(b" \0").unwrap();
-        let result = unsafe {
-            let mut function = mem::zeroed();
-
-            if execution_engine::LLVMFindFunction(engine,
-                                                  function_name.as_ptr(),
-                                                  &mut function as *mut LLVMValueRef) !=
-               0 {
-                panic!("Could not find function")
-            }
-            execution_engine::LLVMRunFunction(engine, function, 0, ptr::null_mut())
-        };
-
-        // dispose of the engine now we are done with it
-        unsafe {
-            execution_engine::LLVMDisposeExecutionEngine(engine);
-        }
-
-        Value::Num(unsafe { execution_engine::LLVMGenericValueToInt(result, 1) as i64 })
+    /// result as a `Value`.
+    fn eval_module(&mut self, module: Module) -> Result<Value,String> {
+        let engine = module.into_execution_engine().unwrap();
+        Ok(Value::Num(try!(engine.run_function(" "))))
     }
 
     /// Compile an Expression
     ///
     /// Takes a given expression and compiles it into an LLVM Module
-    fn compile(&mut self, expr: Expression) -> LLVMModuleRef {
+    fn compile(&mut self, expr: Expression) -> Module {
 
         // Create a module to compile the expression into
-        let mod_name = CStr::from_bytes_with_nul(b"temp\0").unwrap();
-        let module = unsafe {
-            core::LLVMModuleCreateWithNameInContext(mod_name.as_ptr(), self.ctx.as_context_ptr())
-        };
+        let module = self.ctx.add_module("temp");
 
         // Create a function to be used to evaluate our expression
         let function_type = unsafe {
@@ -319,7 +291,7 @@ impl JitEvaluator {
 
         let function_name = CStr::from_bytes_with_nul(b" \0").unwrap();
         let function =
-            unsafe { core::LLVMAddFunction(module, function_name.as_ptr(), function_type) };
+            unsafe { core::LLVMAddFunction(module.as_ptr(), function_name.as_ptr(), function_type) };
         self.current_function = Some(function);
 
         let main_block = self.add_basic_block("entry");
@@ -338,7 +310,7 @@ impl JitEvaluator {
         if function_verified != 0 {
             let mut message = ptr::null_mut();
             unsafe {
-                if analysis::LLVMVerifyModule(module, analysis::LLVMVerifierFailureAction::LLVMReturnStatusAction, &mut message) != 0 {
+                if analysis::LLVMVerifyModule(module.as_ptr(), analysis::LLVMVerifierFailureAction::LLVMReturnStatusAction, &mut message) != 0 {
                     let err = CStr::from_ptr(message);
                     println!("ERROR: {}", err.to_string_lossy());
                     core::LLVMDisposeMessage(message);

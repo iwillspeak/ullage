@@ -4,13 +4,23 @@
 
 extern crate llvm_sys;
 
+pub mod module;
+pub mod engine;
+
 use self::llvm_sys::prelude::*;
 use self::llvm_sys::{core, target, execution_engine};
+use std::ffi::CString;
+
+// Re-export the main types
+pub use self::module::Module;
 
 /// Wrapped Value Reference
 #[derive(Debug,PartialEq)]
 pub struct Value(LLVMValueRef);
 
+// Allow conversion from our wrapped type to the underlying LLVM
+// one. This is intended more as an escape hatch while converting code
+// to use the new safe wrappers rather than as a permanent solution.
 impl From<Value> for LLVMValueRef {
     /// From Value
     ///
@@ -117,6 +127,16 @@ impl Context {
         Value(unsafe {
             let int64 = core::LLVMInt64TypeInContext(self.context);
             core::LLVMConstInt(int64, i as u64, 1)
+        })
+    }
+
+    /// Add Module
+    ///
+    /// Creates a new LLVM module in this context.
+    pub fn add_module(&mut self, name: &str) -> Module {
+        let mod_name = CString::new(name).unwrap();
+        Module::from_raw(unsafe {
+            core::LLVMModuleCreateWithNameInContext(mod_name.as_ptr(), self.context)
         })
     }
 
