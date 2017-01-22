@@ -1,8 +1,0 @@
-foo = 100
-bar = 192
-baz = bar * (100 / foo)
-1 if baz else -1
-中 = 99 - (10 / bar)
-fn foo(): Num
-   fiz = 100
-end
