@@ -8,7 +8,7 @@ use syntax::TypeRef;
 #[derive(Debug,PartialEq)]
 pub struct Value {
     typ: TypeRef,
-    value: Option<LowValue>
+    value: Option<LowValue>,
 }
 
 impl Value {
@@ -25,7 +25,10 @@ impl Value {
     ///
     /// A new `Value` instatnce with no value.
     pub fn unit() -> Self {
-        Value { typ: TypeRef::unit(), value: None }
+        Value {
+            typ: TypeRef::unit(),
+            value: None,
+        }
     }
 
     /// Create a Value
@@ -44,7 +47,10 @@ impl Value {
     ///
     /// The new `Value` instance.
     pub fn new(typ: TypeRef, val: LowValue) -> Self {
-        Value { typ: typ, value: Some(val) }
+        Value {
+            typ: typ,
+            value: Some(val),
+        }
     }
 }
 

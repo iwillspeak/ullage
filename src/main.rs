@@ -140,7 +140,9 @@ fn run_repl(eval: &mut Evaluator, args: Args) -> i32 {
             buffered.push('\n');
             match evaluate(eval, &buffered, args.flag_verbose) {
                 Some(ok) => {
-                    if !ok { failures += 1 }
+                    if !ok {
+                        failures += 1
+                    }
                     buffered.clear();
                     prompt('>')
                 }

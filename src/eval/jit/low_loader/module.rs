@@ -45,12 +45,14 @@ impl Module {
     ///
     /// Takes the given module, and compiles it into a JIT execution
     /// engine.
-    pub fn into_execution_engine(self) -> Result<ExecutionEngine,String> {
+    pub fn into_execution_engine(self) -> Result<ExecutionEngine, String> {
         let mut engine = unsafe { mem::uninitialized() };
         let mut out = ptr::null_mut();
         let ok = unsafe {
             // consume the module to prevent it from being dropped later on
-            execution_engine::LLVMCreateExecutionEngineForModule(&mut engine, self.into(), &mut out) == 0
+            execution_engine::LLVMCreateExecutionEngineForModule(&mut engine,
+                                                                 self.into(),
+                                                                 &mut out) == 0
         };
         if ok {
             Ok(ExecutionEngine::from_raw(engine))

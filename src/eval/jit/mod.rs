@@ -270,7 +270,7 @@ impl JitEvaluator {
     ///
     /// Given an LLVM module run it and return a representation of the
     /// result as a `Value`.
-    fn eval_module(&mut self, module: Module) -> Result<Value,String> {
+    fn eval_module(&mut self, module: Module) -> Result<Value, String> {
         let engine = module.into_execution_engine().unwrap();
         Ok(Value::Num(try!(engine.run_function(" "))))
     }
@@ -290,8 +290,9 @@ impl JitEvaluator {
         };
 
         let function_name = CStr::from_bytes_with_nul(b" \0").unwrap();
-        let function =
-            unsafe { core::LLVMAddFunction(module.as_ptr(), function_name.as_ptr(), function_type) };
+        let function = unsafe {
+            core::LLVMAddFunction(module.as_ptr(), function_name.as_ptr(), function_type)
+        };
         self.current_function = Some(function);
 
         let main_block = self.add_basic_block("entry");
@@ -304,13 +305,17 @@ impl JitEvaluator {
 
         let function_verified = unsafe {
             core::LLVMBuildRet(self.ctx.as_builder_ptr(), expression);
-            analysis::LLVMVerifyFunction(function, analysis::LLVMVerifierFailureAction::LLVMReturnStatusAction)
+            analysis::LLVMVerifyFunction(
+                function, analysis::LLVMVerifierFailureAction::LLVMReturnStatusAction)
         };
 
         if function_verified != 0 {
             let mut message = ptr::null_mut();
             unsafe {
-                if analysis::LLVMVerifyModule(module.as_ptr(), analysis::LLVMVerifierFailureAction::LLVMReturnStatusAction, &mut message) != 0 {
+                if analysis::LLVMVerifyModule(
+                    module.as_ptr(),
+                    analysis::LLVMVerifierFailureAction::LLVMReturnStatusAction,
+                    &mut message) != 0 {
                     let err = CStr::from_ptr(message);
                     println!("ERROR: {}", err.to_string_lossy());
                     core::LLVMDisposeMessage(message);
@@ -337,9 +342,6 @@ impl JitEvaluator {
 
 #[cfg(test)]
 mod test {
-
-    use syntax::*;
-    use syntax::operators::*;
 
     use super::*;
     use super::super::*;
