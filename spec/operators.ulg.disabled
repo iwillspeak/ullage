@@ -1,4 +1,0 @@
-let a = 100 #=> Num(100)
-let b = -50 #=> Num(-50)
-let _ = a + b #=> Num(50)
-let _ = a + b + a #=> Num(150)

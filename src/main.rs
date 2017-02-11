@@ -35,6 +35,7 @@ Ullage Compiler
 
 Usage:
   ullage [options] -e <expression>
+  ullage [options] <file>
   ullage [options] [repl]
 
 Options:
@@ -57,6 +58,7 @@ struct Args {
     flag_eval: Option<String>,
     flag_backend: EvalType,
     cmd_repl: bool,
+    arg_file: Option<String>,
 }
 
 /// Evaluator Type
@@ -96,7 +98,7 @@ fn prompt(c: char) {
 ///
 /// A boolean representing the successful evaluation of the
 /// expression, or `None` if the expression was incomplete.
-fn evaluate(eval: &mut Evaluator, line: &str, verbose: bool) -> Option<bool> {
+fn eval_str(eval: &mut Evaluator, line: &str, verbose: bool) -> Option<bool> {
     match Expression::parse_str(line) {
         Ok(parsed) => {
             if verbose {
@@ -110,6 +112,56 @@ fn evaluate(eval: &mut Evaluator, line: &str, verbose: bool) -> Option<bool> {
         Err(err) => {
             println!("Error: {:?} ({})", err, line);
             Some(false)
+        }
+    }
+}
+
+/// Evaluate a File
+///
+/// Takes the path to a file, opens it and runs the contents as a
+/// program. The output of each root-level expression is printed.
+///
+/// # Arguments
+///
+///  * `eval` - The evaluator instance to use.
+///  * `path` - The file path to evaluate.
+///  * `verbose` - Be verbose or not.
+///
+/// # Returns
+///
+/// The number of failures encountered in the evaluation of the file,
+/// `0` if no failures are encountered.
+fn eval_file<P>(eval: &mut Evaluator, path: P, verbose: bool) -> i32
+    where P: AsRef<std::path::Path> + std::fmt::Display
+{
+    use std::fs::File;
+
+    match File::open(&path) {
+        Err(e) => {
+            println!("{}:error: error reading file: {}", path, e);
+            1
+        }
+        Ok(mut file) => {
+            let mut source = String::new();
+            if let Err(e) = file.read_to_string(&mut source) {
+                println!("{}:error: error reading file: {}", path, e);
+                return 1;
+            }
+
+            match Expression::parse_str(&source) {
+                Ok(parsed) => {
+                    if verbose {
+                        println!("OK > {:?}", parsed);
+                    }
+                    let seq = Expression::sequence(parsed);
+                    println!("{:?}", eval.eval(seq));
+                    0
+                }
+                Err(err) => {
+                    println!("error: {:?}", err);
+                    1
+                }
+            }
         }
     }
 }
@@ -138,7 +190,7 @@ fn run_repl(eval: &mut Evaluator, args: Args) -> i32 {
         if let Ok(line) = line_io {
             buffered.push_str(&line);
             buffered.push('\n');
-            match evaluate(eval, &buffered, args.flag_verbose) {
+            match eval_str(eval, &buffered, args.flag_verbose) {
                 Some(ok) => {
                     if !ok {
                         failures += 1
@@ -176,16 +228,26 @@ fn main() {
         EvalType::Interpreter => Box::new(eval::tree_walk::TreeWalkEvaluator::new()),
     };
 
-    exit(if args.flag_eval.is_some() {
-        match evaluate(&mut *eval, &args.flag_eval.unwrap(), args.flag_verbose) {
-            Some(ok) => if ok { 0 } else { 1 },
+    // If we were given a file, then parse that and evaluate it.
+    if let Some(filename) = args.arg_file {
+        exit(eval_file(&mut *eval, filename, args.flag_verbose))
+    }
+
+    if args.flag_eval.is_some() {
+        match eval_str(&mut *eval, &args.flag_eval.unwrap(), args.flag_verbose) {
+            Some(ok) => {
+                if !ok {
+                    exit(1)
+                }
+            }
             None => {
                 let mut stderr = io::stderr();
                 writeln!(&mut stderr, "Incomplete expression!").unwrap();
-                1
+                exit(1)
             }
         }
     } else {
-        run_repl(&mut *eval, args)
-    })
+        exit(run_repl(&mut *eval, args))
+    }
+    exit(0)
 }
