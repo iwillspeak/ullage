@@ -5,25 +5,16 @@ extern crate docopt;
 extern crate rustc_serialize;
 
 pub mod syntax;
-pub mod eval;
+pub mod meta;
+pub mod compile;
 
-mod meta {
-
-    /// Version Number
-    ///
-    /// The version number of the crate (as known by Cargo) as a
-    /// string. If the exe wasn't built by Cargo then this will be
-    /// empty.
-    pub const VERSION: Option<&'static str> = option_env!("CARGO_PKG_VERSION");
-}
-
-use std::io;
+use std::fs::File;
+use std::path::Path;
 use std::io::prelude::*;
 use std::process::*;
 use docopt::Docopt;
-
 use syntax::*;
-use eval::*;
+use compile::*;
 
 /// Usage Information
 ///
@@ -34,16 +25,14 @@ const USAGE: &'static str = "
 Ullage Compiler
 
 Usage:
-  ullage [options] -e <expression>
+  ullage --version
   ullage [options] <file>
-  ullage [options] [repl]
 
 Options:
-  -h --help                 Show this screen.
-  --version                 Show version.
-  -v, --verbose             Be verbose in Logging.
-  -b <b>, --backend <b>     The backend/evlauator to use [default: jit].
-  -e <expr>, --eval <expr>  Evaluate <expr> and then exit.
+  -h --help  Show this screen.
+  --version  Show version.
+
+  --dumpast  Dump the syntax tree to stdout and exit.
 ";
 
 /// Program Arguments
@@ -54,156 +43,8 @@ Options:
 struct Args {
     flag_help: bool,
     flag_version: bool,
-    flag_verbose: bool,
-    flag_eval: Option<String>,
-    flag_backend: EvalType,
-    cmd_repl: bool,
-    arg_file: Option<String>,
-}
-
-/// Evaluator Type
-///
-/// The different types of evaluator available for use.
-#[derive(Debug, RustcDecodable)]
-enum EvalType {
-    Jit,
-    Interpreter,
-}
-
-/// Prompt for Input
-///
-/// Write a simple prompt to stdout. The prompt consists of three
-/// repreitions of a given character.
-///
-/// # Arguments
-///
-///  * `c` - The character to base the prompt on.
-fn prompt(c: char) {
-    print!("{0}{0}{0} ", c);
-    io::stdout().flush().unwrap();
-}
-
-/// Evaluate a String
-///
-/// Takes a given input string and JIT; parses the input and writes
-/// the output to stdout.
-///
-/// # Arguments
-///
-///  * `eval` - The evaluator instance to use.
-///  * `line` - The input line to parse and evaluate.
-///  * `verbose` - Print out extra information about the parse result.
-///
-/// # Returns
-///
-/// A boolean representing the successful evaluation of the
-/// expression, or `None` if the expression was incomplete.
-fn eval_str(eval: &mut Evaluator, line: &str, verbose: bool) -> Option<bool> {
-    match Expression::parse_str(line) {
-        Ok(parsed) => {
-            if verbose {
-                println!("OK > {:?}", parsed);
-            }
-            let expr = Expression::sequence(parsed);
-            println!("=> {:?}", eval.eval(expr));
-            Some(true)
-        }
-        Err(parse::Error::Incomplete) => None,
-        Err(err) => {
-            println!("Error: {:?} ({})", err, line);
-            Some(false)
-        }
-    }
-}
-
-/// Evaluate a File
-///
-/// Takes the path to a file, opens it and runs the contents as a
-/// program. The output of each root-level expression is printed.
-///
-/// # Arguments
-///
-///  * `eval` - The evaluator instance to use.
-///  * `path` - The file path to evaluate.
-///  * `verbose` - Be verbose or not.
-///
-/// # Returns
-///
-/// The number of failures encountered in the evaluation of the file,
-/// `0` if no failures are encountered.
-fn eval_file<P>(eval: &mut Evaluator, path: P, verbose: bool) -> i32
-    where P: AsRef<std::path::Path> + std::fmt::Display
-{
-    use std::fs::File;
-
-    match File::open(&path) {
-        Err(e) => {
-            println!("{}:error: error reading file: {}", path, e);
-            1
-        }
-        Ok(mut file) => {
-            let mut source = String::new();
-            if let Err(e) = file.read_to_string(&mut source) {
-                println!("{}:error: error reading file: {}", path, e);
-                return 1;
-            }
-
-            match Expression::parse_str(&source) {
-                Ok(parsed) => {
-                    if verbose {
-                        println!("OK > {:?}", parsed);
-                    }
-                    let seq = Expression::sequence(parsed);
-                    println!("{:?}", eval.eval(seq));
-                    0
-                }
-                Err(err) => {
-                    println!("error: {:?}", err);
-                    1
-                }
-            }
-        }
-    }
-}
-
-/// Run the Read, Eval, Print Loop
-///
-/// Reads lines from standard input and reapeatedly evaluates them
-/// until an exit expression is encountered or standard input is
-/// exhausted.
-///
-/// # Arguments
-///
-///  * `eval` - The evaulator instance to use
-///  * `args` - The executable arguments
-///
-/// # Returns
-///
-/// The number of failures encountered during the REPL's execution.
-fn run_repl(eval: &mut Evaluator, args: Args) -> i32 {
-    let mut failures = 0;
-    let stdin = io::stdin();
-    let mut buffered = String::new();
-
-    prompt('>');
-    for line_io in stdin.lock().lines() {
-        if let Ok(line) = line_io {
-            buffered.push_str(&line);
-            buffered.push('\n');
-            match eval_str(eval, &buffered, args.flag_verbose) {
-                Some(ok) => {
-                    if !ok {
-                        failures += 1
-                    }
-                    buffered.clear();
-                    prompt('>')
-                }
-                None => prompt('.'),
-            };
-        };
-    }
-
-    failures
+    flag_dumpast: bool,
+    arg_file: String,
 }
 
 /// Main
@@ -216,38 +57,39 @@ fn main() {
         .and_then(|d| d.decode())
         .unwrap_or_else(|e| e.exit());
 
-    if args.flag_version || args.flag_verbose {
-        println!("ullage ({})", meta::VERSION.unwrap_or("unknown"));
-        if args.flag_version {
-            exit(0);
-        }
+    if args.flag_version {
+        println!("ullage ({})", meta::version());
+        exit(0);
     }
 
-    let mut eval: Box<Evaluator> = match args.flag_backend {
-        EvalType::Jit => Box::new(eval::jit::JitEvaluator::new()),
-        EvalType::Interpreter => Box::new(eval::tree_walk::TreeWalkEvaluator::new()),
+    let input_path = Path::new(&args.arg_file);
+
+    // Load the file into memory, so we can parse it into a syntax tree
+    let source = {
+        let mut s = String::new();
+        File::open(&input_path)
+            .expect("error: could not open input file")
+            .read_to_string(&mut s)
+            .expect("error: could not read from file");
+        s
     };
 
-    // If we were given a file, then parse that and evaluate it.
-    if let Some(filename) = args.arg_file {
-        exit(eval_file(&mut *eval, filename, args.flag_verbose))
+    // Parse the module
+    let tree = Expression::parse_str(&source)
+        .expect("error: could not parse source");
+
+    // Are we just dumping the AST or compiling the whole thing?
+    if args.flag_dumpast {
+        println!("parsed AST: {:?}", tree);
+        exit(0);
     }
 
-    if args.flag_eval.is_some() {
-        match eval_str(&mut *eval, &args.flag_eval.unwrap(), args.flag_verbose) {
-            Some(ok) => {
-                if !ok {
-                    exit(1)
-                }
-            }
-            None => {
-                let mut stderr = io::stderr();
-                writeln!(&mut stderr, "Incomplete expression!").unwrap();
-                exit(1)
-            }
-        }
-    } else {
-        exit(run_repl(&mut *eval, args))
-    }
-    exit(0)
+    // Choose a file name for the output
+    let mut target = File::create(input_path.with_extension("o"))
+        .expect("error: could not create output file");
+
+    // Create a compilation, and emit the result to our file
+    Compilation::new(tree)
+        .emit(&mut target)
+        .expect("error: compilation error");
 }
