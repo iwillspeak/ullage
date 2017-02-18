@@ -7,6 +7,7 @@ extern crate rustc_serialize;
 pub mod syntax;
 pub mod meta;
 pub mod compile;
+pub mod low_loader;
 
 use std::fs::File;
 use std::path::Path;
@@ -84,12 +85,9 @@ fn main() {
         exit(0);
     }
 
-    // Choose a file name for the output
-    let mut target = File::create(input_path.with_extension("o"))
-        .expect("error: could not create output file");
-
-    // Create a compilation, and emit the result to our file
+    // Create a compilation, and dump the results to stdout
     Compilation::new(tree)
-        .emit(&mut target)
-        .expect("error: compilation error");
+        .emit()
+        .expect("error: compilation error")
+        .dump();
 }

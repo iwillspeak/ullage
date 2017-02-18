@@ -3,7 +3,9 @@
 
 use std::io;
 use syntax::Expression;
-use self::error::{Error,Result};
+use low_loader::prelude::*;
+
+pub use self::error::{Error,Result};
 
 /// Compilation error module. Contains the Result and Error types for the compile module.
 pub mod error {
@@ -29,14 +31,20 @@ impl Compilation {
     /// Create a new compilation
     pub fn new(tree: Vec<Expression>) -> Self {
         Compilation {
-            tree: tree
+            tree: tree,
         }
     }
 
     /// Emit
     ///
     /// Performs the compilation, emitting the results to the given file.
-    pub fn emit(self, output: &mut io::Write) -> Result<()> {
-        Ok(())
+    pub fn emit(self) -> Result<Module> {
+        let mut ctx = Context::new();
+        let module = ctx.add_module("foo");
+
+        // TODO: emit the code into the module here
+
+        module.dump();
+        Ok(module)
     }
 }
