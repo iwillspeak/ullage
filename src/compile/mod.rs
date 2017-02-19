@@ -41,10 +41,11 @@ impl Compilation {
         let mut ctx =  Context::new();
         let mut module = ctx.add_module("<test>");
         let mut fun = ctx.add_function(&mut module, "main");
+        let bb = ctx.add_block(&mut fun, "entry");
+        let builder = ctx.add_builder();
 
-        let _ = ctx.add_block(&mut fun, "entry");
         for _ in self.exprs {
-            
+
         }
 
         // Check what we have, and dump it to the screen

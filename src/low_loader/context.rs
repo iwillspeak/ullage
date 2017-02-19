@@ -124,10 +124,12 @@ impl Context {
         }        
     }
 
-    // TODO: Builder support!
-    // pub fn add_builder(&mut self) -> Builder {
-    //     Builder::from(unsafe { core::LLVMCreateBuilderInContext(ctx) })
-    // }
+    /// Create an IR Builder
+    ///
+    /// Creates and initalises a new IR Builder in this `Context`.
+    pub fn add_builder(&mut self) -> Builder {
+        Builder::from_raw(unsafe { core::LLVMCreateBuilderInContext(self.as_raw()) })
+    }
 
     /// Raw Borrow
     ///
