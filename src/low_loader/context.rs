@@ -34,7 +34,7 @@ fn ensure_initialised() {
             if target::LLVM_InitializeNativeTarget() != 0 {
                 panic!("Could not initialise target");
             }
-             if target::LLVM_InitializeNativeAsmPrinter() != 0 {
+            if target::LLVM_InitializeNativeAsmPrinter() != 0 {
                 panic!("Could not initialise ASM Printer");
             }
         }
@@ -80,14 +80,27 @@ impl Context {
     /// Creates a new LLVM module in this context.
     pub fn add_module(&mut self, name: &str) -> Module {
         let mod_name = CString::new(name).unwrap();
-        Module::from_raw(unsafe {
+        Module::from_raw_parts(unsafe {
             core::LLVMModuleCreateWithNameInContext(mod_name.as_ptr(), self.as_raw())
-        })
+        }, self)
     }
 
     /// Raw Borrow
-    fn as_raw(&mut self) -> LLVMContextRef {
-        let &mut Context(raw_ctx) = self;
+    ///
+    /// TODO: I'd rather not have this at all. Not sure what the best
+    /// way is to solve this. Maybe we could have some kind of borrow
+    /// function instead which retuned a non-owned context
+    /// wrapper. Users could then convert that non-owned borrow in to
+    /// a context ref as and when needed, but that would be unsafe?
+    ///
+    /// # Safety
+    ///
+    /// This method returns a raw pointer to the underlying
+    /// LLVMContext. It's up to you to make sure it doesn't outlive
+    /// the `Context`, and to make sure you don't break any of LLVMs
+    /// thread safety requirements.
+    pub unsafe fn as_raw(&self) -> LLVMContextRef {
+        let &Context(raw_ctx) = self;
         raw_ctx
     }
 

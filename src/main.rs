@@ -76,8 +76,7 @@ fn main() {
     };
 
     // Parse the module
-    let tree = Expression::parse_str(&source)
-        .expect("error: could not parse source");
+    let tree = Expression::parse_str(&source).expect("error: could not parse source");
 
     // Are we just dumping the AST or compiling the whole thing?
     if args.flag_dumpast {
@@ -88,6 +87,5 @@ fn main() {
     // Create a compilation, and dump the results to stdout
     Compilation::new(tree)
         .emit()
-        .expect("error: compilation error")
-        .dump();
+        .expect("error: compilation error");
 }

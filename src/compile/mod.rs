@@ -1,7 +1,6 @@
 //! This module contians the code required to compile a parsed tree
 //! down to LLVM bytecode.
 
-use std::io;
 use syntax::Expression;
 use low_loader::prelude::*;
 
@@ -24,27 +23,41 @@ pub mod error {
 pub struct Compilation {
 
     /// The `Expression`s which are being compiled.
-    tree: Vec<Expression>,
+    exprs: Vec<Expression>,
 }
 
 impl Compilation {
     /// Create a new compilation
-    pub fn new(tree: Vec<Expression>) -> Self {
+    pub fn new(exprs: Vec<Expression>) -> Self {
         Compilation {
-            tree: tree,
+            exprs: exprs,
         }
     }
 
     /// Emit
     ///
     /// Performs the compilation, emitting the results to the given file.
-    pub fn emit(self) -> Result<Module> {
-        let mut ctx = Context::new();
-        let module = ctx.add_module("foo");
+    pub fn emit(self) -> Result<()> {
+        let mut ctx =  Context::new();
+        let mut module = ctx.add_module("<test>");
 
-        // TODO: emit the code into the module here
+        // TODO: This is aright mess :-/ Might have to move
+        // `add_function` and `add_block` to the context instead?
+        // Should keep the lifetime of the borrows a bit more under
+        // control.
+        {
+            let mut fun = module.add_function("main");
 
+            let _ = fun.add_block("entry");
+            for _ in self.exprs {
+                
+            }
+
+            // Check what we have, and dump it to the screen
+            fun.verify_or_panic();
+        }
         module.dump();
-        Ok(module)
+
+        Ok(())
     }
 }
