@@ -2,44 +2,28 @@
 //!
 //! A wrapper around an LLVM function.
 
-use std::ffi::CString;
 use super::llvm_sys::prelude::*;
-use super::llvm_sys::{analysis, core};
-use super::prelude::*;
+use super::llvm_sys::{analysis};
 
 /// Function
 ///
 /// A single function in a given module.
 #[derive(Debug,PartialEq)]
-pub struct Function<'a> {
+pub struct Function {
     raw: LLVMValueRef,
-    ctx: &'a Context,
 }
 
-impl<'a> Function<'a> {
+impl Function {
     /// Wrap an Existing Funciton
     ///
     /// Takes ownership of the given function and provides more
     /// stronlgy typed access to it.
-    pub unsafe fn from_raw(raw: LLVMValueRef, ctx: &'a Context) -> Self {
+    pub unsafe fn from_raw(raw: LLVMValueRef) -> Self {
         Function {
             raw: raw,
-            ctx: ctx
         }
     }
 
-    /// Add a Basic Block to this Function
-    ///
-    /// Creates a basic block and add it to the function.
-    pub fn add_block(&mut self, name: &str) -> LLVMBasicBlockRef {
-        let block_name = CString::new(name).unwrap();
-        unsafe {
-            core::LLVMAppendBasicBlockInContext(self.ctx.as_raw(),
-                                                self.raw,
-                                                block_name.as_ptr())
-        }        
-    }
-    
     /// Verify the Function
     ///
     /// Makes LLVM check the funciton is valid. If the function is not
@@ -56,4 +40,15 @@ impl<'a> Function<'a> {
         }
     }
     
+    /// Raw Borrow
+    ///
+    /// # Safety
+    ///
+    /// This method returns a raw pointer to the underlying
+    /// LLVMValue. It's up to you to make sure it doesn't outlive the
+    /// `Function`, and to make sure you don't break any of LLVMs
+    /// thread safety requirements.
+    pub unsafe fn as_raw(&self) -> LLVMValueRef {
+        self.raw
+    }
 }

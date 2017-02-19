@@ -2,11 +2,8 @@
 //!
 //! Contains types and wrappers for dealing with LLVM Modules.
 
-use std::ptr;
-use std::ffi::CString;
 use super::llvm_sys::prelude::*;
 use super::llvm_sys::core;
-use super::prelude::*;
 
 /// Module
 ///
@@ -14,12 +11,11 @@ use super::prelude::*;
 /// executable when compiled by LLVM. This type provides a safe
 /// abstraction around the raw `LLVMModule` type.
 #[derive(Debug,PartialEq)]
-pub struct Module<'a> {
+pub struct Module {
     raw: LLVMModuleRef,
-    ctx: &'a Context
 }
 
-impl<'a> Module<'a> {
+impl Module {
     /// Module from Raw
     ///
     /// Creates a new module from a raw module reference. This takes
@@ -28,29 +24,9 @@ impl<'a> Module<'a> {
     ///
     /// *Note*: You shouldn't need to use this directly, instead modules
     /// can be created with `Context::add_module`.
-    pub fn from_raw_parts(mod_ref: LLVMModuleRef, ctx: &'a Context) -> Self {
+    pub fn from_raw(mod_ref: LLVMModuleRef) -> Self {
         Module {
             raw: mod_ref,
-            ctx: ctx
-        }
-    }
-
-    /// Add a Function to the Module
-    ///
-    /// Creates a new function in the module.
-    pub fn add_function(&mut self, name: &str) -> Function {
-        // Create a function to be used to evaluate our expression
-        let function_type = unsafe {
-            let int64 = core::LLVMInt64TypeInContext(self.ctx.as_raw());
-            core::LLVMFunctionType(int64, ptr::null_mut(), 0, 0)
-        };
-
-        let function_name = CString::new(name).unwrap();
-        unsafe {
-            Function::from_raw(
-                core::LLVMAddFunction(self.raw, function_name.as_ptr(), function_type),
-                self.ctx
-            )   
         }
     }
 
@@ -61,15 +37,27 @@ impl<'a> Module<'a> {
     pub fn dump(&self) {
         unsafe { core::LLVMDumpModule(self.raw) }
     }
+
+    /// Raw Borrow
+    ///
+    /// # Safety
+    ///
+    /// This method returns a raw pointer to the underlying
+    /// LLVMModule. It's up to you to make sure it doesn't outlive the
+    /// `Module`, and to make sure you don't break any of LLVMs thread
+    /// safety requirements.
+    pub unsafe fn as_raw(&self) -> LLVMModuleRef {
+        self.raw
+    }
 }
 
-impl<'a> Drop for Module<'a> {
+impl Drop for Module {
     fn drop(&mut self) {
         unsafe { core::LLVMDisposeModule(self.raw) }
     }
 }
 
-impl<'a> From<Module<'a>> for LLVMModuleRef {
+impl From<Module> for LLVMModuleRef {
     /// Convert from Module
     ///
     /// Consume the wrapped module and return it's interal module

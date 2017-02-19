@@ -40,22 +40,15 @@ impl Compilation {
     pub fn emit(self) -> Result<()> {
         let mut ctx =  Context::new();
         let mut module = ctx.add_module("<test>");
+        let mut fun = ctx.add_function(&mut module, "main");
 
-        // TODO: This is aright mess :-/ Might have to move
-        // `add_function` and `add_block` to the context instead?
-        // Should keep the lifetime of the borrows a bit more under
-        // control.
-        {
-            let mut fun = module.add_function("main");
-
-            let _ = fun.add_block("entry");
-            for _ in self.exprs {
-                
-            }
-
-            // Check what we have, and dump it to the screen
-            fun.verify_or_panic();
+        let _ = ctx.add_block(&mut fun, "entry");
+        for _ in self.exprs {
+            
         }
+
+        // Check what we have, and dump it to the screen
+        fun.verify_or_panic();
         module.dump();
 
         Ok(())

@@ -2,6 +2,7 @@
 //!
 //! Contains a Rust wrapper for dealing with LLVM Context objects.
 
+use std::ptr;
 use std::ffi::CString;
 use super::llvm_sys::prelude::*;
 use super::llvm_sys::{target, core};
@@ -80,18 +81,55 @@ impl Context {
     /// Creates a new LLVM module in this context.
     pub fn add_module(&mut self, name: &str) -> Module {
         let mod_name = CString::new(name).unwrap();
-        Module::from_raw_parts(unsafe {
+        Module::from_raw(unsafe {
             core::LLVMModuleCreateWithNameInContext(mod_name.as_ptr(), self.as_raw())
-        }, self)
+        })
     }
 
-    /// Raw Borrow
+    /// Add a Function to the Module
     ///
-    /// TODO: I'd rather not have this at all. Not sure what the best
-    /// way is to solve this. Maybe we could have some kind of borrow
-    /// function instead which retuned a non-owned context
-    /// wrapper. Users could then convert that non-owned borrow in to
-    /// a context ref as and when needed, but that would be unsafe?
+    /// Creates a new function in the module. The funciton has a fixed
+    /// return type of int64 at the moment and takes no
+    /// parameters. This is just for testing though and more
+    /// configuration will have to be added when we come to compile
+    /// functions of our own rather than just functions to represent a
+    /// group of top-level expressions.
+    pub fn add_function(&mut self, module: &mut Module, name: &str) -> Function {
+        // Create a function to be used to evaluate our expression
+        let function_type = unsafe {
+            let int64 = core::LLVMInt64TypeInContext(self.as_raw());
+            core::LLVMFunctionType(int64, ptr::null_mut(), 0, 0)
+        };
+
+        let function_name = CString::new(name).unwrap();
+
+        // Function::from_raw is `unsafe` because it doesn't verify that the value you
+        // give it is an LLVM Function. I think we can be sure this one is though :-p
+        unsafe {
+            Function::from_raw(
+                core::LLVMAddFunction(module.as_raw(), function_name.as_ptr(), function_type)
+            )   
+        }
+    }
+    
+    /// Add a Basic Block to a given Function
+    ///
+    /// Creates a basic block and add it to the function.
+    pub fn add_block(&mut self, fun: &mut Function, name: &str) -> LLVMBasicBlockRef {
+        let block_name = CString::new(name).unwrap();
+        unsafe {
+            core::LLVMAppendBasicBlockInContext(self.as_raw(),
+                                                fun.as_raw(),
+                                                block_name.as_ptr())
+        }        
+    }
+
+    // TODO: Builder support!
+    // pub fn add_builder(&mut self) -> Builder {
+    //     Builder::from(unsafe { core::LLVMCreateBuilderInContext(ctx) })
+    // }
+
+    /// Raw Borrow
     ///
     /// # Safety
     ///
@@ -104,10 +142,6 @@ impl Context {
         raw_ctx
     }
 
-    // TODO: Builder support!
-    // pub fn add_builder(&mut self) -> Builder {
-    //     Builder::from(unsafe { core::LLVMCreateBuilderInContext(ctx) })
-    // }
 }
 
 impl Drop for Context {
