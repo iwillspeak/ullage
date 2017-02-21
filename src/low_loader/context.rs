@@ -106,22 +106,20 @@ impl Context {
         // Function::from_raw is `unsafe` because it doesn't verify that the value you
         // give it is an LLVM Function. I think we can be sure this one is though :-p
         unsafe {
-            Function::from_raw(
-                core::LLVMAddFunction(module.as_raw(), function_name.as_ptr(), function_type)
-            )   
+            Function::from_raw(core::LLVMAddFunction(module.as_raw(),
+                                                     function_name.as_ptr(),
+                                                     function_type))
         }
     }
-    
+
     /// Add a Basic Block to a given Function
     ///
     /// Creates a basic block and add it to the function.
     pub fn add_block(&mut self, fun: &mut Function, name: &str) -> LLVMBasicBlockRef {
         let block_name = CString::new(name).unwrap();
         unsafe {
-            core::LLVMAppendBasicBlockInContext(self.as_raw(),
-                                                fun.as_raw(),
-                                                block_name.as_ptr())
-        }        
+            core::LLVMAppendBasicBlockInContext(self.as_raw(), fun.as_raw(), block_name.as_ptr())
+        }
     }
 
     /// Create an IR Builder
@@ -129,6 +127,17 @@ impl Context {
     /// Creates and initalises a new IR Builder in this `Context`.
     pub fn add_builder(&mut self) -> Builder {
         Builder::from_raw(unsafe { core::LLVMCreateBuilderInContext(self.as_raw()) })
+    }
+
+    /// Create A Constant Value
+    ///
+    /// The returned value is a constant 64 bit integer with the given
+    /// value.
+    pub fn const_int(&self, i: i64) -> LLVMValueRef {
+        unsafe {
+            let int64 = core::LLVMInt64TypeInContext(self.as_raw());
+            core::LLVMConstInt(int64, i as u64, 1)
+        }
     }
 
     /// Raw Borrow
@@ -143,7 +152,6 @@ impl Context {
         let &Context(raw_ctx) = self;
         raw_ctx
     }
-
 }
 
 impl Drop for Context {

@@ -16,6 +16,13 @@ pub struct Builder {
     raw: LLVMBuilderRef,
 }
 
+/// Build Context
+///
+/// A build context represents an IR builder attached to a block.
+pub struct BuildContext<'a> {
+    builder: &'a mut Builder,
+}
+
 impl Builder {
     /// Create a Builder from a Raw Pointer
     ///
@@ -25,11 +32,39 @@ impl Builder {
     pub fn from_raw(raw: LLVMBuilderRef) -> Self {
         Builder { raw: raw }
     }
+
+    /// Build at the End of a Block
+    ///
+    /// Takes the builder, points it at the end of the basic block and
+    /// returns a build context that can be used to insert
+    /// instructions.
+    pub fn build_at_end<'a>(&'a mut self, block: LLVMBasicBlockRef) -> BuildContext<'a> {
+        unsafe {
+            core::LLVMPositionBuilderAtEnd(self.raw, block);
+        }
+        BuildContext { builder: self }
+    }
+}
+
+impl<'a> BuildContext<'a> {
+    /// Add a Ret Instrution
+    ///
+    /// Returns control from the current function
+    /// immediately. Consumes this build context as t the current
+    /// basic block can't have any more instructions added after a
+    /// terminator instruciton.
+    pub fn build_ret(self, value: LLVMValueRef) {
+        unsafe {
+            core::LLVMBuildRet(self.builder.raw, value);
+        }
+    }
 }
 
 impl Drop for Builder {
     /// Disponse this Builder
     fn drop(&mut self) {
-        unsafe { core::LLVMDisposeBuilder(self.raw); }
+        unsafe {
+            core::LLVMDisposeBuilder(self.raw);
+        }
     }
 }

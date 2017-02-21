@@ -3,7 +3,7 @@
 //! A wrapper around an LLVM function.
 
 use super::llvm_sys::prelude::*;
-use super::llvm_sys::{analysis};
+use super::llvm_sys::analysis;
 
 /// Function
 ///
@@ -19,9 +19,7 @@ impl Function {
     /// Takes ownership of the given function and provides more
     /// stronlgy typed access to it.
     pub unsafe fn from_raw(raw: LLVMValueRef) -> Self {
-        Function {
-            raw: raw,
-        }
+        Function { raw: raw }
     }
 
     /// Verify the Function
@@ -39,7 +37,7 @@ impl Function {
             panic!("Function failed verification!")
         }
     }
-    
+
     /// Raw Borrow
     ///
     /// # Safety

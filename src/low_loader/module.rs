@@ -25,9 +25,7 @@ impl Module {
     /// *Note*: You shouldn't need to use this directly, instead modules
     /// can be created with `Context::add_module`.
     pub fn from_raw(mod_ref: LLVMModuleRef) -> Self {
-        Module {
-            raw: mod_ref,
-        }
+        Module { raw: mod_ref }
     }
 
     /// Dump the Module

@@ -4,7 +4,7 @@
 use syntax::Expression;
 use low_loader::prelude::*;
 
-pub use self::error::{Error,Result};
+pub use self::error::{Error, Result};
 
 /// Compilation error module. Contains the Result and Error types for the compile module.
 pub mod error {
@@ -21,7 +21,6 @@ pub mod error {
 ///
 /// Encompases the inputs and settings for a given compilation.
 pub struct Compilation {
-
     /// The `Expression`s which are being compiled.
     exprs: Vec<Expression>,
 }
@@ -29,24 +28,25 @@ pub struct Compilation {
 impl Compilation {
     /// Create a new compilation
     pub fn new(exprs: Vec<Expression>) -> Self {
-        Compilation {
-            exprs: exprs,
-        }
+        Compilation { exprs: exprs }
     }
 
     /// Emit
     ///
     /// Performs the compilation, emitting the results to the given file.
     pub fn emit(self) -> Result<()> {
-        let mut ctx =  Context::new();
+        let mut ctx = Context::new();
         let mut module = ctx.add_module("<test>");
         let mut fun = ctx.add_function(&mut module, "main");
         let bb = ctx.add_block(&mut fun, "entry");
-        let builder = ctx.add_builder();
+        let mut builder = ctx.add_builder();
 
         for _ in self.exprs {
 
         }
+
+        let build_ctx = builder.build_at_end(bb);
+        build_ctx.build_ret(ctx.const_int(0));
 
         // Check what we have, and dump it to the screen
         fun.verify_or_panic();
