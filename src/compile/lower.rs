@@ -49,8 +49,8 @@ pub fn lower_internal<'a>(ctx: &mut Context,
         Expression::Print(inner) => {
             let val = try!(lower_internal(ctx, module, fun, builder, *inner));
             let fun = module.find_function("printf").unwrap();
-            let format = module.add_global(ctx.const_str("%d\n"), "printf_arg");
-            let format_ptr = builder.build_gep(format, &mut [ ctx.const_int(0), ctx.const_int(0) ]);
+            let format = module.find_global("printf_num_format").unwrap();
+            let format_ptr = builder.build_gep(format, &mut [ctx.const_int(0), ctx.const_int(0)]);
             let mut args = vec![format_ptr, val];
             Ok(builder.build_call(&fun, &mut args))
         }

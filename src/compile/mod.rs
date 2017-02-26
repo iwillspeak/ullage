@@ -19,9 +19,9 @@ mod lower;
 /// declarations/definitions of any builtin funtions are emitted.
 fn add_core_decls(ctx: &mut Context, module: &mut Module) -> Result<()> {
     ctx.add_printf_decl(module);
+    module.add_global(ctx.const_str("%d\n"), "printf_num_format");
     Ok(())
 }
-
 
 /// Compilation State
 ///

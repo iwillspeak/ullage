@@ -77,9 +77,24 @@ impl Module {
     pub fn add_global(&mut self, initialiser: LLVMValueRef, name: &str) -> LLVMValueRef {
         let global_name = CString::new(name).unwrap();
         unsafe {
-            let global = core::LLVMAddGlobal(self.as_raw(), core::LLVMTypeOf(initialiser), global_name.as_ptr());
+            let global = core::LLVMAddGlobal(self.as_raw(),
+                                             core::LLVMTypeOf(initialiser),
+                                             global_name.as_ptr());
             core::LLVMSetInitializer(global, initialiser);
             global
+        }
+    }
+
+    /// Find a Global Variable in the Module by Name
+    ///
+    /// Looks up a given global variale in the module and returns
+    /// it. If the variable doesn't exist in the module then `None` is
+    /// returned.
+    pub fn find_global(&self, name: &str) -> Option<LLVMValueRef> {
+        let global_name = CString::new(name).unwrap();
+        unsafe {
+            let found = core::LLVMGetNamedGlobal(self.as_raw(), global_name.as_ptr());
+            if found.is_null() { None } else { Some(found) }
         }
     }
 
