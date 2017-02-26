@@ -52,7 +52,8 @@ pub fn lower_internal<'a>(ctx: &mut Context,
             let format = module.find_global("printf_num_format").unwrap();
             let format_ptr = builder.build_gep(format, &mut [ctx.const_int(0), ctx.const_int(0)]);
             let mut args = vec![format_ptr, val];
-            Ok(builder.build_call(&fun, &mut args))
+            builder.build_call(&fun, &mut args);
+            Ok(val)
         }
         _ => unimplemented!(),
     }
