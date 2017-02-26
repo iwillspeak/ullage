@@ -5,6 +5,10 @@
 use super::llvm_sys::prelude::*;
 use super::llvm_sys::core;
 
+use std::ffi::{CStr, CString};
+use std::path::Path;
+use std::ptr;
+
 /// Module
 ///
 /// A module repsents a single code unit. It maps down to a library or
@@ -34,6 +38,24 @@ impl Module {
     /// is intended to be used as an aid to debugging.
     pub fn dump(&self) {
         unsafe { core::LLVMDumpModule(self.raw) }
+    }
+
+    /// Write the Module to the Given File as LLVM IR
+    pub fn write_to_file(&self, path: &Path) -> Result<(), String> {
+        let path = CString::new(path.to_str().unwrap()).unwrap();
+        unsafe {
+            let mut message = ptr::null_mut();
+            if core::LLVMPrintModuleToFile(self.raw, path.as_ptr(), &mut message) == 0 {
+                Ok(())
+            } else {
+                let err_str = CStr::from_ptr(message)
+                    .to_owned()
+                    .into_string()
+                    .unwrap();
+                core::LLVMDisposeMessage(message);
+                Err(err_str)
+            }
+        }
     }
 
     /// Raw Borrow

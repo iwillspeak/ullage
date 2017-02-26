@@ -3,6 +3,7 @@
 
 extern crate docopt;
 extern crate rustc_serialize;
+extern crate tempdir;
 
 pub mod syntax;
 pub mod meta;
@@ -27,13 +28,15 @@ Ullage Compiler
 
 Usage:
   ullage --version
-  ullage [options] <file>
+  ullage [options] [-o <outfile>] <file>
 
 Options:
-  -h --help  Show this screen.
-  --version  Show version.
+  -h --help           Show this screen.
+  --version           Show version.
+  -o, --output=<out>  Write the output to <out>.
 
-  --dumpast  Dump the syntax tree to stdout and exit.
+  --dumpir            Dump the LLVM IR for the module.
+  --dumpast           Dump the syntax tree to stdout and exit.
 ";
 
 /// Program Arguments
@@ -45,6 +48,8 @@ struct Args {
     flag_help: bool,
     flag_version: bool,
     flag_dumpast: bool,
+    flag_output: Option<String>,
+    flag_dumpir: bool,
     arg_file: String,
 }
 
@@ -64,6 +69,8 @@ fn main() {
     }
 
     let input_path = Path::new(&args.arg_file);
+    let output_path = &args.flag_output.unwrap_or("a.out".to_string());
+    let output_path = Path::new(&output_path);
 
     // Load the file into memory, so we can parse it into a syntax tree
     let source = {
@@ -85,7 +92,7 @@ fn main() {
     }
 
     // Create a compilation, and dump the results to stdout
-    Compilation::new(tree)
-        .emit()
+    Compilation::new(tree, args.flag_dumpir)
+        .emit(&output_path)
         .expect("error: compilation error");
 }

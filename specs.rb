@@ -45,7 +45,7 @@ def get_checks(file)
   IO.readlines(file).map do |line|
     linum += 1
     case line
-    when /#=> (.+)/
+    when /#[ ]?=> (.+)/
       ExpectedOutput.new(linum, $1)
     end
   end.reject { |check| check == nil }
@@ -62,12 +62,15 @@ class UllageSpec < Test::Unit::TestCase
   Dir.glob("spec/**.ulg").each do |natfile|
     checks = get_checks(natfile)
     define_method methodname(natfile) do
-      lines = `cargo run -- < #{natfile}`.lines.reject {|l| l == ">>> "}.to_a
+      bin_dir = "specbin"
+      name = File.basename(natfile, '.*')
+      Dir.mkdir bin_dir unless Dir.exists? bin_dir
+      bin = "./#{bin_dir}/#{name}"
+      lines = `cargo run -- -o #{bin} #{natfile} && #{bin}`.lines.to_a
       assert 0 == $?, "Expected successful exit"
       checks.each do |check|
         line = lines.shift
-        line = $1 if line =~ />>> => (.*)/ # extract REPL output
-        assert check.output == line, "#{natfile}:#{check.line}: Expected #{check.output} but found #{line}"
+        assert check.output == line, "#{natfile}:#{check.line}: Expected #{check.output} but found #{line || "nothing"}"
       end
       assert lines.empty?, "Unexpected output: #{lines}"
     end
