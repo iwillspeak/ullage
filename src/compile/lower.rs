@@ -4,6 +4,7 @@
 //! them to LLVM.
 
 use syntax::{Expression, Constant};
+use syntax::operators::{PrefixOp, InfixOp};
 
 use low_loader::prelude::*;
 
@@ -55,6 +56,26 @@ pub fn lower_internal<'a>(ctx: &mut Context,
             builder.build_call(&fun, &mut args);
             Ok(val)
         }
+        Expression::Prefix(op, expr) => {
+            let val = try!(lower_internal(ctx, module, fun, builder, *expr));
+            let val = match op {
+                PrefixOp::Negate => builder.build_neg(val),
+                PrefixOp::Not => unimplemented!(),
+            };
+            Ok(val)
+        },
+        Expression::Infix(lhs, op, rhs) => {
+            let lhs_val = try!(lower_internal(ctx, module, fun, builder, *lhs));
+            let rhs_val = try!(lower_internal(ctx, module, fun, builder, *rhs));
+            let val = match op {
+                InfixOp::Add => builder.build_add(lhs_val, rhs_val),
+                InfixOp::Sub => builder.build_sub(lhs_val, rhs_val),
+                InfixOp::Mul => builder.build_mul(lhs_val, rhs_val),
+                InfixOp::Div => builder.build_sdiv(lhs_val, rhs_val),
+                _ => unimplemented!()
+            };
+            Ok(val)
+        },
         _ => unimplemented!(),
     }
 }

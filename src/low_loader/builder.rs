@@ -91,6 +91,45 @@ impl<'a> BuildContext<'a> {
                                name.as_ptr())
         }
     }
+
+    /// Build an Integer Negation
+    pub fn build_neg(&mut self, value: LLVMValueRef) -> LLVMValueRef {
+        unsafe {
+            let name = CStr::from_bytes_with_nul_unchecked(b"negated");
+            core::LLVMBuildNeg(self.builder.raw, value, name.as_ptr())
+        }
+    }
+
+    /// Build an Integer Add
+    pub fn build_add(&mut self, lhs: LLVMValueRef, rhs: LLVMValueRef) -> LLVMValueRef {
+        unsafe {
+            let name = CStr::from_bytes_with_nul_unchecked(b"addtmp");
+            core::LLVMBuildAdd(self.builder.raw, lhs, rhs, name.as_ptr())
+        }
+    }
+
+    /// Build an Integer Subtraction
+    pub fn build_sub(&mut self, lhs: LLVMValueRef, rhs: LLVMValueRef) -> LLVMValueRef {
+        unsafe {
+            let name = CStr::from_bytes_with_nul_unchecked(b"subtmp");
+            core::LLVMBuildSub(self.builder.raw, lhs, rhs, name.as_ptr())
+        }
+    }
+
+    /// Build an Integer Multiplication
+    pub fn build_mul(&mut self, lhs: LLVMValueRef, rhs: LLVMValueRef) -> LLVMValueRef {
+        unsafe {
+            let name = CStr::from_bytes_with_nul_unchecked(b"multmp");
+            core::LLVMBuildMul(self.builder.raw, lhs, rhs, name.as_ptr())
+        }
+    }
+    /// Build a Signed Integer Division
+    pub fn build_sdiv(&mut self, lhs: LLVMValueRef, rhs: LLVMValueRef) -> LLVMValueRef {
+        unsafe {
+            let name = CStr::from_bytes_with_nul_unchecked(b"divtmp");
+            core::LLVMBuildSDiv(self.builder.raw, lhs, rhs, name.as_ptr())
+        }
+    }
 }
 
 impl Drop for Builder {

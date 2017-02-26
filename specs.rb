@@ -66,10 +66,10 @@ class UllageSpec < Test::Unit::TestCase
       name = File.basename(natfile, '.*')
       Dir.mkdir bin_dir unless Dir.exists? bin_dir
       bin = "./#{bin_dir}/#{name}"
-      lines = `cargo run -- -o #{bin} #{natfile} && #{bin}`.lines.to_a
+      lines = `cargo run -- -o #{bin} #{natfile} && #{bin}`.lines.map{|l|  l.chomp! }.to_a
       assert 0 == $?, "Expected successful exit"
       checks.each do |check|
-        line = lines.shift.chomp!
+        line = lines.shift
         assert check.output == line, "#{natfile}:#{check.line}: Expected '#{check.output}' but found '#{line || "nothing"}'"
       end
       assert lines.empty?, "Unexpected output: #{lines}"
