@@ -4,10 +4,12 @@
 
 use super::llvm_sys::prelude::*;
 use super::llvm_sys::core;
+use super::function::Function;
 
 use std::ffi::{CStr, CString};
 use std::path::Path;
 use std::ptr;
+
 
 /// Module
 ///
@@ -55,6 +57,29 @@ impl Module {
                 core::LLVMDisposeMessage(message);
                 Err(err_str)
             }
+        }
+    }
+
+    /// Find a Function by Name
+    pub fn find_function(&self, name: &str) -> Option<Function> {
+        let function_name = CString::new(name).unwrap();
+        unsafe {
+            let found = core::LLVMGetNamedFunction(self.as_raw(), function_name.as_ptr());
+            if found.is_null() {
+                None
+            } else {
+                Some(Function::from_raw(found))
+            }
+        }
+    }
+
+    /// Add a Global Variable
+    pub fn add_global(&mut self, initialiser: LLVMValueRef, name: &str) -> LLVMValueRef {
+        let global_name = CString::new(name).unwrap();
+        unsafe {
+            let global = core::LLVMAddGlobal(self.as_raw(), core::LLVMTypeOf(initialiser), global_name.as_ptr());
+            core::LLVMSetInitializer(global, initialiser);
+            global
         }
     }
 

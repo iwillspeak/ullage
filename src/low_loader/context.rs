@@ -3,7 +3,8 @@
 //! Contains a Rust wrapper for dealing with LLVM Context objects.
 
 use std::ptr;
-use std::ffi::CString;
+use std::ffi::{CStr, CString};
+use std::os::raw::c_uint;
 use super::llvm_sys::prelude::*;
 use super::llvm_sys::{target, core};
 use super::prelude::*;
@@ -112,6 +113,22 @@ impl Context {
         }
     }
 
+    /// Add a Printf Declaration to the Module
+    ///
+    /// Creates a new function in the given module which maps to the
+    /// `printf` function. This will be used by the `print` operator
+    /// to write output.
+    pub fn add_printf_decl(&mut self, module: &mut Module) {
+        unsafe {
+            let int32 = core::LLVMInt32TypeInContext(self.as_raw());
+            let mut args = vec![core::LLVMPointerType(core::LLVMInt8TypeInContext(self.as_raw()),
+                                                      0)];
+            let printf_type = core::LLVMFunctionType(int32, args.as_mut_ptr(), 1, 1);
+            let function_name = CStr::from_bytes_with_nul_unchecked(b"printf\0");
+            core::LLVMAddFunction(module.as_raw(), function_name.as_ptr(), printf_type);
+        }
+    }
+
     /// Add a Basic Block to a given Function
     ///
     /// Creates a basic block and add it to the function.
@@ -137,6 +154,29 @@ impl Context {
         unsafe {
             let int64 = core::LLVMInt64TypeInContext(self.as_raw());
             core::LLVMConstInt(int64, i as u64, 1)
+        }
+    }
+
+    /// Create a Constant Character Value
+    pub fn const_char(&self, i: u8) -> LLVMValueRef {
+        unsafe {
+            let int8 = core::LLVMInt8TypeInContext(self.as_raw());
+            core::LLVMConstInt(int8, i as u64, 0)
+        }
+    }
+
+    /// Create a Constant String Value
+    ///
+    /// The returned value is a constant i8 array with characters from
+    /// the given string stored as UTF8.
+    pub fn const_str(&self, s: &str) -> LLVMValueRef {
+        let mut bytes: Vec<_> = s.bytes()
+            .map(|b| self.const_char(b))
+            .collect();
+        bytes.push(self.const_char(0));
+        unsafe {
+            let int8 = core::LLVMInt8TypeInContext(self.as_raw());
+            core::LLVMConstArray(int8, bytes.as_mut_ptr(), bytes.len() as c_uint)
         }
     }
 

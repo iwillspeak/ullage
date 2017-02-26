@@ -8,6 +8,11 @@
 use super::llvm_sys::prelude::*;
 use super::llvm_sys::core;
 
+use std::ffi::CStr;
+use std::os::raw::c_uint;
+
+use super::function::Function;
+
 /// IR Builder
 ///
 /// Creating yo instructions and manipulating yo basic blocks.
@@ -56,6 +61,34 @@ impl<'a> BuildContext<'a> {
     pub fn build_ret(self, value: LLVMValueRef) {
         unsafe {
             core::LLVMBuildRet(self.builder.raw, value);
+        }
+    }
+
+    /// Build a Call Instruction
+    ///
+    /// Emits a call to the given function.
+    pub fn build_call(&mut self, function: &Function, args: &mut [LLVMValueRef]) -> LLVMValueRef {
+        unsafe {
+            let name = CStr::from_bytes_with_nul_unchecked(b"printed\0");
+            core::LLVMBuildCall(self.builder.raw,
+                                function.as_raw(),
+                                args.as_mut_ptr(),
+                                args.len() as c_uint,
+                                name.as_ptr())
+        }
+    }
+
+    /// Build a GEP
+    ///
+    /// GEP, or GetElementPointer, retrieves a pointer to an element in an item.
+    pub fn build_gep(&mut self, value: LLVMValueRef, indices: &mut [LLVMValueRef]) -> LLVMValueRef {
+        unsafe {
+            let name = CStr::from_bytes_with_nul_unchecked(b"gep\0");
+            core::LLVMBuildGEP(self.builder.raw,
+                               value,
+                               indices.as_mut_ptr(),
+                               indices.len() as c_uint,
+                               name.as_ptr())
         }
     }
 }

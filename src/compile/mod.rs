@@ -6,37 +6,22 @@ use low_loader::prelude::*;
 use std::path::Path;
 use tempdir::TempDir;
 use std::process::Command;
-use std::io;
 
 pub use self::error::{Error, Result};
 
-/// Compilation error module. Contains the Result and Error types for the compile module.
-pub mod error {
+pub mod error;
 
-    /// Represents the different types of errors which can be encountered
-    /// when compiling.
-    #[derive(Debug)]
-    pub enum Error {
-        Generic(String),
-        IO(::std::io::Error),
-    }
+mod lower;
 
-    /// Compilation result. Returned from each compilation stage.
-    pub type Result<T> = ::std::result::Result<T, Error>;
+/// Add the Core Declarations to the Module
+///
+/// This method is responsible for making sure that
+/// declarations/definitions of any builtin funtions are emitted.
+fn add_core_decls(ctx: &mut Context, module: &mut Module) -> Result<()> {
+    ctx.add_printf_decl(module);
+    Ok(())
 }
 
-impl From<String> for Error {
-    /// Convert untyped errors to generic compilation errors.
-    fn from(s: String) -> Error {
-        Error::Generic(s)
-    }
-}
-
-impl From<io::Error> for Error {
-    fn from(e: io::Error) -> Error {
-        Error::IO(e)
-    }
-}
 
 /// Compilation State
 ///
@@ -52,7 +37,10 @@ pub struct Compilation {
 impl Compilation {
     /// Create a new compilation
     pub fn new(exprs: Vec<Expression>, dump_ir: bool) -> Self {
-        Compilation { exprs: exprs, dump_ir: dump_ir }
+        Compilation {
+            exprs: exprs,
+            dump_ir: dump_ir,
+        }
     }
 
     /// Emit
@@ -60,28 +48,33 @@ impl Compilation {
     /// Performs the compilation, emitting the results to the given file.
     pub fn emit(self, output_path: &Path) -> Result<()> {
         let mut ctx = Context::new();
-        let mut module = ctx.add_module("<test>");
+        let mut module = ctx.add_module(output_path.file_stem()
+            .and_then(|s| s.to_str())
+            .unwrap());
+
+        try!(add_core_decls(&mut ctx, &mut module));
+
         let mut fun = ctx.add_function(&mut module, "main");
         let bb = ctx.add_block(&mut fun, "entry");
-        let mut builder = ctx.add_builder();
 
-        for _ in self.exprs {
-            // TODO: Lower expressions here
+        let mut builder = ctx.add_builder();
+        let mut build_ctx = builder.build_at_end(bb);
+
+        for expr in self.exprs {
+            try!(lower::lower_expression(&mut ctx, &mut module, &mut fun, &mut build_ctx, expr));
         }
 
-        let build_ctx = builder.build_at_end(bb);
         build_ctx.build_ret(ctx.const_int(0));
 
         // Check what we have, and dump it to the screen
+        if self.dump_ir {
+            module.dump();
+        }
         fun.verify_or_panic();
 
         // Create a tempdir to write the LLVM IR to
         let tmp_dir = TempDir::new("ullage").expect("create temp dir");
         let temp_path = tmp_dir.path().join("temp.ll");
-
-        if self.dump_ir {
-            module.dump();
-        }
 
         try!(module.write_to_file(&temp_path));
 

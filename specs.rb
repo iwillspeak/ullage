@@ -69,8 +69,8 @@ class UllageSpec < Test::Unit::TestCase
       lines = `cargo run -- -o #{bin} #{natfile} && #{bin}`.lines.to_a
       assert 0 == $?, "Expected successful exit"
       checks.each do |check|
-        line = lines.shift
-        assert check.output == line, "#{natfile}:#{check.line}: Expected #{check.output} but found #{line || "nothing"}"
+        line = lines.shift.chomp!
+        assert check.output == line, "#{natfile}:#{check.line}: Expected '#{check.output}' but found '#{line || "nothing"}'"
       end
       assert lines.empty?, "Unexpected output: #{lines}"
     end

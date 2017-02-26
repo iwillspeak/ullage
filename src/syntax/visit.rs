@@ -79,6 +79,11 @@ pub trait Visitor {
     /// other.
     fn on_sequence(&mut self, exprs: Vec<Expression>) -> Self::Output;
 
+    /// Visit a Print Expression
+    ///
+    /// Represents a request to print out the value of an expression
+    fn on_print(&mut self, expr: Expression) -> Self::Output;
+
     /// Visit an Expression
     ///
     /// Visitors shouldn't need to overload this method. It can be
@@ -111,6 +116,7 @@ impl Expression {
             Expression::Loop(cond, expr) => v.on_loop(*cond, *expr),
             Expression::Variable(var) => v.on_variable(var),
             Expression::Sequence(seq) => v.on_sequence(seq),
+            Expression::Print(inner) => v.on_print(*inner),
         }
     }
 }

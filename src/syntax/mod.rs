@@ -116,6 +116,7 @@ pub enum Expression {
     Loop(Box<Expression>, Box<Expression>),
     Variable(TypedId),
     Sequence(Vec<Expression>),
+    Print(Box<Expression>),
 }
 
 impl Expression {
@@ -218,6 +219,14 @@ impl Expression {
     /// Represents a sequence of expressions evaluated one after the other.
     pub fn sequence(exprs: Vec<Expression>) -> Self {
         Expression::Sequence(exprs)
+    }
+
+    /// # Print Expression
+    ///
+    /// Evaluates an inner expression, prints it to standard output,
+    /// and then returns the inner expression's value.
+    pub fn print(expr: Expression) -> Self {
+        Expression::Print(Box::new(expr))
     }
 }
 
