@@ -5,7 +5,6 @@
 //! Pratt-style operator precedence parsing.
 
 pub mod parse;
-pub mod visit;
 pub mod operators;
 
 use self::operators::*;
