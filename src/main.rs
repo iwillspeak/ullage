@@ -92,10 +92,11 @@ fn main() {
         exit(0);
     }
 
-    // Create a compilation, and dump the results to stdout
+    // Create a compilation, and emit to the output path
     let emit_result = Compilation::new(tree, args.flag_dumpir)
         .emit(&output_path);
 
+    // Print any failures encountered and return a failure status
     if let Err(e) = emit_result {
         writeln!(&mut stderr(), "error: compilation error: {}", e)
             .unwrap();
