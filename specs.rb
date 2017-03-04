@@ -1,6 +1,7 @@
 #! /usr/bin/env ruby
 
 require 'test/unit'
+require 'open3'
 
 # Expected output
 #
@@ -66,8 +67,15 @@ class UllageSpec < Test::Unit::TestCase
       name = File.basename(natfile, '.*')
       Dir.mkdir bin_dir unless Dir.exists? bin_dir
       bin = "./#{bin_dir}/#{name}"
-      lines = `cargo run -- -o #{bin} #{natfile} && #{bin}`.lines.map{|l|  l.chomp! }.to_a
-      assert 0 == $?, "Expected successful exit"
+
+      # Run the test
+      stdout, stderr, status = Open3.capture3("cargo run -- -o #{bin} #{natfile} && #{bin}")
+
+      # Make sure the whole thing went well
+      assert 0 == status, "Expected successful exit:#{status}\n#{stderr}"
+
+      # Process our assertions about the output
+      lines = stdout.lines.map{|l|  l.chomp! }.to_a
       checks.each do |check|
         line = lines.shift
         assert check.output == line, "#{natfile}:#{check.line}: Expected '#{check.output}' but found '#{line || "nothing"}'"
