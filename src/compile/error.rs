@@ -1,6 +1,7 @@
 //! Compilation error module. Contains the Result and Error types for the compile module.
 
 use std::io;
+use std::fmt;
 
 /// Represents the different types of errors which can be encountered
 /// when compiling.
@@ -17,6 +18,15 @@ impl From<String> for Error {
     /// Convert untyped errors to generic compilation errors.
     fn from(s: String) -> Error {
         Error::Generic(s)
+    }
+}
+
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            Error::Generic(ref err) => write!(f, "{}", err),
+            Error::IO(ref ioerr) => write!(f, "IO Error: {}", ioerr),
+        }
     }
 }
 

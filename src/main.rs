@@ -13,6 +13,7 @@ pub mod low_loader;
 use std::fs::File;
 use std::path::Path;
 use std::io::prelude::*;
+use std::io::stderr;
 use std::process::*;
 use docopt::Docopt;
 use syntax::*;
@@ -92,7 +93,12 @@ fn main() {
     }
 
     // Create a compilation, and dump the results to stdout
-    Compilation::new(tree, args.flag_dumpir)
-        .emit(&output_path)
-        .expect("error: compilation error");
+    let emit_result = Compilation::new(tree, args.flag_dumpir)
+        .emit(&output_path);
+
+    if let Err(e) = emit_result {
+        writeln!(&mut stderr(), "error: compilation error: {}", e)
+            .unwrap();
+        exit(1)
+    }
 }

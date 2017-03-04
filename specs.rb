@@ -18,6 +18,13 @@ class ExpectedOutput
     @output = output
   end
 
+  # Expects Error
+  #
+  # This check doesn't expect the compilation or execution to fail.
+  def expects_err?
+    false
+  end
+
   # To String
   #
   # Nice string represntation
@@ -26,6 +33,35 @@ class ExpectedOutput
   end
 
   attr_reader :output, :line
+end
+
+# Expected Error
+#
+# Represents a check for a compilation error.
+class ExpectedError
+
+  # Initialise the Error
+  #
+  # Create a new instance of the check, passing in a string which is
+  # expected in the error message.
+  def initialize(line, err)
+    @line = line
+    @error = err
+  end
+
+  # Expects Erorr
+  #
+  # This check expects a non-zero exit status
+  def expects_err?
+    true
+  end
+
+  # Nice String Representation
+  def to_s()
+    "Error<at=#{line},#{error}>"
+  end
+
+  attr_reader :error, :line
 end
 
 # Method Name
@@ -48,6 +84,8 @@ def get_checks(file)
     case line
     when /#[ ]?=> (.+)/
       ExpectedOutput.new(linum, $1)
+    when /#[ ]?!> (.+)/
+      ExpectedError.new(linum, $1)
     end
   end.reject { |check| check == nil }
 end
@@ -71,10 +109,22 @@ class UllageSpec < Test::Unit::TestCase
       # Run the test
       stdout, stderr, status = Open3.capture3("cargo run -- -o #{bin} #{natfile} && #{bin}")
 
+      expecting_error = checks.any? {|c| c.expects_err? }
+
+      if expecting_error
+        assert status != 0, "Expected failure:#{status}"
+
+        checks.each do |check|
+          assert stderr.include?(check.error), "#{natfile}:#{check.line}: Expected '#{check.error}' in stderr:\n#{stderr}"
+        end
+
+        return
+      end
+
       # Make sure the whole thing went well
       assert 0 == status, "Expected successful exit:#{status}\n#{stderr}"
 
-      # Process our assertions about the output
+
       lines = stdout.lines.map{|l|  l.chomp! }.to_a
       checks.each do |check|
         line = lines.shift
