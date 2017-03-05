@@ -435,12 +435,9 @@ impl<'a> Token<'a> {
                 let typ = parser.optional_type_ref();
                 try!(parser.expect(Token::Equals));
                 let rhs = try!(parser.expression(0));
-                Ok(Expression::sequence(vec![
-                    Expression::variable(TypedId::from_parts(id.clone(), typ)),
-                    Expression::infix(
-                        Expression::identifier(id),
-                        InfixOp::Assign,
-                        rhs)]))
+                Ok(Expression::declaration(
+                    TypedId::from_parts(id.clone(), typ),
+                    rhs))
             }
             Token::Word("print") => {
                 let to_print = try!(parser.expression(0));
@@ -786,56 +783,40 @@ mod test {
     #[test]
     fn parse_simple_array_type() {
         check_parse!("let f: [Num] = 100",
-                     Expression::sequence(vec![
-                         Expression::variable(
+                         Expression::declaration(
                              TypedId::from_parts(String::from("f"),
-                                                 Some(TypeRef::array(TypeRef::simple("Num"))))),
-                         Expression::infix(
-                             Expression::identifier(String::from("f")),
-                             InfixOp::Assign,
-                             Expression::constant_num(100))
-                     ]));
+                                                 Some(TypeRef::array(TypeRef::simple("Num")))),
+                             Expression::constant_num(100)
+                         ));
     }
 
     #[test]
     fn parse_simple_let() {
         check_parse!("let foo = 100",
-                     Expression::sequence(vec![
-                         Expression::variable(TypedId::from_parts("foo".to_string(), None)),
-                         Expression::infix(
-                             Expression::identifier("foo".to_string()),
-                             InfixOp::Assign,
-                             Expression::constant_num(100))
-                     ]));
+                     Expression::declaration(
+                         TypedId::from_parts("foo".to_string(), None),
+                         Expression::constant_num(100)
+                     ));
     }
 
     #[test]
     fn parse_simple_tuple() {
         check_parse!("let f: (Num) = 100",
-                     Expression::sequence(vec![
-                         Expression::variable(
-                             TypedId::from_parts(
+                     Expression::declaration(
+                         TypedId::from_parts(
                                  String::from("f"),
-                                 Some(TypeRef::tuple(vec![TypeRef::simple("Num")])))),
-                         Expression::infix(
-                             Expression::identifier(String::from("f")),
-                             InfixOp::Assign,
-                             Expression::constant_num(100))
-                         ]));
+                             Some(TypeRef::tuple(vec![TypeRef::simple("Num")]))),
+                         Expression::constant_num(100)
+                     ));
         check_parse!("let f: (Num, [String]) = 100",
-                     Expression::sequence(vec![
-                         Expression::variable(
-                             TypedId::from_parts(
+                     Expression::declaration(
+                         TypedId::from_parts(
                                  String::from("f"),
                                  Some(TypeRef::tuple(vec![
                                      TypeRef::simple("Num"),
                                      TypeRef::array(TypeRef::simple("String"))
-                                 ])))),
-                         Expression::infix(
-                             Expression::identifier(String::from("f")),
-                             InfixOp::Assign,
-                             Expression::constant_num(100))
-                         ]));
+                                 ]))),
+                         Expression::constant_num(100)));
     }
 
     #[test]

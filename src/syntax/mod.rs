@@ -113,9 +113,9 @@ pub enum Expression {
     IfThenElse(Box<Expression>, Box<Expression>, Box<Expression>),
     Function(String, TypeRef, Vec<TypedId>, Box<Expression>),
     Loop(Box<Expression>, Box<Expression>),
-    Variable(TypedId),
     Sequence(Vec<Expression>),
     Print(Box<Expression>),
+    Declaration(TypedId, Box<Expression>),
 }
 
 impl Expression {
@@ -209,8 +209,8 @@ impl Expression {
     /// # New Variable Declaration
     ///
     /// Represents the declaration of a local variable.
-    pub fn variable(var: TypedId) -> Self {
-        Expression::Variable(var)
+    pub fn declaration(var: TypedId, expr: Expression) -> Self {
+        Expression::Declaration(var, Box::new(expr))
     }
 
     /// # New Sequence Expression

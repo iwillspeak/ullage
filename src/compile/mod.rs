@@ -60,9 +60,7 @@ impl Compilation {
         let mut builder = ctx.add_builder();
         let mut build_ctx = builder.build_at_end(bb);
 
-        for expr in self.exprs {
-            try!(lower::lower_expression(&mut ctx, &mut module, &mut fun, &mut build_ctx, expr));
-        }
+        try!(lower::lower_expressions(&mut ctx, &mut module, &mut fun, &mut build_ctx, self.exprs));
 
         build_ctx.build_ret(ctx.const_int(0));
 

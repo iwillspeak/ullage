@@ -1,0 +1,7 @@
+let hello = 100
+let world = 198
+print hello + world # => 298
+let there = 9000
+let world = 20000
+print hello - there + world # => 11100
+print let yup = 100 - -hello # => 200

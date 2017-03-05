@@ -27,14 +27,16 @@ use std::collections::HashMap;
 /// # Retunrs
 ///
 /// A `Result` indicating if the expression was lowered successfully.
-pub fn lower_expression<'a>(ctx: &mut Context,
-                            module: &mut Module,
-                            fun: &mut Function,
-                            builder: &mut BuildContext<'a>,
-                            expr: Expression)
-                            -> Result<()> {
+pub fn lower_expressions<'a>(ctx: &mut Context,
+                             module: &mut Module,
+                             fun: &mut Function,
+                             builder: &mut BuildContext<'a>,
+                             expressions: Vec<Expression>)
+                             -> Result<()> {
     let mut vars = HashMap::new();
-    try!(lower_internal(ctx, module, fun, builder, &mut vars, expr));
+    for expr in expressions {
+        try!(lower_internal(ctx, module, fun, builder, &mut vars, expr));
+    }
     Ok(())
 }
 
@@ -51,7 +53,10 @@ pub fn lower_internal<'a>(ctx: &mut Context,
     match expr {
         Expression::Identifier(id) => {
             // TODO: Make this simpler by wrapping LLVMValueRef in our own type that's copy.
-            Ok(try!(vars.get(&id).ok_or(format!("Reference to undefined '{}'", id))).clone())
+            match vars.get(&id) {
+                Some(val) => Ok(val.clone()),
+                None => Err(Error::from(format!("Reference to undefined '{}'", id))),
+            }
         }
         Expression::Literal(Constant::Number(n)) => Ok(ctx.const_int(n)),
         Expression::Prefix(op, expr) => {
@@ -82,6 +87,11 @@ pub fn lower_internal<'a>(ctx: &mut Context,
             let mut args = vec![format_ptr, val];
             builder.build_call(&fun, &mut args);
             Ok(val)
+        }
+        Expression::Declaration(decl, expr) => {
+            let initialiser = try!(lower_internal(ctx, module, fun, builder, vars, *expr));
+            vars.insert(decl.id, initialiser);
+            Ok(initialiser)
         }
         _ => unimplemented!(),
     }
