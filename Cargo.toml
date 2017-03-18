@@ -4,7 +4,7 @@ version = "0.1.0"
 authors = ["Will Speak <will@willspeak.me>"]
 
 [dependencies]
-llvm-sys = "*"
+llvm-sys = "39"
 docopt = "0.6"
 rustc-serialize = "0.3"
 tempdir = "0.3"
