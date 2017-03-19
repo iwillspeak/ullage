@@ -7,8 +7,9 @@
 
 use super::llvm_sys::prelude::*;
 use super::llvm_sys::core;
+use super::llvm_sys::*;
 
-use std::ffi::CStr;
+use std::ffi::{CStr, CString};
 use std::os::raw::c_uint;
 
 use super::function::Function;
@@ -21,11 +22,16 @@ pub struct Builder {
     raw: LLVMBuilderRef,
 }
 
-/// Build Context
+/// Predicate
 ///
-/// A build context represents an IR builder attached to a block.
-pub struct BuildContext<'a> {
-    builder: &'a mut Builder,
+/// Choice of comparison operators. These will be mapped through to
+/// `LLVMIntPreidcate` or `LLVMRealPredicate`s depending on the types
+/// being used.
+pub enum Predicate {
+    Eq,
+    Neq,
+    Lt,
+    Gt,
 }
 
 impl Builder {
@@ -40,18 +46,13 @@ impl Builder {
 
     /// Build at the End of a Block
     ///
-    /// Takes the builder, points it at the end of the basic block and
-    /// returns a build context that can be used to insert
-    /// instructions.
-    pub fn build_at_end<'a>(&'a mut self, block: LLVMBasicBlockRef) -> BuildContext<'a> {
+    /// Takes the builder, points it at the end of the basic block.
+    pub fn position_at_end<'a>(&'a mut self, block: LLVMBasicBlockRef) {
         unsafe {
             core::LLVMPositionBuilderAtEnd(self.raw, block);
         }
-        BuildContext { builder: self }
     }
-}
 
-impl<'a> BuildContext<'a> {
     /// Add a Ret Instrution
     ///
     /// Returns control from the current function
@@ -60,7 +61,7 @@ impl<'a> BuildContext<'a> {
     /// terminator instruciton.
     pub fn build_ret(self, value: LLVMValueRef) {
         unsafe {
-            core::LLVMBuildRet(self.builder.raw, value);
+            core::LLVMBuildRet(self.raw, value);
         }
     }
 
@@ -70,7 +71,7 @@ impl<'a> BuildContext<'a> {
     pub fn build_call(&mut self, function: &Function, args: &mut [LLVMValueRef]) -> LLVMValueRef {
         unsafe {
             let name = CStr::from_bytes_with_nul_unchecked(b"printed\0");
-            core::LLVMBuildCall(self.builder.raw,
+            core::LLVMBuildCall(self.raw,
                                 function.as_raw(),
                                 args.as_mut_ptr(),
                                 args.len() as c_uint,
@@ -84,7 +85,7 @@ impl<'a> BuildContext<'a> {
     pub fn build_gep(&mut self, value: LLVMValueRef, indices: &mut [LLVMValueRef]) -> LLVMValueRef {
         unsafe {
             let name = CStr::from_bytes_with_nul_unchecked(b"gep\0");
-            core::LLVMBuildGEP(self.builder.raw,
+            core::LLVMBuildGEP(self.raw,
                                value,
                                indices.as_mut_ptr(),
                                indices.len() as c_uint,
@@ -95,39 +96,108 @@ impl<'a> BuildContext<'a> {
     /// Build an Integer Negation
     pub fn build_neg(&mut self, value: LLVMValueRef) -> LLVMValueRef {
         unsafe {
-            let name = CStr::from_bytes_with_nul_unchecked(b"negated");
-            core::LLVMBuildNeg(self.builder.raw, value, name.as_ptr())
+            let name = CStr::from_bytes_with_nul_unchecked(b"negated\0");
+            core::LLVMBuildNeg(self.raw, value, name.as_ptr())
         }
     }
 
     /// Build an Integer Add
     pub fn build_add(&mut self, lhs: LLVMValueRef, rhs: LLVMValueRef) -> LLVMValueRef {
         unsafe {
-            let name = CStr::from_bytes_with_nul_unchecked(b"addtmp");
-            core::LLVMBuildAdd(self.builder.raw, lhs, rhs, name.as_ptr())
+            let name = CStr::from_bytes_with_nul_unchecked(b"addtmp\0");
+            core::LLVMBuildAdd(self.raw, lhs, rhs, name.as_ptr())
         }
     }
 
     /// Build an Integer Subtraction
     pub fn build_sub(&mut self, lhs: LLVMValueRef, rhs: LLVMValueRef) -> LLVMValueRef {
         unsafe {
-            let name = CStr::from_bytes_with_nul_unchecked(b"subtmp");
-            core::LLVMBuildSub(self.builder.raw, lhs, rhs, name.as_ptr())
+            let name = CStr::from_bytes_with_nul_unchecked(b"subtmp\0");
+            core::LLVMBuildSub(self.raw, lhs, rhs, name.as_ptr())
         }
     }
 
     /// Build an Integer Multiplication
     pub fn build_mul(&mut self, lhs: LLVMValueRef, rhs: LLVMValueRef) -> LLVMValueRef {
         unsafe {
-            let name = CStr::from_bytes_with_nul_unchecked(b"multmp");
-            core::LLVMBuildMul(self.builder.raw, lhs, rhs, name.as_ptr())
+            let name = CStr::from_bytes_with_nul_unchecked(b"multmp\0");
+            core::LLVMBuildMul(self.raw, lhs, rhs, name.as_ptr())
         }
     }
+
     /// Build a Signed Integer Division
     pub fn build_sdiv(&mut self, lhs: LLVMValueRef, rhs: LLVMValueRef) -> LLVMValueRef {
         unsafe {
-            let name = CStr::from_bytes_with_nul_unchecked(b"divtmp");
-            core::LLVMBuildSDiv(self.builder.raw, lhs, rhs, name.as_ptr())
+            let name = CStr::from_bytes_with_nul_unchecked(b"divtmp\0");
+            core::LLVMBuildSDiv(self.raw, lhs, rhs, name.as_ptr())
+        }
+    }
+
+    /// Build an Integer Comparision
+    pub fn build_icmp(&mut self,
+                      op: Predicate,
+                      lhs: LLVMValueRef,
+                      rhs: LLVMValueRef)
+                      -> LLVMValueRef {
+        let op = match op {
+            Predicate::Eq => LLVMIntPredicate::LLVMIntEQ,
+            Predicate::Neq => LLVMIntPredicate::LLVMIntNE,
+            Predicate::Lt => LLVMIntPredicate::LLVMIntSLT,
+            Predicate::Gt => LLVMIntPredicate::LLVMIntSGT,
+        };
+        unsafe {
+            let name = CStr::from_bytes_with_nul_unchecked(b"cmptemp\0");
+            core::LLVMBuildICmp(self.raw, op, lhs, rhs, name.as_ptr())
+        }
+    }
+
+    /// Build an Allocate Instruction
+    ///
+    /// Creates a new value allocated for the remainder of the current
+    /// stack frame.
+    pub fn build_alloca(&mut self, typ: LLVMTypeRef, name: &str) -> LLVMValueRef {
+        let name = CString::new(name).unwrap();
+        unsafe { core::LLVMBuildAlloca(self.raw, typ, name.as_ptr()) }
+    }
+
+    /// Create a Conditional Branch
+    ///
+    /// If the condition is true then execution continues in the first
+    /// block, otherwise execution will move to the second block.
+    pub fn build_cond_br(&mut self,
+                         cond: LLVMValueRef,
+                         iftrue: LLVMBasicBlockRef,
+                         iffalse: LLVMBasicBlockRef) {
+        unsafe {
+            core::LLVMBuildCondBr(self.raw, cond, iftrue, iffalse);
+        }
+    }
+
+    /// Create an Unconditional Branch
+    pub fn build_br(&mut self, block: LLVMBasicBlockRef) {
+        unsafe {
+            core::LLVMBuildBr(self.raw, block);
+        }
+    }
+
+    /// Load from Variable
+    pub fn build_load(&mut self, var: LLVMValueRef) -> LLVMValueRef {
+        unsafe {
+            let name = CStr::from_bytes_with_nul_unchecked(b"loaded\0");
+            core::LLVMBuildLoad(self.raw, var, name.as_ptr())
+        }
+    }
+
+    /// Store to Variable
+    pub fn build_store(&mut self, val: LLVMValueRef, var: LLVMValueRef) -> LLVMValueRef {
+        unsafe { core::LLVMBuildStore(self.raw, val, var) }
+    }
+
+    /// Built a Not
+    pub fn build_not(&mut self, val: LLVMValueRef) -> LLVMValueRef {
+        unsafe {
+            let name = CStr::from_bytes_with_nul_unchecked(b"not\0");
+            core::LLVMBuildNot(self.raw, val, name.as_ptr())
         }
     }
 }

@@ -11,6 +11,18 @@ use super::error::*;
 
 use std::collections::HashMap;
 
+impl From<InfixOp> for Predicate {
+    fn from(op: InfixOp) -> Self {
+        match op {
+            InfixOp::Eq => Predicate::Eq,
+            InfixOp::NotEq => Predicate::Neq,
+            InfixOp::Lt => Predicate::Lt,
+            InfixOp::Gt => Predicate::Gt,
+            _ => panic!("Infix op {:?} is not a predicate", op),
+        }
+    }
+}
+
 /// Lower an Expression to LLVM
 ///
 /// Takes the given expression and lowers it to LLVM IR. This is just
@@ -30,7 +42,7 @@ use std::collections::HashMap;
 pub fn lower_expressions<'a>(ctx: &mut Context,
                              module: &mut Module,
                              fun: &mut Function,
-                             builder: &mut BuildContext<'a>,
+                             builder: &mut Builder,
                              expressions: Vec<Expression>)
                              -> Result<()> {
     let mut vars = HashMap::new();
@@ -46,7 +58,7 @@ pub fn lower_expressions<'a>(ctx: &mut Context,
 pub fn lower_internal<'a>(ctx: &mut Context,
                           module: &mut Module,
                           fun: &mut Function,
-                          builder: &mut BuildContext<'a>,
+                          builder: &mut Builder,
                           vars: &mut HashMap<String, LLVMValueRef>,
                           expr: Expression)
                           -> Result<LLVMValueRef> {
@@ -63,7 +75,7 @@ pub fn lower_internal<'a>(ctx: &mut Context,
             let val = try!(lower_internal(ctx, module, fun, builder, vars, *expr));
             let val = match op {
                 PrefixOp::Negate => builder.build_neg(val),
-                PrefixOp::Not => unimplemented!(),
+                PrefixOp::Not => builder.build_not(val),
             };
             Ok(val)
         }
@@ -75,7 +87,12 @@ pub fn lower_internal<'a>(ctx: &mut Context,
                 InfixOp::Sub => builder.build_sub(lhs_val, rhs_val),
                 InfixOp::Mul => builder.build_mul(lhs_val, rhs_val),
                 InfixOp::Div => builder.build_sdiv(lhs_val, rhs_val),
-                _ => unimplemented!(),
+
+                InfixOp::Eq | InfixOp::NotEq | InfixOp::Lt | InfixOp::Gt => {
+                    builder.build_icmp(Predicate::from(op), lhs_val, rhs_val)
+                }
+
+                InfixOp::Assign => unimplemented!(),
             };
             Ok(val)
         }
@@ -92,6 +109,31 @@ pub fn lower_internal<'a>(ctx: &mut Context,
             let initialiser = try!(lower_internal(ctx, module, fun, builder, vars, *expr));
             vars.insert(decl.id, initialiser);
             Ok(initialiser)
+        }
+        Expression::IfThenElse(cond, then, elze) => {
+            let cond = try!(lower_internal(ctx, module, fun, builder, vars, *cond));
+
+            let typ = ctx.int_type(64);
+            let ret = builder.build_alloca(typ, "if");
+
+            let thenblock = ctx.add_block(fun, "thenblock");
+            let elzeblock = ctx.add_block(fun, "elseblock");
+            let joinblock = ctx.add_block(fun, "joinblock");
+
+            builder.build_cond_br(cond, thenblock, elzeblock);
+
+            builder.position_at_end(thenblock);
+            let then = try!(lower_internal(ctx, module, fun, builder, vars, *then));
+            builder.build_store(then, ret);
+            builder.build_br(joinblock);
+
+            builder.position_at_end(elzeblock);
+            let elze = try!(lower_internal(ctx, module, fun, builder, vars, *elze));
+            builder.build_store(elze, ret);
+            builder.build_br(joinblock);
+
+            builder.position_at_end(joinblock);
+            Ok(builder.build_load(ret))
         }
         _ => unimplemented!(),
     }

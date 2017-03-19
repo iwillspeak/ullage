@@ -18,7 +18,7 @@ pub mod prelude {
     pub use super::module::Module;
     pub use super::function::Function;
     pub use super::builder::Builder;
-    pub use super::builder::BuildContext;
+    pub use super::builder::Predicate;
 
     // TOOD: HAX?
     pub use super::llvm_sys::prelude::LLVMValueRef;

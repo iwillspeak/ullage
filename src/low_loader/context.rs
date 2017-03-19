@@ -192,6 +192,11 @@ impl Context {
         let &Context(raw_ctx) = self;
         raw_ctx
     }
+
+    /// Get Type in this Context
+    pub fn int_type(&self, width: usize) -> LLVMTypeRef {
+        unsafe { core::LLVMIntTypeInContext(self.as_raw(), width as c_uint) }
+    }
 }
 
 impl Drop for Context {

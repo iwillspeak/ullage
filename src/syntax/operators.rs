@@ -8,11 +8,14 @@ pub enum PrefixOp {
 /// Represents an AST infix operator
 #[derive(Debug,PartialEq)]
 pub enum InfixOp {
+    // Arithmetic
     Assign,
     Add,
     Sub,
     Mul,
     Div,
+
+    // Comparison
     Eq,
     NotEq,
     Lt,

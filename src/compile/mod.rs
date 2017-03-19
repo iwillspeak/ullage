@@ -58,11 +58,11 @@ impl Compilation {
         let bb = ctx.add_block(&mut fun, "entry");
 
         let mut builder = ctx.add_builder();
-        let mut build_ctx = builder.build_at_end(bb);
+        builder.position_at_end(bb);
 
-        try!(lower::lower_expressions(&mut ctx, &mut module, &mut fun, &mut build_ctx, self.exprs));
+        try!(lower::lower_expressions(&mut ctx, &mut module, &mut fun, &mut builder, self.exprs));
 
-        build_ctx.build_ret(ctx.const_int(0));
+        builder.build_ret(ctx.const_int(0));
 
         // Check what we have, and dump it to the screen
         if self.dump_ir {

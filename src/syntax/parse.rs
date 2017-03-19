@@ -435,9 +435,7 @@ impl<'a> Token<'a> {
                 let typ = parser.optional_type_ref();
                 try!(parser.expect(Token::Equals));
                 let rhs = try!(parser.expression(0));
-                Ok(Expression::declaration(
-                    TypedId::from_parts(id.clone(), typ),
-                    rhs))
+                Ok(Expression::declaration(TypedId::from_parts(id.clone(), typ), rhs))
             }
             Token::Word("print") => {
                 let to_print = try!(parser.expression(0));
@@ -793,10 +791,8 @@ mod test {
     #[test]
     fn parse_simple_let() {
         check_parse!("let foo = 100",
-                     Expression::declaration(
-                         TypedId::from_parts("foo".to_string(), None),
-                         Expression::constant_num(100)
-                     ));
+                     Expression::declaration(TypedId::from_parts("foo".to_string(), None),
+                                             Expression::constant_num(100)));
     }
 
     #[test]
@@ -809,14 +805,12 @@ mod test {
                          Expression::constant_num(100)
                      ));
         check_parse!("let f: (Num, [String]) = 100",
-                     Expression::declaration(
-                         TypedId::from_parts(
-                                 String::from("f"),
-                                 Some(TypeRef::tuple(vec![
+                     Expression::declaration(TypedId::from_parts(String::from("f"),
+                                                                 Some(TypeRef::tuple(vec![
                                      TypeRef::simple("Num"),
                                      TypeRef::array(TypeRef::simple("String"))
                                  ]))),
-                         Expression::constant_num(100)));
+                                             Expression::constant_num(100)));
     }
 
     #[test]
