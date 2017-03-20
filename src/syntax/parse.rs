@@ -344,6 +344,18 @@ impl<'a> Parser<'a> {
         Ok(TypedId { id: id, typ: typ })
     }
 
+    /// Attempt to parse a local declaration
+    ///
+    /// Parses the body of a local variable delcaration (`let` or
+    /// `var`).
+    pub fn declaration(&mut self, is_mut: bool) -> Result<Expression> {
+        let id = try!(self.identifier());
+        let typ = self.optional_type_ref();
+        try!(self.expect(Token::Equals));
+        let rhs = try!(self.expression(0));
+        Ok(Expression::declaration(TypedId::from_parts(id.clone(), typ), is_mut, rhs))
+    }
+
     /// Attempt to parse a block of expressions
     pub fn block(&mut self) -> Result<Vec<Expression>> {
         let mut expressions = Vec::new();
@@ -430,13 +442,8 @@ impl<'a> Token<'a> {
                 try!(parser.expect(Token::Word("end")));
                 Ok(Expression::loop_while(condition, block))
             }
-            Token::Word("let") => {
-                let id = try!(parser.identifier());
-                let typ = parser.optional_type_ref();
-                try!(parser.expect(Token::Equals));
-                let rhs = try!(parser.expression(0));
-                Ok(Expression::declaration(TypedId::from_parts(id.clone(), typ), rhs))
-            }
+            Token::Word("let") => parser.declaration(false),
+            Token::Word("var") => parser.declaration(true),
             Token::Word("print") => {
                 let to_print = try!(parser.expression(0));
                 Ok(Expression::print(to_print))
@@ -784,6 +791,7 @@ mod test {
                          Expression::declaration(
                              TypedId::from_parts(String::from("f"),
                                                  Some(TypeRef::array(TypeRef::simple("Num")))),
+                             false,
                              Expression::constant_num(100)
                          ));
     }
@@ -792,6 +800,7 @@ mod test {
     fn parse_simple_let() {
         check_parse!("let foo = 100",
                      Expression::declaration(TypedId::from_parts("foo".to_string(), None),
+                                             false,
                                              Expression::constant_num(100)));
     }
 
@@ -802,6 +811,7 @@ mod test {
                          TypedId::from_parts(
                                  String::from("f"),
                              Some(TypeRef::tuple(vec![TypeRef::simple("Num")]))),
+                         false,
                          Expression::constant_num(100)
                      ));
         check_parse!("let f: (Num, [String]) = 100",
@@ -810,7 +820,23 @@ mod test {
                                      TypeRef::simple("Num"),
                                      TypeRef::array(TypeRef::simple("String"))
                                  ]))),
+                                             false,
                                              Expression::constant_num(100)));
+    }
+
+    #[test]
+    fn parse_variable_decl() {
+        check_parse!("var foo = 93",
+                     Expression::declaration(TypedId::from_parts(String::from("foo"), None),
+                                             true,
+                                             Expression::constant_num(93)));
+        check_parse!("var foo_bar: Number = -99999",
+                     Expression::declaration(TypedId::from_parts(String::from("foo_bar"),
+                                                                 Some(TypeRef::simple("Number"))),
+                                             true,
+                                             Expression::prefix(PrefixOp::Negate,
+                                                                Expression::constant_num(99999))));
+
     }
 
     #[test]

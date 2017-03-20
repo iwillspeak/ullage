@@ -11,6 +11,8 @@ use super::error::*;
 
 use std::collections::HashMap;
 
+type Local = (bool, LLVMValueRef);
+
 impl From<InfixOp> for Predicate {
     fn from(op: InfixOp) -> Self {
         match op {
@@ -36,7 +38,7 @@ impl From<InfixOp> for Predicate {
 ///
 ///  * `expr` - The `Expression` to lower.
 ///
-/// # Retunrs
+/// # Returns
 ///
 /// A `Result` indicating if the expression was lowered successfully.
 pub fn lower_expressions<'a>(ctx: &mut Context,
@@ -59,14 +61,19 @@ pub fn lower_internal<'a>(ctx: &mut Context,
                           module: &mut Module,
                           fun: &mut Function,
                           builder: &mut Builder,
-                          vars: &mut HashMap<String, LLVMValueRef>,
+                          vars: &mut HashMap<String, Local>,
                           expr: Expression)
                           -> Result<LLVMValueRef> {
     match expr {
         Expression::Identifier(id) => {
-            // TODO: Make this simpler by wrapping LLVMValueRef in our own type that's copy.
             match vars.get(&id) {
-                Some(val) => Ok(val.clone()),
+                Some(&(is_mut, val)) => {
+                    Ok(if is_mut {
+                        builder.build_load(val)
+                    } else {
+                        val
+                    })
+                }
                 None => Err(Error::from(format!("Reference to undefined '{}'", id))),
             }
         }
@@ -105,9 +112,18 @@ pub fn lower_internal<'a>(ctx: &mut Context,
             builder.build_call(&fun, &mut args);
             Ok(val)
         }
-        Expression::Declaration(decl, expr) => {
+        Expression::Declaration(decl, is_mut, expr) => {
             let initialiser = try!(lower_internal(ctx, module, fun, builder, vars, *expr));
-            vars.insert(decl.id, initialiser);
+            let value = if is_mut {
+                // FIXME: look the type up properly
+                let typ = ctx.int_type(64);
+                let stackloc = builder.build_alloca(typ, &decl.id);
+                builder.build_store(initialiser, stackloc);
+                stackloc
+            } else {
+                initialiser
+            };
+            vars.insert(decl.id, (is_mut, value));
             Ok(initialiser)
         }
         Expression::IfThenElse(cond, then, elze) => {

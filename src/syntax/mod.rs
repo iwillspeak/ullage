@@ -115,7 +115,7 @@ pub enum Expression {
     Loop(Box<Expression>, Box<Expression>),
     Sequence(Vec<Expression>),
     Print(Box<Expression>),
-    Declaration(TypedId, Box<Expression>),
+    Declaration(TypedId, bool, Box<Expression>),
 }
 
 impl Expression {
@@ -209,8 +209,8 @@ impl Expression {
     /// # New Variable Declaration
     ///
     /// Represents the declaration of a local variable.
-    pub fn declaration(var: TypedId, expr: Expression) -> Self {
-        Expression::Declaration(var, Box::new(expr))
+    pub fn declaration(var: TypedId, is_mut: bool, expr: Expression) -> Self {
+        Expression::Declaration(var, is_mut, Box::new(expr))
     }
 
     /// # New Sequence Expression
