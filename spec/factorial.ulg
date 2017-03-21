@@ -1,0 +1,10 @@
+# the number we want to compute the factorial of
+var n = 5
+var acc = 1
+
+while n > 0
+  acc = acc * n
+  n = n - 1
+end
+
+print acc # => 120
