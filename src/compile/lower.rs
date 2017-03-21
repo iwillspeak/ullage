@@ -93,7 +93,10 @@ pub fn lower_internal<'a>(ctx: &mut Context,
             if op == InfixOp::Assign {
                 if let Expression::Identifier(id) = *lhs {
                     match vars.get(&id) {
-                        Some(&(true, var)) => Ok(builder.build_store(rhs_val, var)),
+                        Some(&(true, var)) => {
+                            builder.build_store(rhs_val, var);
+                            Ok(rhs_val)
+                        }
                         _ => Err(Error::from(format!("can't assign to {}", id)))
                     }
                 } else {
@@ -163,6 +166,30 @@ pub fn lower_internal<'a>(ctx: &mut Context,
 
             builder.position_at_end(joinblock);
             Ok(builder.build_load(ret))
+        }
+        Expression::Loop(cond, body) => {
+            let condblock = ctx.add_block(fun, "condblock");
+            let bodyblock = ctx.add_block(fun, "whilebody");
+            let joinblock = ctx.add_block(fun, "joinblock");
+
+            builder.build_br(condblock);
+            builder.position_at_end(condblock);
+
+            let cond = try!(lower_internal(ctx, module, fun, builder, vars, *cond));
+            builder.build_cond_br(cond, bodyblock, joinblock);
+
+            builder.position_at_end(bodyblock);
+            try!(lower_internal(ctx, module, fun, builder, vars, *body));
+            builder.build_br(condblock);
+
+            builder.position_at_end(joinblock);
+            
+            Ok(cond)
+        }
+        Expression::Sequence(exprs) => {
+            exprs.into_iter().map(|expr| {
+                lower_internal(ctx, module, fun, builder, vars, expr)
+            }).last().unwrap()
         }
         _ => unimplemented!(),
     }

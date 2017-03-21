@@ -1,0 +1,4 @@
+var foo = 100
+print foo # => 100
+print foo = foo / 2 # => 50
+print foo # => 50
