@@ -21,17 +21,17 @@ impl From<String> for Error {
     }
 }
 
+impl From<io::Error> for Error {
+    fn from(e: io::Error) -> Error {
+        Error::IO(e)
+    }
+}
+
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             Error::Generic(ref err) => write!(f, "{}", err),
             Error::IO(ref ioerr) => write!(f, "IO Error: {}", ioerr),
         }
-    }
-}
-
-impl From<io::Error> for Error {
-    fn from(e: io::Error) -> Error {
-        Error::IO(e)
     }
 }

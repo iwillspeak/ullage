@@ -87,21 +87,34 @@ pub fn lower_internal<'a>(ctx: &mut Context,
             Ok(val)
         }
         Expression::Infix(lhs, op, rhs) => {
-            let lhs_val = try!(lower_internal(ctx, module, fun, builder, vars, *lhs));
             let rhs_val = try!(lower_internal(ctx, module, fun, builder, vars, *rhs));
-            let val = match op {
-                InfixOp::Add => builder.build_add(lhs_val, rhs_val),
-                InfixOp::Sub => builder.build_sub(lhs_val, rhs_val),
-                InfixOp::Mul => builder.build_mul(lhs_val, rhs_val),
-                InfixOp::Div => builder.build_sdiv(lhs_val, rhs_val),
 
-                InfixOp::Eq | InfixOp::NotEq | InfixOp::Lt | InfixOp::Gt => {
-                    builder.build_icmp(Predicate::from(op), lhs_val, rhs_val)
+            // TODO: maybe assignment should be a different node in the AST?
+            if op == InfixOp::Assign {
+                if let Expression::Identifier(id) = *lhs {
+                    match vars.get(&id) {
+                        Some(&(true, var)) => Ok(builder.build_store(rhs_val, var)),
+                        _ => Err(Error::from(format!("can't assign to {}", id)))
+                    }
+                } else {
+                    Err(Error::Generic(String::from("left hand side of an assignment must be an identifier")))
                 }
+            } else {
+                let lhs_val = try!(lower_internal(ctx, module, fun, builder, vars, *lhs));
+                let val = match op {
+                    InfixOp::Add => builder.build_add(lhs_val, rhs_val),
+                    InfixOp::Sub => builder.build_sub(lhs_val, rhs_val),
+                    InfixOp::Mul => builder.build_mul(lhs_val, rhs_val),
+                    InfixOp::Div => builder.build_sdiv(lhs_val, rhs_val),
 
-                InfixOp::Assign => unimplemented!(),
-            };
-            Ok(val)
+                    InfixOp::Eq | InfixOp::NotEq | InfixOp::Lt | InfixOp::Gt => {
+                        builder.build_icmp(Predicate::from(op), lhs_val, rhs_val)
+                    }
+
+                    InfixOp::Assign => unreachable!()
+                };
+                Ok(val)
+            }
         }
         Expression::Print(inner) => {
             let val = try!(lower_internal(ctx, module, fun, builder, vars, *inner));

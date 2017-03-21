@@ -8,4 +8,5 @@ print let yup = 100 - -hello # => 200
 
 var foo = -1001
 print foo # => -1001
-# foo = foo + 1000
+foo = foo + 1000
+print foo # => -1
