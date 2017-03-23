@@ -68,11 +68,7 @@ pub fn lower_internal<'a>(ctx: &mut Context,
         Expression::Identifier(id) => {
             match vars.get(&id) {
                 Some(&(is_mut, val)) => {
-                    Ok(if is_mut {
-                        builder.build_load(val)
-                    } else {
-                        val
-                    })
+                    Ok(if is_mut { builder.build_load(val) } else { val })
                 }
                 None => Err(Error::from(format!("Reference to undefined '{}'", id))),
             }
@@ -97,10 +93,11 @@ pub fn lower_internal<'a>(ctx: &mut Context,
                             builder.build_store(rhs_val, var);
                             Ok(rhs_val)
                         }
-                        _ => Err(Error::from(format!("can't assign to {}", id)))
+                        _ => Err(Error::from(format!("can't assign to {}", id))),
                     }
                 } else {
-                    Err(Error::Generic(String::from("left hand side of an assignment must be an identifier")))
+                    Err(Error::Generic(String::from("left hand side of an assignment must be an \
+                                                     identifier")))
                 }
             } else {
                 let lhs_val = try!(lower_internal(ctx, module, fun, builder, vars, *lhs));
@@ -114,7 +111,7 @@ pub fn lower_internal<'a>(ctx: &mut Context,
                         builder.build_icmp(Predicate::from(op), lhs_val, rhs_val)
                     }
 
-                    InfixOp::Assign => unreachable!()
+                    InfixOp::Assign => unreachable!(),
                 };
                 Ok(val)
             }
@@ -183,13 +180,39 @@ pub fn lower_internal<'a>(ctx: &mut Context,
             builder.build_br(condblock);
 
             builder.position_at_end(joinblock);
-            
+
             Ok(cond)
         }
         Expression::Sequence(exprs) => {
-            exprs.into_iter().map(|expr| {
-                lower_internal(ctx, module, fun, builder, vars, expr)
-            }).last().unwrap()
+            exprs.into_iter()
+                .map(|expr| lower_internal(ctx, module, fun, builder, vars, expr))
+                .last()
+                .unwrap()
+        }
+        Expression::Function(name, typ, params, body) => {
+            let mut fun = ctx.add_function(module, &name);
+            let bb = ctx.add_block(&mut fun, "body");
+            let mut builder = ctx.add_builder();
+            builder.position_at_end(bb);
+            let mut vars = HashMap::new();
+            // TODO: parameters & types
+            let body = try!(lower_internal(ctx, module, &mut fun, &mut builder, &mut vars, *body));
+            builder.build_ret(body);
+            fun.verify_or_panic();
+            Ok(unsafe { fun.as_raw() })
+        }
+        Expression::Call(callee, args) => {
+            if let Expression::Identifier(name) = *callee {
+                match module.find_function(&name) {
+                    Some(function) => {
+                        let call_res = builder.build_call(&function, &mut []);
+                        Ok(call_res)
+                    }
+                    None => Err(Error::from(format!("Can't find function '{}", name))),
+                }
+            } else {
+                Err(Error::from(format!("Can't call '{:?}'", callee)))
+            }
         }
         _ => unimplemented!(),
     }
