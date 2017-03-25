@@ -451,14 +451,8 @@ impl<'a> Token<'a> {
             Token::Word(word) => Ok(Expression::identifier(String::from(word))),
             Token::Literal(i) => Ok(Expression::constant_num(i)),
             Token::Plus => parser.expression(100),
-            Token::Minus => {
-                let rhs = try!(parser.expression(100));
-                Ok(Expression::prefix(PrefixOp::Negate, rhs))
-            }
-            Token::Bang => {
-                let rhs = try!(parser.expression(100));
-                Ok(Expression::prefix(PrefixOp::Not, rhs))
-            }
+            Token::Minus => prefix_op(parser, PrefixOp::Negate),
+            Token::Bang => prefix_op(parser, PrefixOp::Not),
             Token::OpenBracket => {
                 let expr = try!(parser.expression(0));
                 try!(parser.expect(Token::CloseBracket));
@@ -508,24 +502,38 @@ impl<'a> Token<'a> {
             // Ternay statement:
             // <x> if <y> else <z>
             Token::Word("if") => {
-                let condition = try!(parser.expression(0));
-                try!(parser.expect(Token::Word("else")));
-                let fallback = try!(parser.expression(0));
+                let (condition, fallback) = try!(ternary_body(parser));
                 Ok(Expression::if_then_else(condition, lhs, fallback))
             }
 
             // Ternay statement:
             // <x> unless <y> else <z>
             Token::Word("unless") => {
-                let condition = try!(parser.expression(0));
-                try!(parser.expect(Token::Word("else")));
-                let fallback = try!(parser.expression(0));
+                let (condition, fallback) = try!(ternary_body(parser));
                 Ok(Expression::if_then_else(condition, fallback, lhs))
             }
 
             _ => Err(Error::Incomplete),
         }
     }
+}
+
+/// Prefix Operator
+///
+/// Parses the trailing expression for a prefix operator.
+fn prefix_op(parser: &mut Parser, op: PrefixOp) -> Result<Expression> {
+    let rhs = try!(parser.expression(100));
+    Ok(Expression::prefix(op, rhs))
+}
+
+/// Ternay Body
+///
+/// The condition and fallback part of a ternary expression.
+fn ternary_body(parser: &mut Parser) -> Result<(Expression, Expression)> {
+    let condition = try!(parser.expression(0));
+    try!(parser.expect(Token::Word("else")));
+    let fallback = try!(parser.expression(0));
+    Ok((condition, fallback))
 }
 
 /// Parse error module. Contains the Result and Error types for the
@@ -536,7 +544,7 @@ pub mod error {
     /// success can't be guaranteed.
     pub type Result<T> = ::std::result::Result<T, Error>;
 
-    /// Parser error type. This distinguishes between the differen
+    /// Parser error type. This distinguishes between the different
     /// kinds of errors that the `Parser` can encounter.
     #[derive(Debug,PartialEq)]
     pub enum Error {

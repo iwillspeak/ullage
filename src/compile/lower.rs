@@ -73,10 +73,12 @@ pub fn lower_internal<'a>(ctx: &mut Context,
                 None => Err(Error::from(format!("Reference to undefined '{}'", id))),
             }
         }
-        Expression::Literal(lit) => match lit {
-            Constant::Number(n) => Ok(ctx.const_int(n)),
-            Constant::String(_) => unimplemented!(),
-        },
+        Expression::Literal(lit) => {
+            match lit {
+                Constant::Number(n) => Ok(ctx.const_int(n)),
+                Constant::String(_) => unimplemented!(),
+            }
+        }
         Expression::Prefix(op, expr) => {
             let val = try!(lower_internal(ctx, module, fun, builder, vars, *expr));
             let val = match op {
