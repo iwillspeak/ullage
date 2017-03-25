@@ -1,8 +1,0 @@
-let foo = 100 #=> Num(100)
-let bar = 192 #=> Num(192)
-let baz = bar * (100 / foo) #=> Num(192)
-1 if baz else -1 #=> Num(1)
-let 中 = 99 - (10 / bar) #=> Num(99)
-fn foo(): Num
-   let fiz = 100
-end() #=> Num(100

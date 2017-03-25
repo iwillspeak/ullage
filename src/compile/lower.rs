@@ -73,7 +73,10 @@ pub fn lower_internal<'a>(ctx: &mut Context,
                 None => Err(Error::from(format!("Reference to undefined '{}'", id))),
             }
         }
-        Expression::Literal(Constant::Number(n)) => Ok(ctx.const_int(n)),
+        Expression::Literal(lit) => match lit {
+            Constant::Number(n) => Ok(ctx.const_int(n)),
+            Constant::String(_) => unimplemented!(),
+        },
         Expression::Prefix(op, expr) => {
             let val = try!(lower_internal(ctx, module, fun, builder, vars, *expr));
             let val = match op {
@@ -189,7 +192,7 @@ pub fn lower_internal<'a>(ctx: &mut Context,
                 .last()
                 .unwrap()
         }
-        Expression::Function(name, typ, params, body) => {
+        Expression::Function(name, _typ, params, body) => {
 
             let mut sig = params.iter()
                 .map(|_| ctx.int_type(64))
@@ -226,6 +229,6 @@ pub fn lower_internal<'a>(ctx: &mut Context,
                 unimplemented!();
             }
         }
-        _ => unimplemented!(),
+        Expression::Index(_lhs, _index) => unimplemented!(),
     }
 }

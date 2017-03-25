@@ -1,0 +1,9 @@
+print let foo = 100 #=> 100
+print let bar = 192 #=> 192
+print let baz = bar * (100 / foo) #=> 192
+print 1 if baz != 0 else -1 #=> 1
+print let 中 = 99 - (10 / bar) #=> 99
+fn foo(): Number
+   let fiz = 100
+end
+print foo() # => 100
