@@ -3,3 +3,17 @@ fn test(): Number
 end
 
 print test() #=> 1000
+
+fn printer(n: Number): Number
+  print n
+end
+
+printer(1000) # => 1000
+printer(98 / 2) # => 49
+
+fn add(a: Number, b: Number): Number
+   a + b
+end
+
+print add(1002, -1000) # => 2
+print add(99, 1) # => 100

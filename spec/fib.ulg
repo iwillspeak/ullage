@@ -1,0 +1,20 @@
+# Fibonacci Number
+#
+# Computes the `n`th iteration of the Fibonacci sequence.
+fn fib(n: Number): Number
+  var iters = 0
+  var low = 0
+  var high = 1
+  while iters < n
+	iters = iters + 1
+    let old_low = low
+	low = high
+	high = low + old_low
+  end
+  low
+end
+
+print fib(10) # => 55
+print fib(0) # => 0
+print fib(1) # => 1
+print fib(11) # => 89

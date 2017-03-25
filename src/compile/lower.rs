@@ -190,12 +190,21 @@ pub fn lower_internal<'a>(ctx: &mut Context,
                 .unwrap()
         }
         Expression::Function(name, typ, params, body) => {
-            let mut fun = ctx.add_function(module, &name);
+
+            let mut sig = params.iter()
+                .map(|_| ctx.int_type(64))
+                .collect::<Vec<_>>();
+
+            let mut fun = ctx.add_function(module, &name, &mut sig);
             let bb = ctx.add_block(&mut fun, "body");
             let mut builder = ctx.add_builder();
             builder.position_at_end(bb);
-            let mut vars = HashMap::new();
-            // TODO: parameters & types
+
+            let mut vars = params.into_iter()
+                .enumerate()
+                .map(|(i, p)| (p.id, (false, fun.get_param(i as u32))))
+                .collect::<HashMap<String, Local>>();
+
             let body = try!(lower_internal(ctx, module, &mut fun, &mut builder, &mut vars, *body));
             builder.build_ret(body);
             fun.verify_or_panic();
@@ -205,13 +214,16 @@ pub fn lower_internal<'a>(ctx: &mut Context,
             if let Expression::Identifier(name) = *callee {
                 match module.find_function(&name) {
                     Some(function) => {
-                        let call_res = builder.build_call(&function, &mut []);
+                        let mut args = try!(args.into_iter()
+                            .map(|arg| lower_internal(ctx, module, fun, builder, vars, arg))
+                            .collect::<::std::result::Result<Vec<_>, Error>>());
+                        let call_res = builder.build_call(&function, &mut args);
                         Ok(call_res)
                     }
                     None => Err(Error::from(format!("Can't find function '{}", name))),
                 }
             } else {
-                Err(Error::from(format!("Can't call '{:?}'", callee)))
+                unimplemented!();
             }
         }
         _ => unimplemented!(),

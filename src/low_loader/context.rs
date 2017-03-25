@@ -2,7 +2,6 @@
 //!
 //! Contains a Rust wrapper for dealing with LLVM Context objects.
 
-use std::ptr;
 use std::ffi::{CStr, CString};
 use std::os::raw::c_uint;
 use super::llvm_sys::prelude::*;
@@ -95,11 +94,17 @@ impl Context {
     /// configuration will have to be added when we come to compile
     /// functions of our own rather than just functions to represent a
     /// group of top-level expressions.
-    pub fn add_function(&mut self, module: &mut Module, name: &str) -> Function {
+    pub fn add_function(&mut self,
+                        module: &mut Module,
+                        name: &str,
+                        params: &mut [LLVMTypeRef])
+                        -> Function {
         // Create a function to be used to evaluate our expression
         let function_type = unsafe {
             let int64 = core::LLVMInt64TypeInContext(self.as_raw());
-            core::LLVMFunctionType(int64, ptr::null_mut(), 0, 0)
+            let param_count = params.len();
+            let params = params.as_mut_ptr();
+            core::LLVMFunctionType(int64, params, param_count as c_uint, 0)
         };
 
         let function_name = CString::new(name).unwrap();

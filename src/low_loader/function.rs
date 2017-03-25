@@ -3,6 +3,7 @@
 //! A wrapper around an LLVM function.
 
 use super::llvm_sys::prelude::*;
+use super::llvm_sys::core;
 use super::llvm_sys::analysis;
 
 /// Function
@@ -36,6 +37,14 @@ impl Function {
         if verified == 1 {
             panic!("Function failed verification!")
         }
+    }
+
+    /// Get a Function's Parameter
+    ///
+    /// Returns a value that can be used to access the `n`th function
+    /// argument.
+    pub fn get_param(&self, n: u32) -> LLVMValueRef {
+        unsafe { core::LLVMGetParam(self.as_raw(), n) }
     }
 
     /// Raw Borrow
