@@ -6,18 +6,17 @@ Ullage started as an attempt to implement a top-down operator precedence parser 
 
 It is now possible to write simple programs. The following program computes 9 factorial:
 
-    let n = 1
-    let i = 9
-	while i
-	  n = i * n
-	  i = i - 1
-	end
-	n
-
-The REPL creates modules on a per-line basis though. To get that to
-work you'll need to remove the line breaks:
-
-    let n = 1 let i = 9 while i n = i * n i = i -1 end n
+    fn fact(n: Number): Number
+        var acc = 1
+        var i = 1
+        while i < n
+            acc = acc * i
+            i = i + 1
+        end
+        acc
+    end
+    
+    print fact(9) # => 362880
 
 ## License
 

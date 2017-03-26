@@ -1,0 +1,11 @@
+fn fact(n: Number): Number
+    var acc = 1
+    var i = n
+    while i > 0
+        acc = acc * i
+        i = i - 1
+    end
+    acc
+end
+
+print fact(9) # => 362880
