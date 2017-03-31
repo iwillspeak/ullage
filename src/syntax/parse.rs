@@ -448,6 +448,8 @@ impl<'a> Token<'a> {
                 let to_print = try!(parser.expression(0));
                 Ok(Expression::print(to_print))
             }
+            Token::Word("true") => Ok(Expression::constant_bool(true)),
+            Token::Word("false") => Ok(Expression::constant_bool(false)),
             Token::Word(word) => Ok(Expression::identifier(String::from(word))),
             Token::Literal(i) => Ok(Expression::constant_num(i)),
             Token::Plus => parser.expression(100),
@@ -851,5 +853,11 @@ mod test {
     fn parse_print_operator() {
         check_parse!("print 1334",
                      Expression::print(Expression::constant_num(1334)));
+    }
+
+    #[test]
+    fn parse_bool_literal() {
+        check_parse!("true", Expression::constant_bool(true));
+        check_parse!("false", Expression::constant_bool(false));
     }
 }

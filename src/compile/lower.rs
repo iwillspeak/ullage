@@ -76,6 +76,7 @@ pub fn lower_internal<'a>(ctx: &mut Context,
         Expression::Literal(lit) => {
             match lit {
                 Constant::Number(n) => Ok(ctx.const_int(n)),
+                Constant::Bool(b) => Ok(ctx.const_bool(b)),
                 Constant::String(_) => unimplemented!(),
             }
         }

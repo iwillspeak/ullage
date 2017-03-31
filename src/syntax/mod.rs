@@ -98,6 +98,7 @@ impl TypedId {
 #[derive(Debug,PartialEq)]
 pub enum Constant {
     Number(i64),
+    Bool(bool),
     String(String),
 }
 
@@ -143,6 +144,13 @@ impl Expression {
     /// constants.
     pub fn constant_string(s: String) -> Self {
         Expression::Literal(Constant::String(s))
+    }
+
+    /// New Bool Constant
+    ///
+    /// A constant boolean value. Created from the literal 'true' or 'false'.
+    pub fn constant_bool(b: bool) -> Self {
+        Expression::Literal(Constant::Bool(b))
     }
 
     /// # New Prefix Operator Expression

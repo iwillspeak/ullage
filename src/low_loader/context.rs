@@ -170,6 +170,18 @@ impl Context {
         }
     }
 
+    /// Create a Constant Bool
+    ///
+    /// The returned value is a constant 1-bit integer with the given
+    /// boolean value mapped to `true` => `1`, `false` => `0`.
+    pub fn const_bool(&self, b: bool) -> LLVMValueRef {
+        let mapped = if b { 1 } else { 0 };
+        unsafe {
+            let int1 = core::LLVMInt1TypeInContext(self.as_raw());
+            core::LLVMConstInt(int1, mapped, 0)
+        }
+    }
+
     /// Create a Constant String Value
     ///
     /// The returned value is a constant i8 array with characters from
