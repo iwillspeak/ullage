@@ -3,19 +3,16 @@
 
 use std::iter::Peekable;
 
-use super::{Expression, TypeRef, TypedId};
-use super::ast::operators::{InfixOp, PrefixOp};
+use super::ast::prelude::*;
 pub use self::error::{Error, Result};
 
-impl Expression {
-    /// Parse expression from string. Takes a reference to an
-    /// expression and returns a result containing the parsed
-    /// expression, or an error if none could be parsed.
-    pub fn parse_str(s: &str) -> Result<Vec<Expression>> {
-        let t = Tokeniser::new_from_str(s);
-        let mut p = Parser::new(t);
-        p.expressions()
-    }
+/// Parse expression from string. Takes a reference to an
+/// expression and returns a result containing the parsed
+/// expression, or an error if none could be parsed.
+pub fn parse_str(s: &str) -> Result<Vec<Expression>> {
+    let t = Tokeniser::new_from_str(s);
+    let mut p = Parser::new(t);
+    p.expressions()
 }
 
 /// This structure represents a single token from the input source
@@ -563,9 +560,8 @@ pub mod error {
 mod test {
 
     use super::{Tokeniser, Parser};
-    use super::super::*;
-    use super::super::ast::operators::*;
-    use super::super::Expression::*;
+    use super::super::ast::prelude::*;
+    use super::super::ast::expression::Expression::*;
 
     macro_rules! check_parse {
         ($src:expr, $expected:expr) => {

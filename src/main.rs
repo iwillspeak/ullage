@@ -16,7 +16,7 @@ use std::io::prelude::*;
 use std::io::stderr;
 use std::process::*;
 use docopt::Docopt;
-use syntax::*;
+use syntax::parse;
 use compile::*;
 
 /// Usage Information
@@ -84,7 +84,7 @@ fn main() {
     };
 
     // Parse the module
-    let tree = Expression::parse_str(&source).expect("error: could not parse source");
+    let tree = parse::parse_str(&source).expect("error: could not parse source");
 
     // Are we just dumping the AST or compiling the whole thing?
     if args.flag_dumpast {
