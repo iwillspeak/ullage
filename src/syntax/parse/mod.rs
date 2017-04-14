@@ -4,7 +4,7 @@
 use std::iter::Peekable;
 
 use super::{Expression, TypeRef, TypedId};
-use super::operators::{InfixOp, PrefixOp};
+use super::ast::operators::{InfixOp, PrefixOp};
 pub use self::error::{Error, Result};
 
 impl Expression {
@@ -87,7 +87,7 @@ pub enum Token<'a> {
 impl InfixOp {
     /// Get infix operator from token
     fn for_token(tok: &Token) -> Option<Self> {
-        use super::operators::InfixOp::*;
+        use super::ast::operators::InfixOp::*;
         use self::Token::*;
         match *tok {
             DoubleEquals => Some(Eq),
@@ -564,7 +564,7 @@ mod test {
 
     use super::{Tokeniser, Parser};
     use super::super::*;
-    use super::super::operators::*;
+    use super::super::ast::operators::*;
     use super::super::Expression::*;
 
     macro_rules! check_parse {

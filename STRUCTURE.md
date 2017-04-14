@@ -18,9 +18,15 @@ There are four main rust modules in the project. Three of them (`syntax`, `sem` 
 
 This module contains all of the logic required to parse source text into a syntax expression tree (AST).
 
-* `Token` - Represents a single lexeme in the language.
-* `Expression` - represents a node in the syntax expression tree. Expressions are composed from one or more `Token`s
-* `TypeRef` - Represents a reference to a type. This could be a simple type like `Num`, or a more complex one like `[Num]`.
+* `parse/`
+	* `Source` - Represents a source of tokens for parsing.
+	* `TokenIterator` - A state machine which consumes a source buffer and produces `Token`s.
+	* `Parser` - Consumes a `TokenIterator` and produces an `Expression` tree.
+* `ast/`
+	* `Token` - Represents a single lexeme in the language.
+	* `TokenType` - A rust enum representing the different types of tokens.
+	* `Expression` - represents a node in the syntax expression tree. Expressions are composed from one or more `Token`s
+	* `TypeRef` - Represents a reference to a type. This could be a simple type like `Num`, or a more complex one like `[Num]`.
 
 ## `sem`
 

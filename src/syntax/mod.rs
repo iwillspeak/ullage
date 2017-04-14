@@ -5,9 +5,10 @@
 //! Pratt-style operator precedence parsing.
 
 pub mod parse;
-pub mod operators;
+pub mod ast;
 
-use self::operators::*;
+use self::ast::operators::*;
+
 
 /// Type Reference
 ///
