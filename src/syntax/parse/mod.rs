@@ -1,4 +1,4 @@
-//! Contains the `Tokeniser` and `Parser` structs. These are
+//! Contains the `TokenIterator` and `Parser` structs. These are
 //! responsible for parsing a buffer into an expression tree.
 
 use std::iter::Peekable;
@@ -10,7 +10,7 @@ pub use self::error::{Error, Result};
 /// expression and returns a result containing the parsed
 /// expression, or an error if none could be parsed.
 pub fn parse_str(s: &str) -> Result<Vec<Expression>> {
-    let t = Tokeniser::new_from_str(s);
+    let t = TokenIterator::new_from_str(s);
     let mut p = Parser::new(t);
     p.expressions()
 }
@@ -101,19 +101,19 @@ impl InfixOp {
     }
 }
 
-/// Tokeniser
+/// TokenIterator
 ///
 /// An object which can run a regex state machine over an input
 /// buffer, producing tokens when each new lexeme is matched.
-struct Tokeniser<'a> {
+struct TokenIterator<'a> {
     buff: &'a str,
     idx: usize,
 }
 
-impl<'a> Tokeniser<'a> {
-    /// Creates a new tokeniser from the given string slice.
-    pub fn new_from_str(source: &'a str) -> Tokeniser {
-        Tokeniser {
+impl<'a> TokenIterator<'a> {
+    /// Creates a new TokenIterator from the given string slice.
+    pub fn new_from_str(source: &'a str) -> TokenIterator {
+        TokenIterator {
             buff: source,
             idx: 0,
         }
@@ -190,17 +190,17 @@ impl<'a> Tokeniser<'a> {
     }
 }
 
-/// Tokeniser Iterator implementation.
+/// TokenIterator Iterator implementation.
 ///
 /// This allows iterator adapters to be used with the token
 /// stream. The next method filters out whitespace tokens from the
-/// tokeniser too. This means the `Tokeniser` doesn't have to worry
+/// TokenIterator too. This means the `TokenIterator` doesn't have to worry
 /// about skipping certain lexemes in the grammar.
-impl<'a> Iterator for Tokeniser<'a> {
+impl<'a> Iterator for TokenIterator<'a> {
     type Item = Token<'a>;
 
     /// Iterator next method. This method returns the next
-    /// non-whitespace token in the `Tokeniser`'s stream of `Token`s.
+    /// non-whitespace token in the `TokenIterator`'s stream of `Token`s.
     fn next(&mut self) -> Option<Self::Item> {
         while let Some(tok) = self.next_raw() {
             if let Token::Whitespace(_) = tok {
@@ -215,12 +215,12 @@ impl<'a> Iterator for Tokeniser<'a> {
 /// Expression parser. Given a stream of tokens this will produce
 /// an expression tree, or a parse error.
 struct Parser<'a> {
-    lexer: Peekable<Tokeniser<'a>>,
+    lexer: Peekable<TokenIterator<'a>>,
 }
 
 impl<'a> Parser<'a> {
     /// Create a new Parser from a given token stream.
-    pub fn new(t: Tokeniser<'a>) -> Self {
+    pub fn new(t: TokenIterator<'a>) -> Self {
         Parser { lexer: t.peekable() }
     }
 
@@ -553,29 +553,25 @@ pub mod error {
         /// Incomplete data
         Incomplete,
     }
-
 }
 
 #[cfg(test)]
 mod test {
 
-    use super::{Tokeniser, Parser};
-    use super::super::ast::prelude::*;
+    use super::*;
     use super::super::ast::expression::Expression::*;
 
     macro_rules! check_parse {
         ($src:expr, $expected:expr) => {
-            let src:&str = $src;
-            let tokeniser = Tokeniser::new_from_str(src);
-            let mut parser = Parser::new(tokeniser);
-            assert_eq!(Ok($expected), parser.expression(0));
+            let src = $src;
+            assert_eq!(Ok(vec!{$expected}), parse_str(&src));
         }
     }
 
     #[test]
-    fn create_tokeniser_from_str_returns_tokeniser() {
+    fn create_token_iter_from_str_returns_token_iter() {
         let src = "hello = world";
-        Tokeniser::new_from_str(src);
+        TokenIterator::new_from_str(src);
     }
 
     #[test]
