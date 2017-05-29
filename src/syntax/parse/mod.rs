@@ -1,93 +1,58 @@
-//! Contains the `Tokeniser` and `Parser` structs. These are
+//! Contains the `TokenIterator` and `Parser` structs. These are
 //! responsible for parsing a buffer into an expression tree.
+
+pub mod error;
+pub mod token_iterator;
+mod string_source;
 
 use std::iter::Peekable;
 
-use super::{Expression, TypeRef, TypedId};
-use super::operators::{InfixOp, PrefixOp};
-pub use self::error::{Error, Result};
+use super::ast::prelude::*;
+use self::error::{Error, Result};
+use self::token_iterator::TokenIterator;
+use self::string_source::StringSource;
 
-impl Expression {
-    /// Parse expression from string. Takes a reference to an
-    /// expression and returns a result containing the parsed
-    /// expression, or an error if none could be parsed.
-    pub fn parse_str(s: &str) -> Result<Vec<Expression>> {
-        let t = Tokeniser::new_from_str(s);
-        let mut p = Parser::new(t);
-        p.expressions()
-    }
+/// A Source of Input Characters
+///
+/// This trait abstracts over different types of input and provides a
+/// cosnistent way for the token iterator to pull data from them.
+pub trait Source<'a> {
+    /// Source Position Type
+    ///
+    /// This type allows source implementations to abstract over
+    /// indexes into their internal state.
+    type Pos: Copy + Default;
+
+    /// Take a Char from the Source
+    ///
+    /// Attempts to read a single character from the source at a given
+    /// position. If there is a caracter at that position it is
+    /// returned along with the position of the next character.
+    fn take(&mut self, pos: Self::Pos) -> Option<(char, Self::Pos)>;
+
+    /// Get a String Slice from the Source
+    ///
+    /// Covnerts a pair of source positions into a string slice of the
+    /// characters between them. Character positions behave like
+    /// cursors: the slice will contain all characters after the `s`
+    /// position and before the `e` position.
+    fn slice(&self, s: Self::Pos, e: Self::Pos) -> &'a str;
 }
 
-/// This structure represents a single token from the input source
-/// buffer.
-#[derive(Debug,PartialEq)]
-pub enum Token<'a> {
-    /// Represents a string of alphabetic characters. This could be a
-    /// language keyword or a variable or type identifier.
-    Word(&'a str),
-
-    /// Whitespace trivia
-    Whitespace(&'a str),
-
-    /// Constant numerical value.
-    Literal(i64),
-
-    /// The `=` character
-    Equals,
-
-    /// The `==` operator
-    DoubleEquals,
-
-    /// The `!` character
-    Bang,
-
-    /// The `!=` operator
-    BangEquals,
-
-    /// The `+` character
-    Plus,
-
-    /// The `-` character
-    Minus,
-
-    /// The `*` character
-    Star,
-
-    /// The `/` character
-    Slash,
-
-    /// The `(` character
-    OpenBracket,
-
-    /// The `)` character
-    CloseBracket,
-
-    /// The `[` character
-    OpenSqBracket,
-
-    /// The `]` character
-    CloseSqBracket,
-
-    /// The `,` character
-    Comma,
-
-    /// The `:` character
-    Colon,
-
-    /// The `<` character
-    LessThan,
-
-    /// The `>` character
-    MoreThan,
-
-    /// An unrecognised token
-    Unknown(char),
+/// Parse expression from string. Takes a reference to an
+/// expression and returns a result containing the parsed
+/// expression, or an error if none could be parsed.
+pub fn parse_str(s: &str) -> Result<Vec<Expression>> {
+    let token_source = StringSource::new(s);
+    let t = TokenIterator::new(token_source);
+    let mut p = Parser::new(t);
+    p.expressions()
 }
 
 impl InfixOp {
     /// Get infix operator from token
     fn for_token(tok: &Token) -> Option<Self> {
-        use super::operators::InfixOp::*;
+        use super::ast::operators::InfixOp::*;
         use self::Token::*;
         match *tok {
             DoubleEquals => Some(Eq),
@@ -104,126 +69,19 @@ impl InfixOp {
     }
 }
 
-/// Tokeniser
-///
-/// An object which can run a regex state machine over an input
-/// buffer, producing tokens when each new lexeme is matched.
-struct Tokeniser<'a> {
-    buff: &'a str,
-    idx: usize,
-}
-
-impl<'a> Tokeniser<'a> {
-    /// Creates a new tokeniser from the given string slice.
-    pub fn new_from_str(source: &'a str) -> Tokeniser {
-        Tokeniser {
-            buff: source,
-            idx: 0,
-        }
-    }
-
-    /// Retrieve the next 'raw' token. This is the next lexical match
-    /// in the buffer, and may include whitespace and other trivia
-    /// tokens.
-    fn next_raw(&mut self) -> Option<Token<'a>> {
-
-        let ts = self.idx;
-        let mut te = ts;
-        let mut chars = self.buff[ts..].chars();
-        let tok = chars.next().and_then(|c| {
-            te += c.len_utf8();
-            match c {
-                '=' => {
-                    match chars.next() {
-                        Some('=') => {
-                            te += 1;
-                            Some(Token::DoubleEquals)
-                        }
-                        _ => Some(Token::Equals),
-                    }
-                }
-                '!' => {
-                    match chars.next() {
-                        Some('=') => {
-                            te += 1;
-                            Some(Token::BangEquals)
-                        }
-                        _ => Some(Token::Bang),
-                    }
-                }
-                '+' => Some(Token::Plus),
-                '-' => Some(Token::Minus),
-                '*' => Some(Token::Star),
-                '/' => Some(Token::Slash),
-                '(' => Some(Token::OpenBracket),
-                ')' => Some(Token::CloseBracket),
-                '[' => Some(Token::OpenSqBracket),
-                ']' => Some(Token::CloseSqBracket),
-                ',' => Some(Token::Comma),
-                ':' => Some(Token::Colon),
-                '<' => Some(Token::LessThan),
-                '>' => Some(Token::MoreThan),
-                '#' => {
-                    te += chars.take_while(|c| *c != '\n')
-                        .fold(0, |l, c| l + c.len_utf8());
-                    Some(Token::Whitespace(&self.buff[ts..te]))
-                }
-                '0'...'9' => {
-                    te += chars.take_while(|c| *c >= '0' && *c <= '9').count();
-                    let token_str = &self.buff[ts..te];
-                    // we have cheked that it's a valid numeric literal,
-                    // so unwrap is fine here.
-                    Some(Token::Literal(token_str.parse::<i64>().unwrap()))
-                }
-                c if c.is_alphabetic() || c == '_' => {
-                    te += chars.take_while(|c| c.is_alphanumeric() || *c == '_')
-                        .fold(0, |l, c| l + c.len_utf8());
-                    Some(Token::Word(&self.buff[ts..te]))
-                }
-                c if c.is_whitespace() => {
-                    te += chars.take_while(|c| c.is_whitespace())
-                        .fold(0, |l, c| l + c.len_utf8());
-                    Some(Token::Whitespace(&self.buff[ts..te]))
-                }
-                _ => Some(Token::Unknown(c)),
-            }
-        });
-        self.idx = te;
-        tok
-    }
-}
-
-/// Tokeniser Iterator implementation.
-///
-/// This allows iterator adapters to be used with the token
-/// stream. The next method filters out whitespace tokens from the
-/// tokeniser too. This means the `Tokeniser` doesn't have to worry
-/// about skipping certain lexemes in the grammar.
-impl<'a> Iterator for Tokeniser<'a> {
-    type Item = Token<'a>;
-
-    /// Iterator next method. This method returns the next
-    /// non-whitespace token in the `Tokeniser`'s stream of `Token`s.
-    fn next(&mut self) -> Option<Self::Item> {
-        while let Some(tok) = self.next_raw() {
-            if let Token::Whitespace(_) = tok {
-            } else {
-                return Some(tok);
-            }
-        }
-        None
-    }
-}
-
 /// Expression parser. Given a stream of tokens this will produce
 /// an expression tree, or a parse error.
-struct Parser<'a> {
-    lexer: Peekable<Tokeniser<'a>>,
+struct Parser<'a, T>
+    where T: Iterator<Item = Token<'a>>
+{
+    lexer: Peekable<T>,
 }
 
-impl<'a> Parser<'a> {
+impl<'a, T> Parser<'a, T>
+    where T: Iterator<Item = Token<'a>>
+{
     /// Create a new Parser from a given token stream.
-    pub fn new(t: Tokeniser<'a>) -> Self {
+    pub fn new(t: T) -> Self {
         Parser { lexer: t.peekable() }
     }
 
@@ -417,7 +275,9 @@ impl<'a> Token<'a> {
     /// This is responsible for parsing literals and variable
     /// references into expressions, as well as parsing prefix
     /// expressions
-    fn nud(&self, parser: &mut Parser) -> Result<Expression> {
+    fn nud<T>(&self, parser: &mut Parser<'a, T>) -> Result<Expression>
+        where T: Iterator<Item = Token<'a>>
+    {
         match *self {
             Token::Word("fn") => {
                 let identifier = try!(parser.identifier());
@@ -469,7 +329,9 @@ impl<'a> Token<'a> {
     ///
     /// This is responsible for parsing infix operators and function
     /// calls.
-    fn led(&self, parser: &mut Parser, lhs: Expression) -> Result<Expression> {
+    fn led<T>(&self, parser: &mut Parser<'a, T>, lhs: Expression) -> Result<Expression>
+        where T: Iterator<Item = Token<'a>>
+    {
         match *self {
 
             // Binary infix operator
@@ -523,7 +385,9 @@ impl<'a> Token<'a> {
 /// Prefix Operator
 ///
 /// Parses the trailing expression for a prefix operator.
-fn prefix_op(parser: &mut Parser, op: PrefixOp) -> Result<Expression> {
+fn prefix_op<'a, T>(parser: &mut Parser<'a, T>, op: PrefixOp) -> Result<Expression>
+    where T: Iterator<Item = Token<'a>>
+{
     let rhs = try!(parser.expression(100));
     Ok(Expression::prefix(op, rhs))
 }
@@ -531,55 +395,32 @@ fn prefix_op(parser: &mut Parser, op: PrefixOp) -> Result<Expression> {
 /// Ternay Body
 ///
 /// The condition and fallback part of a ternary expression.
-fn ternary_body(parser: &mut Parser) -> Result<(Expression, Expression)> {
+fn ternary_body<'a, T>(parser: &mut Parser<'a, T>) -> Result<(Expression, Expression)>
+    where T: Iterator<Item = Token<'a>>
+{
     let condition = try!(parser.expression(0));
     try!(parser.expect(Token::Word("else")));
     let fallback = try!(parser.expression(0));
     Ok((condition, fallback))
 }
 
-/// Parse error module. Contains the Result and Error types for the
-/// `parse` module.
-pub mod error {
-
-    /// Parser result type. Returned from parsing functions when
-    /// success can't be guaranteed.
-    pub type Result<T> = ::std::result::Result<T, Error>;
-
-    /// Parser error type. This distinguishes between the different
-    /// kinds of errors that the `Parser` can encounter.
-    #[derive(Debug,PartialEq)]
-    pub enum Error {
-        /// Unexpected token.
-        Unexpected,
-
-        /// Incomplete data
-        Incomplete,
-    }
-
-}
-
 #[cfg(test)]
 mod test {
 
-    use super::{Tokeniser, Parser};
-    use super::super::*;
-    use super::super::operators::*;
-    use super::super::Expression::*;
+    use super::*;
+    use super::super::ast::expression::Expression::*;
 
     macro_rules! check_parse {
         ($src:expr, $expected:expr) => {
-            let src:&str = $src;
-            let tokeniser = Tokeniser::new_from_str(src);
-            let mut parser = Parser::new(tokeniser);
-            assert_eq!(Ok($expected), parser.expression(0));
+            let src = $src;
+            assert_eq!(Ok(vec!{$expected}), parse_str(&src));
         }
     }
 
     #[test]
-    fn create_tokeniser_from_str_returns_tokeniser() {
-        let src = "hello = world";
-        Tokeniser::new_from_str(src);
+    fn create_token_iter_from_str_returns_token_iter() {
+        let src = StringSource::new("hello = world");
+        TokenIterator::new(src);
     }
 
     #[test]

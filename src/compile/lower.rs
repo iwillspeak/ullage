@@ -3,8 +3,8 @@
 //! This module is responsible for taking Expressions and lowering
 //! them to LLVM.
 
-use syntax::{Expression, Constant};
-use syntax::operators::{PrefixOp, InfixOp};
+use syntax::ast::expression::{Expression, Constant};
+use syntax::ast::operators::{PrefixOp, InfixOp};
 use low_loader::prelude::*;
 
 use super::error::*;

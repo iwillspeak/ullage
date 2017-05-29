@@ -1,7 +1,7 @@
 //! This module contians the code required to compile a parsed tree
 //! down to LLVM bytecode.
 
-use syntax::Expression;
+use syntax::ast::expression::Expression;
 use low_loader::prelude::*;
 use std::path::Path;
 use tempdir::TempDir;
