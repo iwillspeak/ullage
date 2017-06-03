@@ -8,4 +8,6 @@ fn fact(n: Number): Number
     acc
 end
 
+print fact(0) == fact(1) # => 1
+print fact(5) # => 120
 print fact(9) # => 362880
