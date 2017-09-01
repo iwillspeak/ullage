@@ -20,7 +20,7 @@ pub struct Cursor(usize);
 /// used to identify the extent of lexemes in the AST, and ranges of
 /// interest when emitting error information.
 #[derive(Debug,PartialEq)]
-pub struct Span{
+pub struct Span {
     start: Cursor,
     end: Cursor,
 }
@@ -31,7 +31,6 @@ pub struct Span{
 /// specific cursor within the input or a span.
 #[derive(Debug,PartialEq)]
 pub enum Location {
-
     /// A specific cursor location within the source.
     Cursor(Cursor),
 
@@ -41,33 +40,32 @@ pub enum Location {
 
 
 impl From<usize> for Cursor {
-
     fn from(offset: usize) -> Self {
         Cursor(offset)
     }
 }
 
 impl Span {
-
     /// Create a Span Around two Cursors
     ///
     /// The returned span starts after the first cursor and finishes
     /// before the second one. The cursors themselves can be thought
     /// to point 'between' the characters in the buffer.
     pub fn new(start: Cursor, end: Cursor) -> Self {
-        Span { start: start, end: end }
+        Span {
+            start: start,
+            end: end,
+        }
     }
 }
 
 impl From<Span> for Location {
-
     fn from(span: Span) -> Self {
         Location::Span(span)
     }
 }
 
 impl From<Cursor> for Location {
-
     fn from(cur: Cursor) -> Self {
         Location::Cursor(cur)
     }
@@ -97,6 +95,10 @@ pub mod test {
         let span_loc = Location::from(Span::new(456.into(), 789.into()));
 
         assert_eq!(Location::Cursor(Cursor(123)), cur_loc);
-        assert_eq!(Location::Span(Span{ start: 456.into(), end: 789.into()}), span_loc);
+        assert_eq!(Location::Span(Span {
+                       start: 456.into(),
+                       end: 789.into(),
+                   }),
+                   span_loc);
     }
 }

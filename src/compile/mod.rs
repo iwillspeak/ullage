@@ -1,7 +1,8 @@
 //! This module contians the code required to compile a parsed tree
 //! down to LLVM bytecode.
 
-use syntax::Expression;
+use syntax;
+use sem;
 use low_loader::prelude::*;
 use std::path::Path;
 use tempdir::TempDir;
@@ -28,7 +29,7 @@ fn add_core_decls(ctx: &mut Context, module: &mut Module) -> Result<()> {
 /// Encompases the inputs and settings for a given compilation.
 pub struct Compilation {
     /// The `Expression`s which are being compiled.
-    exprs: Vec<Expression>,
+    exprs: Vec<sem::Expression>,
 
     /// Should the compilation dump the IR produced?
     dump_ir: bool,
@@ -36,9 +37,10 @@ pub struct Compilation {
 
 impl Compilation {
     /// Create a new compilation
-    pub fn new(exprs: Vec<Expression>, dump_ir: bool) -> Self {
+    pub fn new(exprs: Vec<syntax::Expression>, dump_ir: bool) -> Self {
+        let sem_exprs = sem::transform_expressions(exprs);
         Compilation {
-            exprs: exprs,
+            exprs: sem_exprs,
             dump_ir: dump_ir,
         }
     }

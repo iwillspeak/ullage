@@ -6,6 +6,7 @@ extern crate rustc_serialize;
 extern crate tempdir;
 
 pub mod syntax;
+pub mod sem;
 pub mod meta;
 pub mod compile;
 pub mod low_loader;

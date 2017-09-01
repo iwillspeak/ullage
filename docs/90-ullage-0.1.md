@@ -29,7 +29,7 @@ To begin with we just need two kinds of variables: `var` and `let`. Both will ta
 
 ## Compilation
 
-The language itself will be compiled with LLVM. The output should be something which is independently runnable. For initial versions the compiler can just produce LLVM IR. A small language *runtime* will be needed to support the print statement and manage calling the entry point. This runtime support can initially be a small Rust stub with a c api. In the future it would be nice to have an interactive REPL. 
+The language itself will be compiled with LLVM. The output should be something which is independently runnable. For initial versions the compiler can just produce LLVM IR. A small language *runtime* will be needed to support the print statement and manage calling the entry point. This runtime support can initially be a small Rust stub with a c api. In the future it would be nice to have an interactive REPL.
 
 ## Future
 
