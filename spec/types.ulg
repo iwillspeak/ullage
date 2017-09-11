@@ -1,0 +1,3 @@
+# shows that types are hanlded differently by print
+print 123 # => 123
+print true # => true

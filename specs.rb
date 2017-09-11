@@ -107,7 +107,7 @@ class UllageSpec < Test::Unit::TestCase
       bin = "./#{bin_dir}/#{name}"
 
       # Run the test
-      stdout, stderr, status = Open3.capture3("cargo run -- -o #{bin} #{natfile} && #{bin}")
+      stdout, stderr, status = Open3.capture3("RUST_BACKTRACE=1 cargo run -- -o #{bin} #{natfile} && #{bin}")
 
       expecting_error = checks.any? {|c| c.expects_err? }
 

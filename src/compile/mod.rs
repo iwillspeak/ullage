@@ -21,6 +21,9 @@ mod lower;
 fn add_core_decls(ctx: &mut Context, module: &mut Module) -> Result<()> {
     ctx.add_printf_decl(module);
     module.add_global(ctx.const_str("%d\n"), "printf_num_format");
+    module.add_global(ctx.const_str("%s\n"), "printf_cstr_format");
+    module.add_global(ctx.const_str("true"), "print_true");
+    module.add_global(ctx.const_str("false"), "print_false");
     Ok(())
 }
 
@@ -30,25 +33,19 @@ fn add_core_decls(ctx: &mut Context, module: &mut Module) -> Result<()> {
 pub struct Compilation {
     /// The `Expression`s which are being compiled.
     exprs: Vec<sem::Expression>,
-
-    /// Should the compilation dump the IR produced?
-    dump_ir: bool,
 }
 
 impl Compilation {
     /// Create a new compilation
-    pub fn new(exprs: Vec<syntax::Expression>, dump_ir: bool) -> Self {
+    pub fn new(exprs: Vec<syntax::Expression>) -> Self {
         let sem_exprs = sem::transform_expressions(exprs);
-        Compilation {
-            exprs: sem_exprs,
-            dump_ir: dump_ir,
-        }
+        Compilation { exprs: sem_exprs }
     }
 
     /// Emit
     ///
     /// Performs the compilation, emitting the results to the given file.
-    pub fn emit(self, output_path: &Path) -> Result<()> {
+    pub fn emit(self, output_path: &Path, dump_ir: bool) -> Result<()> {
         let mut ctx = Context::new();
         let mut module = ctx.add_module(output_path.file_stem()
             .and_then(|s| s.to_str())
@@ -67,7 +64,7 @@ impl Compilation {
         builder.build_ret(ctx.const_int(0));
 
         // Check what we have, and dump it to the screen
-        if self.dump_ir {
+        if dump_ir {
             module.dump();
         }
         fun.verify_or_panic();

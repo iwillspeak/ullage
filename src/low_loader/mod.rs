@@ -8,6 +8,7 @@ pub mod module;
 pub mod context;
 pub mod function;
 pub mod builder;
+pub mod types;
 
 /// Prelude Module
 ///
@@ -19,6 +20,7 @@ pub mod prelude {
     pub use super::function::Function;
     pub use super::builder::Builder;
     pub use super::builder::Predicate;
+    pub use super::types::Type;
 
     // TOOD: HAX?
     pub use super::llvm_sys::prelude::LLVMValueRef;

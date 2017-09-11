@@ -103,8 +103,8 @@ pub fn lower_internal<'a>(ctx: &mut Context,
                         _ => Err(Error::from(format!("can't assign to {}", id))),
                     }
                 } else {
-                    Err(Error::Generic(String::from("left hand side of an assignment must be an \
-                                                     identifier")))
+                    Err(Error::Generic(String::from("left hand side of an assignment \
+                                                     must be an identifier")))
                 }
             } else {
                 let lhs_val = try!(lower_internal(ctx, module, fun, builder, vars, *lhs));
@@ -125,11 +125,41 @@ pub fn lower_internal<'a>(ctx: &mut Context,
         }
         syntax::Expression::Print(inner) => {
             let val = try!(lower_internal(ctx, module, fun, builder, vars, *inner));
-            let fun = module.find_function("printf").unwrap();
-            let format = module.find_global("printf_num_format").unwrap();
+            let (to_format, format_name) = match Type::from(ctx.get_type(val)) {
+                Type::Int(1) => {
+                    let cstr_type = ctx.cstr_type();
+                    let temp = builder.build_alloca(cstr_type, "bool_formatted");
+                    let true_bb = ctx.add_block(fun, "true");
+                    let false_bb = ctx.add_block(fun, "false");
+                    let join_bb = ctx.add_block(fun, "join");
+
+                    builder.build_cond_br(val, true_bb, false_bb);
+
+                    builder.position_at_end(true_bb);
+                    let true_s = module.find_global("print_true").expect("could't find `print_true`");
+                    let true_s = builder.build_bitcast(true_s, cstr_type, "true");
+                    builder.build_store(true_s, temp);
+                    builder.build_br(join_bb);
+
+                    builder.position_at_end(false_bb);
+                    let false_s = module.find_global("print_false").expect("couldn't find `print_false`");
+                    let false_s = builder.build_bitcast(false_s, cstr_type, "false");
+                    builder.build_store(false_s, temp);
+                    builder.build_br(join_bb);
+
+                    builder.position_at_end(join_bb);
+                    
+                    let formatted = builder.build_load(temp);
+                    (formatted, "printf_cstr_format")
+                }
+                Type::Int(_) => (val, "printf_num_format"),
+                _ => unimplemented!(),
+            };
+            let format = module.find_global(format_name).unwrap();
             let format_ptr = builder.build_gep(format, &mut [ctx.const_int(0), ctx.const_int(0)]);
-            let mut args = vec![format_ptr, val];
-            builder.build_call(&fun, &mut args);
+            let mut args = vec![format_ptr, to_format];
+            let printf = module.find_function("printf").unwrap();
+            builder.build_call(&printf, &mut args);
             Ok(val)
         }
         syntax::Expression::Declaration(decl, is_mut, expr) => {
@@ -195,7 +225,7 @@ pub fn lower_internal<'a>(ctx: &mut Context,
                 .map(|expr| lower_internal(ctx, module, fun, builder, vars, expr))
                 .last()
                 .unwrap()
-        }
+        },
         syntax::Expression::Function(name, _typ, params, body) => {
 
             let mut sig = params.iter()

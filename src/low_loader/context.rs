@@ -214,6 +214,20 @@ impl Context {
     pub fn int_type(&self, width: usize) -> LLVMTypeRef {
         unsafe { core::LLVMIntTypeInContext(self.as_raw(), width as c_uint) }
     }
+
+    pub fn cstr_type(&self) -> LLVMTypeRef {
+        unsafe {
+            let int8 = core::LLVMInt8TypeInContext(self.as_raw());
+            core::LLVMPointerType(int8, 0)
+        }
+    }
+
+    /// Get the type kind from a given type.
+    pub fn get_type(&self, value: LLVMValueRef) -> LLVMTypeRef {
+        unsafe {
+            core::LLVMTypeOf(value)
+        }
+    }
 }
 
 impl Drop for Context {

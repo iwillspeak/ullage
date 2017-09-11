@@ -20,13 +20,8 @@ pub fn transform_expressions(exprs: Vec<syntax::Expression>) -> Vec<Expression> 
 }
 
 pub fn transform_expression(expr: syntax::Expression) -> Expression {
-    Expression {
-        expr: expr,
-    }
+    Expression { expr: expr }
 }
 
 #[cfg(test)]
-pub mod test {
-
-    
-}
+pub mod test {}
