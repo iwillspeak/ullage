@@ -1,0 +1,22 @@
+# Modululs remainder
+#
+# Returns the modulus remainder of n/d
+fn mod(n: Number, d: Number): Number
+   n if n < d else mod(n - d, d)
+end
+
+# Internal Collatz implementation
+fn collatz_internal(x: Number, steps: Number): Number
+	steps
+	if x == 1
+	else collatz_internal(x / 2 if mod(x,2) == 0 else (3 * x) + 1, steps + 1)
+end
+
+# Find how long a given number takes to converge on 1
+fn collatz(x: Number): Number
+   collatz_internal(x, 0)
+end
+
+print collatz(17) # => 12
+print collatz(1)  # => 0
+print collatz(9)  #=> 19
