@@ -49,6 +49,16 @@ pub fn lower_expressions<'a>(ctx: &mut Context,
                              expressions: Vec<Expression>)
                              -> Result<()> {
     let mut vars = HashMap::new();
+    for expr in expressions.iter() {
+        if let syntax::Expression::Function(ref name, ref ret, ref params, ..) = expr.expr {
+            let ret = ctx.named_type(ret.simple_name());
+            let mut params = params.iter()
+                .map(|p| ctx.named_type(p.typ.as_ref().unwrap().simple_name()))
+                .collect::<Vec<_>>();
+            ctx.add_function(module, name, ret, &mut params[..]);
+        }
+    }
+
     for expr in expressions {
         try!(lower_internal(ctx, module, fun, builder, &mut vars, expr.expr));
     }
@@ -228,11 +238,7 @@ pub fn lower_internal<'a>(ctx: &mut Context,
         },
         syntax::Expression::Function(name, _typ, params, body) => {
 
-            let mut sig = params.iter()
-                .map(|_| ctx.int_type(64))
-                .collect::<Vec<_>>();
-
-            let mut fun = ctx.add_function(module, &name, &mut sig);
+            let mut fun = module.find_function(&name).expect("missing function declaration");
             let bb = ctx.add_block(&mut fun, "body");
             let mut builder = ctx.add_builder();
             builder.position_at_end(bb);

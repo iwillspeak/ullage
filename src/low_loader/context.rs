@@ -97,14 +97,14 @@ impl Context {
     pub fn add_function(&mut self,
                         module: &mut Module,
                         name: &str,
+                        ret_type: LLVMTypeRef,
                         params: &mut [LLVMTypeRef])
                         -> Function {
         // Create a function to be used to evaluate our expression
         let function_type = unsafe {
-            let int64 = core::LLVMInt64TypeInContext(self.as_raw());
             let param_count = params.len();
             let params = params.as_mut_ptr();
-            core::LLVMFunctionType(int64, params, param_count as c_uint, 0)
+            core::LLVMFunctionType(ret_type, params, param_count as c_uint, 0)
         };
 
         let function_name = CString::new(name).unwrap();
@@ -215,6 +215,10 @@ impl Context {
         unsafe { core::LLVMIntTypeInContext(self.as_raw(), width as c_uint) }
     }
 
+    pub fn bool_type(&self) -> LLVMTypeRef {
+        self.int_type(1)
+    }
+
     pub fn cstr_type(&self) -> LLVMTypeRef {
         unsafe {
             let int8 = core::LLVMInt8TypeInContext(self.as_raw());
@@ -226,6 +230,14 @@ impl Context {
     pub fn get_type(&self, value: LLVMValueRef) -> LLVMTypeRef {
         unsafe {
             core::LLVMTypeOf(value)
+        }
+    }
+
+    pub fn named_type(&self, type_name: &str) -> LLVMTypeRef {
+        match type_name {
+            "Bool" => self.bool_type(),
+            "Number" => self.int_type(64),
+            _ => unimplemented!(),
         }
     }
 }

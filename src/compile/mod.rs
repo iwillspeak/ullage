@@ -53,7 +53,8 @@ impl Compilation {
 
         try!(add_core_decls(&mut ctx, &mut module));
 
-        let mut fun = ctx.add_function(&mut module, "main", &mut []);
+        let int_type = ctx.int_type(64);
+        let mut fun = ctx.add_function(&mut module, "main", int_type, &mut []);
         let bb = ctx.add_block(&mut fun, "entry");
 
         let mut builder = ctx.add_builder();

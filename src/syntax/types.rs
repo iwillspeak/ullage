@@ -52,4 +52,14 @@ impl TypeRef {
     pub fn array(inner: TypeRef) -> Self {
         TypeRef::Array(Box::new(inner))
     }
+
+    /// Get the Simple Name of a Type
+    ///
+    /// Panics if the type is not simple
+    pub fn simple_name(&self) -> &str {
+        match self {
+            &TypeRef::Simple(ref name) => name.as_ref(),
+            _ => panic!("not a simple type"),
+        }
+    }
 }

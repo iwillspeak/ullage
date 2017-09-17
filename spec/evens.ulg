@@ -1,0 +1,13 @@
+fn is_even(n: Number): Number
+   1 if n == 0 else is_odd(n - 1)
+end
+
+fn is_odd(n: Number): Number
+   0 if n == 0 else is_even(n - 1)
+end
+
+print is_even(0) == 1 # => true
+print is_odd(1)  == 1 # => true
+print is_odd(8)  == 1 # => false
+print is_odd(21) == 1 # => true
+print is_even(5) == 1 # => false
