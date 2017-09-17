@@ -2,6 +2,13 @@
 name = "ullage"
 version = "0.1.0"
 authors = ["Will Speak <will@willspeak.me>"]
+description = "The Ullage Programming Language"
+license = "MIT"
+# documentation = "no public docs yet"
+repository = "https://github.com/iwillspeak/ullage"
+readme = "README.md"
+keywords = [ "llvm", "parser", "compiler" ]
+categories = [ "parsing" ]
 
 [dependencies]
 llvm-sys = "40"
