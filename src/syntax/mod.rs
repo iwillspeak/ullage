@@ -94,8 +94,10 @@ impl Expression {
     /// A constant string value, either specified inline using a
     /// string literal or computed from other known compile-time
     /// constants.
-    pub fn constant_string(s: String) -> Self {
-        Expression::Literal(Constant::String(s))
+    pub fn constant_string<T>(s: T) -> Self
+        where T: Into<String>
+    {
+        Expression::Literal(Constant::String(s.into()))
     }
 
     /// New Bool Constant

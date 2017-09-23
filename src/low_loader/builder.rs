@@ -202,7 +202,11 @@ impl Builder {
     }
 
     /// Bitcast
-    pub fn build_bitcast(&mut self, val: LLVMValueRef, typ: LLVMTypeRef, name: &str) -> LLVMValueRef {
+    pub fn build_bitcast(&mut self,
+                         val: LLVMValueRef,
+                         typ: LLVMTypeRef,
+                         name: &str)
+                         -> LLVMValueRef {
         unsafe {
             let name = CString::new(name).unwrap();
             core::LLVMBuildBitCast(self.raw, val, typ, name.as_ptr())

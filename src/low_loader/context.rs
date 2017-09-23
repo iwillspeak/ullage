@@ -228,9 +228,7 @@ impl Context {
 
     /// Get the type kind from a given type.
     pub fn get_type(&self, value: LLVMValueRef) -> LLVMTypeRef {
-        unsafe {
-            core::LLVMTypeOf(value)
-        }
+        unsafe { core::LLVMTypeOf(value) }
     }
 
     pub fn named_type(&self, type_name: &str) -> LLVMTypeRef {

@@ -50,12 +50,12 @@ pub fn lower_expressions<'a>(ctx: &mut Context,
                              -> Result<()> {
     let mut vars = HashMap::new();
     for expr in expressions.iter() {
-        if let syntax::Expression::Function(ref name, ref ret, ref params, ..) = expr.expr {
+        if let syntax::Expression::Function(ref name, ref ret, ref params, ref _body) = expr.expr {
             let ret = ctx.named_type(ret.simple_name());
             let mut params = params.iter()
                 .map(|p| ctx.named_type(p.typ.as_ref().unwrap().simple_name()))
                 .collect::<Vec<_>>();
-            ctx.add_function(module, name, ret, &mut params[..]);
+            ctx.add_function(module, &name, ret, &mut params[..]);
         }
     }
 
@@ -146,19 +146,21 @@ pub fn lower_internal<'a>(ctx: &mut Context,
                     builder.build_cond_br(val, true_bb, false_bb);
 
                     builder.position_at_end(true_bb);
-                    let true_s = module.find_global("print_true").expect("could't find `print_true`");
+                    let true_s = module.find_global("print_true")
+                        .expect("could't find `print_true`");
                     let true_s = builder.build_bitcast(true_s, cstr_type, "true");
                     builder.build_store(true_s, temp);
                     builder.build_br(join_bb);
 
                     builder.position_at_end(false_bb);
-                    let false_s = module.find_global("print_false").expect("couldn't find `print_false`");
+                    let false_s = module.find_global("print_false")
+                        .expect("couldn't find `print_false`");
                     let false_s = builder.build_bitcast(false_s, cstr_type, "false");
                     builder.build_store(false_s, temp);
                     builder.build_br(join_bb);
 
                     builder.position_at_end(join_bb);
-                    
+
                     let formatted = builder.build_load(temp);
                     (formatted, "printf_cstr_format")
                 }
@@ -235,7 +237,7 @@ pub fn lower_internal<'a>(ctx: &mut Context,
                 .map(|expr| lower_internal(ctx, module, fun, builder, vars, expr))
                 .last()
                 .unwrap()
-        },
+        }
         syntax::Expression::Function(name, _typ, params, body) => {
 
             let mut fun = module.find_function(&name).expect("missing function declaration");

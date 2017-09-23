@@ -18,6 +18,15 @@ impl Expression {
     }
 }
 
+#[derive(Debug,PartialEq)]
+pub enum Literal {
+    // A literal string
+    RawString(String),
+
+    // A numeric literal
+    Number(i64),
+}
+
 /// This structure represents a single token from the input source
 /// buffer.
 #[derive(Debug,PartialEq)]
@@ -30,7 +39,7 @@ pub enum Token<'a> {
     Whitespace(&'a str),
 
     /// Constant numerical value.
-    Literal(i64),
+    Literal(Literal),
 
     /// The `=` character
     Equals,
@@ -173,7 +182,13 @@ impl<'a> Tokeniser<'a> {
                     let token_str = &self.buff[ts..te];
                     // we have cheked that it's a valid numeric literal,
                     // so unwrap is fine here.
-                    Some(Token::Literal(token_str.parse::<i64>().unwrap()))
+                    Some(Token::Literal(Literal::Number(token_str.parse::<i64>().unwrap())))
+                }
+                '\'' => {
+                    te += chars.take_while(|c| *c != '\'')
+                        .fold(0, |l, c| l + c.len_utf8()) + 1;
+                    Some(Token::Literal(Literal::RawString(String::from(&self.buff[ts + 1..te -
+                                                                                           1]))))
                 }
                 c if c.is_alphabetic() || c == '_' => {
                     te += chars.take_while(|c| c.is_alphanumeric() || *c == '_')
@@ -451,7 +466,12 @@ impl<'a> Token<'a> {
             Token::Word("true") => Ok(Expression::constant_bool(true)),
             Token::Word("false") => Ok(Expression::constant_bool(false)),
             Token::Word(word) => Ok(Expression::identifier(String::from(word))),
-            Token::Literal(i) => Ok(Expression::constant_num(i)),
+            Token::Literal(ref l) => {
+                match l {
+                    &Literal::Number(i) => Ok(Expression::constant_num(i)),
+                    &Literal::RawString(ref s) => Ok(Expression::constant_string(s.clone())),
+                }
+            }
             Token::Plus => parser.expression(100),
             Token::Minus => prefix_op(parser, PrefixOp::Negate),
             Token::Bang => prefix_op(parser, PrefixOp::Not),
@@ -859,5 +879,12 @@ mod test {
     fn parse_bool_literal() {
         check_parse!("true", Expression::constant_bool(true));
         check_parse!("false", Expression::constant_bool(false));
+    }
+
+    #[test]
+    fn parse_string_literal() {
+        check_parse!("'hello'", Expression::constant_string("hello"));
+        check_parse!("'über ∂elta'",
+                     Expression::constant_string("über ∂elta"));
     }
 }

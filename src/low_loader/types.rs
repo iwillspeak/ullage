@@ -4,8 +4,7 @@ use super::llvm_sys::{core, LLVMTypeKind};
 use super::llvm_sys::prelude::*;
 
 #[allow(non_camel_case_types)]
-pub enum FloatWidth
-{
+pub enum FloatWidth {
     Half,
     Float,
     Double,
@@ -14,8 +13,7 @@ pub enum FloatWidth
     PPC_FP128,
 }
 
-pub enum Type
-{
+pub enum Type {
     Void, // LLVMVoidTypeKind
     Float(FloatWidth),
     Label,
@@ -30,11 +28,10 @@ pub enum Type
     Token,
 }
 
-impl From<LLVMTypeRef> for Type
-{
+impl From<LLVMTypeRef> for Type {
     fn from(llvm_type: LLVMTypeRef) -> Self {
         use self::LLVMTypeKind::*;
-        match unsafe {core::LLVMGetTypeKind(llvm_type)} {
+        match unsafe { core::LLVMGetTypeKind(llvm_type) } {
             LLVMVoidTypeKind => Type::Void,
             LLVMHalfTypeKind => Type::Float(FloatWidth::Half),
             LLVMFloatTypeKind => Type::Float(FloatWidth::Half),
@@ -43,7 +40,9 @@ impl From<LLVMTypeRef> for Type
             LLVMFP128TypeKind => Type::Float(FloatWidth::FP128),
             LLVMPPC_FP128TypeKind => Type::Float(FloatWidth::PPC_FP128),
             LLVMLabelTypeKind => Type::Label,
-            LLVMIntegerTypeKind => Type::Int(unsafe { core::LLVMGetIntTypeWidth(llvm_type) } as usize),
+            LLVMIntegerTypeKind => {
+                Type::Int(unsafe { core::LLVMGetIntTypeWidth(llvm_type) } as usize)
+            }
             LLVMFunctionTypeKind => Type::Function,
             LLVMStructTypeKind => Type::Struct,
             LLVMArrayTypeKind => Type::Array,
