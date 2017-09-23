@@ -1,0 +1,7 @@
+cssselect==1.0.1
+d==0.2.2
+invoke==0.21.0
+lxml==4.0.0
+Markdown==2.6.9
+Pygments==2.2.0
+pyquery==1.2.17
