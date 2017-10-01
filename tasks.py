@@ -18,4 +18,4 @@ def docs(ctx):
 @task
 def test(ctx):
     ctx.run("cargo test")
-    ctx.run("ruby specs.rb")
+    ctx.run("python specs.py")
