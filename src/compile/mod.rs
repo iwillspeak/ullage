@@ -51,7 +51,7 @@ impl Compilation {
             .and_then(|s| s.to_str())
             .unwrap());
 
-        try!(add_core_decls(&mut ctx, &mut module));
+        add_core_decls(&mut ctx, &mut module)?;
 
         let int_type = ctx.int_type(64);
         let mut fun = ctx.add_function(&mut module, "main", int_type, &mut []);
@@ -60,7 +60,7 @@ impl Compilation {
         let mut builder = ctx.add_builder();
         builder.position_at_end(bb);
 
-        try!(lower::lower_expressions(&mut ctx, &mut module, &mut fun, &mut builder, self.exprs));
+        lower::lower_expressions(&mut ctx, &mut module, &mut fun, &mut builder, self.exprs)?;
 
         builder.build_ret(ctx.const_int(0));
 
@@ -74,14 +74,14 @@ impl Compilation {
         let tmp_dir = TempDir::new("ullage").expect("create temp dir");
         let temp_path = tmp_dir.path().join("temp.ll");
 
-        try!(module.write_to_file(&temp_path));
+        module.write_to_file(&temp_path)?;
 
         // Shell out to Clang to link the final assembly
-        let output = try!(Command::new("clang")
+        let output = Command::new("clang")
             .arg(temp_path)
             .arg("-o")
             .arg(output_path)
-            .output());
+            .output()?;
         let status = output.status;
 
         if status.success() {

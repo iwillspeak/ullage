@@ -60,7 +60,7 @@ pub fn lower_expressions<'a>(ctx: &mut Context,
     }
 
     for expr in expressions {
-        try!(lower_internal(ctx, module, fun, builder, &mut vars, expr.expr));
+        lower_internal(ctx, module, fun, builder, &mut vars, expr.expr)?;
     }
     Ok(())
 }
@@ -92,7 +92,7 @@ pub fn lower_internal<'a>(ctx: &mut Context,
             }
         }
         syntax::Expression::Prefix(op, expr) => {
-            let val = try!(lower_internal(ctx, module, fun, builder, vars, *expr));
+            let val = lower_internal(ctx, module, fun, builder, vars, *expr)?;
             let val = match op {
                 PrefixOp::Negate => builder.build_neg(val),
                 PrefixOp::Not => builder.build_not(val),
@@ -100,7 +100,7 @@ pub fn lower_internal<'a>(ctx: &mut Context,
             Ok(val)
         }
         syntax::Expression::Infix(lhs, op, rhs) => {
-            let rhs_val = try!(lower_internal(ctx, module, fun, builder, vars, *rhs));
+            let rhs_val = lower_internal(ctx, module, fun, builder, vars, *rhs)?;
 
             // TODO: maybe assignment should be a different node in the AST?
             if op == InfixOp::Assign {
@@ -117,7 +117,7 @@ pub fn lower_internal<'a>(ctx: &mut Context,
                                                      must be an identifier")))
                 }
             } else {
-                let lhs_val = try!(lower_internal(ctx, module, fun, builder, vars, *lhs));
+                let lhs_val = lower_internal(ctx, module, fun, builder, vars, *lhs)?;
                 let val = match op {
                     InfixOp::Add => builder.build_add(lhs_val, rhs_val),
                     InfixOp::Sub => builder.build_sub(lhs_val, rhs_val),
@@ -134,7 +134,7 @@ pub fn lower_internal<'a>(ctx: &mut Context,
             }
         }
         syntax::Expression::Print(inner) => {
-            let val = try!(lower_internal(ctx, module, fun, builder, vars, *inner));
+            let val = lower_internal(ctx, module, fun, builder, vars, *inner)?;
             let (to_format, format_name) = match Type::from(ctx.get_type(val)) {
                 Type::Int(1) => {
                     let cstr_type = ctx.cstr_type();
@@ -175,7 +175,7 @@ pub fn lower_internal<'a>(ctx: &mut Context,
             Ok(val)
         }
         syntax::Expression::Declaration(decl, is_mut, expr) => {
-            let initialiser = try!(lower_internal(ctx, module, fun, builder, vars, *expr));
+            let initialiser = lower_internal(ctx, module, fun, builder, vars, *expr)?;
             let value = if is_mut {
                 // FIXME: look the type up properly
                 let typ = ctx.int_type(64);
@@ -189,7 +189,7 @@ pub fn lower_internal<'a>(ctx: &mut Context,
             Ok(initialiser)
         }
         syntax::Expression::IfThenElse(cond, then, elze) => {
-            let cond = try!(lower_internal(ctx, module, fun, builder, vars, *cond));
+            let cond = lower_internal(ctx, module, fun, builder, vars, *cond)?;
 
             let typ = ctx.int_type(64);
             let ret = builder.build_alloca(typ, "if");
@@ -201,12 +201,12 @@ pub fn lower_internal<'a>(ctx: &mut Context,
             builder.build_cond_br(cond, thenblock, elzeblock);
 
             builder.position_at_end(thenblock);
-            let then = try!(lower_internal(ctx, module, fun, builder, vars, *then));
+            let then = lower_internal(ctx, module, fun, builder, vars, *then)?;
             builder.build_store(then, ret);
             builder.build_br(joinblock);
 
             builder.position_at_end(elzeblock);
-            let elze = try!(lower_internal(ctx, module, fun, builder, vars, *elze));
+            let elze = lower_internal(ctx, module, fun, builder, vars, *elze)?;
             builder.build_store(elze, ret);
             builder.build_br(joinblock);
 
@@ -221,11 +221,11 @@ pub fn lower_internal<'a>(ctx: &mut Context,
             builder.build_br(condblock);
             builder.position_at_end(condblock);
 
-            let cond = try!(lower_internal(ctx, module, fun, builder, vars, *cond));
+            let cond = lower_internal(ctx, module, fun, builder, vars, *cond)?;
             builder.build_cond_br(cond, bodyblock, joinblock);
 
             builder.position_at_end(bodyblock);
-            try!(lower_internal(ctx, module, fun, builder, vars, *body));
+            lower_internal(ctx, module, fun, builder, vars, *body)?;
             builder.build_br(condblock);
 
             builder.position_at_end(joinblock);
@@ -250,7 +250,7 @@ pub fn lower_internal<'a>(ctx: &mut Context,
                 .map(|(i, p)| (p.id, (false, fun.get_param(i as u32))))
                 .collect::<HashMap<String, Local>>();
 
-            let body = try!(lower_internal(ctx, module, &mut fun, &mut builder, &mut vars, *body));
+            let body = lower_internal(ctx, module, &mut fun, &mut builder, &mut vars, *body)?;
             builder.build_ret(body);
             fun.verify_or_panic();
             Ok(unsafe { fun.as_raw() })
@@ -259,9 +259,9 @@ pub fn lower_internal<'a>(ctx: &mut Context,
             if let syntax::Expression::Identifier(name) = *callee {
                 match module.find_function(&name) {
                     Some(function) => {
-                        let mut args = try!(args.into_iter()
+                        let mut args = args.into_iter()
                             .map(|arg| lower_internal(ctx, module, fun, builder, vars, arg))
-                            .collect::<::std::result::Result<Vec<_>, Error>>());
+                            .collect::<::std::result::Result<Vec<_>, Error>>()?;
                         let call_res = builder.build_call(&function, &mut args);
                         Ok(call_res)
                     }

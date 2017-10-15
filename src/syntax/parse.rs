@@ -274,7 +274,7 @@ impl<'a> Parser<'a> {
 
     /// Attempt to parse an identifier
     pub fn identifier(&mut self) -> Result<String> {
-        match try!(self.expression(100)) {
+        match self.expression(100)? {
             Expression::Identifier(string) => Ok(string),
             _ => Err(Error::Unexpected),
         }
@@ -282,9 +282,9 @@ impl<'a> Parser<'a> {
 
     /// Attempt to parse a single expressiond
     pub fn expression(&mut self, rbp: u32) -> Result<Expression> {
-        let mut left = try!(self.parse_nud());
+        let mut left = self.parse_nud()?;
         while self.next_binds_tighter_than(rbp) {
-            left = try!(self.parse_led(left));
+            left = self.parse_led(left)?;
         }
         Ok(left)
     }
@@ -293,7 +293,7 @@ impl<'a> Parser<'a> {
     pub fn expressions(&mut self) -> Result<Vec<Expression>> {
         let mut expressions = Vec::new();
         while self.lexer.peek().is_some() {
-            expressions.push(try!(self.expression(0)));
+            expressions.push(self.expression(0)?);
         }
         Ok(expressions)
     }
@@ -303,7 +303,7 @@ impl<'a> Parser<'a> {
     /// Attempt to parse a type reference, this is a single
     /// `:` followed by a type name.
     pub fn type_ref(&mut self) -> Result<TypeRef> {
-        try!(self.expect(Token::Colon));
+        self.expect(Token::Colon)?;
         self.ty()
     }
 
@@ -314,26 +314,26 @@ impl<'a> Parser<'a> {
     pub fn ty(&mut self) -> Result<TypeRef> {
         match self.lexer.peek() {
             Some(&Token::Word(t)) => {
-                try!(self.advance());
+                self.advance()?;
                 Ok(TypeRef::simple(t))
             }
             Some(&Token::OpenSqBracket) => {
-                try!(self.advance());
-                let inner = try!(self.ty());
-                try!(self.expect(Token::CloseSqBracket));
+                self.advance()?;
+                let inner = self.ty()?;
+                self.expect(Token::CloseSqBracket)?;
                 Ok(TypeRef::array(inner))
             }
             Some(&Token::OpenBracket) => {
-                try!(self.advance());
+                self.advance()?;
                 let mut types = Vec::new();
                 if !self.next_is(Token::CloseBracket) {
-                    types.push(try!(self.ty()));
+                    types.push(self.ty()?);
                 }
                 while !self.next_is(Token::CloseBracket) {
-                    try!(self.expect(Token::Comma));
-                    types.push(try!(self.ty()));
+                    self.expect(Token::Comma)?;
+                    types.push(self.ty()?);
                 }
-                try!(self.expect(Token::CloseBracket));
+                self.expect(Token::CloseBracket)?;
                 Ok(TypeRef::tuple(types))
             }
             _ => Err(Error::Unexpected),
@@ -354,7 +354,7 @@ impl<'a> Parser<'a> {
 
     /// Parse an identifier, with an optional type
     pub fn typed_id(&mut self) -> Result<TypedId> {
-        let id = try!(self.identifier());
+        let id = self.identifier()?;
         let typ = self.optional_type_ref();
         Ok(TypedId { id: id, typ: typ })
     }
@@ -364,10 +364,10 @@ impl<'a> Parser<'a> {
     /// Parses the body of a local variable delcaration (`let` or
     /// `var`).
     pub fn declaration(&mut self, is_mut: bool) -> Result<Expression> {
-        let id = try!(self.identifier());
+        let id = self.identifier()?;
         let typ = self.optional_type_ref();
-        try!(self.expect(Token::Equals));
-        let rhs = try!(self.expression(0));
+        self.expect(Token::Equals)?;
+        let rhs = self.expression(0)?;
         Ok(Expression::declaration(TypedId::from_parts(id.clone(), typ), is_mut, rhs))
     }
 
@@ -375,7 +375,7 @@ impl<'a> Parser<'a> {
     pub fn block(&mut self) -> Result<Vec<Expression>> {
         let mut expressions = Vec::new();
         while self.lexer.peek().is_some() && !self.next_is(Token::Word("end")) {
-            expressions.push(try!(self.expression(0)));
+            expressions.push(self.expression(0)?);
         }
         Ok(expressions)
     }
@@ -435,32 +435,32 @@ impl<'a> Token<'a> {
     fn nud(&self, parser: &mut Parser) -> Result<Expression> {
         match *self {
             Token::Word("fn") => {
-                let identifier = try!(parser.identifier());
+                let identifier = parser.identifier()?;
                 let mut res = Expression::function(identifier);
-                try!(parser.expect(Token::OpenBracket));
+                parser.expect(Token::OpenBracket)?;
                 if !parser.next_is(Token::CloseBracket) {
-                    res = res.with_arg(try!(parser.typed_id()));
+                    res = res.with_arg(parser.typed_id()?);
                 }
                 while !parser.next_is(Token::CloseBracket) {
-                    try!(parser.expect(Token::Comma));
-                    res = res.with_arg(try!(parser.typed_id()));
+                    parser.expect(Token::Comma)?;
+                    res = res.with_arg(parser.typed_id()?);
                 }
-                try!(parser.expect(Token::CloseBracket));
-                res = res.with_return_type(try!(parser.type_ref()))
-                    .with_body(try!(parser.block()));
-                try!(parser.expect(Token::Word("end")));
+                parser.expect(Token::CloseBracket)?;
+                res = res.with_return_type(parser.type_ref()?)
+                    .with_body(parser.block()?);
+                parser.expect(Token::Word("end"))?;
                 Ok(Expression::from(res))
             }
             Token::Word("while") => {
-                let condition = try!(parser.expression(0));
-                let block = try!(parser.block());
-                try!(parser.expect(Token::Word("end")));
+                let condition = parser.expression(0)?;
+                let block = parser.block()?;
+                parser.expect(Token::Word("end"))?;
                 Ok(Expression::loop_while(condition, block))
             }
             Token::Word("let") => parser.declaration(false),
             Token::Word("var") => parser.declaration(true),
             Token::Word("print") => {
-                let to_print = try!(parser.expression(0));
+                let to_print = parser.expression(0)?;
                 Ok(Expression::print(to_print))
             }
             Token::Word("true") => Ok(Expression::constant_bool(true)),
@@ -476,8 +476,8 @@ impl<'a> Token<'a> {
             Token::Minus => prefix_op(parser, PrefixOp::Negate),
             Token::Bang => prefix_op(parser, PrefixOp::Not),
             Token::OpenBracket => {
-                let expr = try!(parser.expression(0));
-                try!(parser.expect(Token::CloseBracket));
+                let expr = parser.expression(0)?;
+                parser.expect(Token::CloseBracket)?;
                 Ok(expr)
             }
             _ => Err(Error::Unexpected),
@@ -495,15 +495,15 @@ impl<'a> Token<'a> {
             // Binary infix operator
             Token::DoubleEquals | Token::BangEquals | Token::LessThan | Token::MoreThan |
             Token::Equals | Token::Plus | Token::Minus | Token::Star | Token::Slash => {
-                let rhs = try!(parser.expression(self.lbp()));
+                let rhs = parser.expression(self.lbp())?;
                 let op = InfixOp::for_token(self).unwrap();
                 Ok(Expression::infix(lhs, op, rhs))
             }
 
             // array indexing
             Token::OpenSqBracket => {
-                let index = try!(parser.expression(0));
-                try!(parser.expect(Token::CloseSqBracket));
+                let index = parser.expression(0)?;
+                parser.expect(Token::CloseSqBracket)?;
                 Ok(Expression::index(lhs, index))
             }
 
@@ -511,27 +511,27 @@ impl<'a> Token<'a> {
             Token::OpenBracket => {
                 let mut params = Vec::new();
                 while !parser.next_is(Token::CloseBracket) {
-                    let param = try!(parser.expression(0));
+                    let param = parser.expression(0)?;
                     params.push(param);
                     if !parser.next_is(Token::CloseBracket) {
-                        try!(parser.expect(Token::Comma));
+                        parser.expect(Token::Comma)?;
                     }
                 }
-                try!(parser.expect(Token::CloseBracket));
+                parser.expect(Token::CloseBracket)?;
                 Ok(Expression::call(lhs, params))
             }
 
             // Ternay statement:
             // <x> if <y> else <z>
             Token::Word("if") => {
-                let (condition, fallback) = try!(ternary_body(parser));
+                let (condition, fallback) = ternary_body(parser)?;
                 Ok(Expression::if_then_else(condition, lhs, fallback))
             }
 
             // Ternay statement:
             // <x> unless <y> else <z>
             Token::Word("unless") => {
-                let (condition, fallback) = try!(ternary_body(parser));
+                let (condition, fallback) = ternary_body(parser)?;
                 Ok(Expression::if_then_else(condition, fallback, lhs))
             }
 
@@ -544,7 +544,7 @@ impl<'a> Token<'a> {
 ///
 /// Parses the trailing expression for a prefix operator.
 fn prefix_op(parser: &mut Parser, op: PrefixOp) -> Result<Expression> {
-    let rhs = try!(parser.expression(100));
+    let rhs = parser.expression(100)?;
     Ok(Expression::prefix(op, rhs))
 }
 
@@ -552,9 +552,9 @@ fn prefix_op(parser: &mut Parser, op: PrefixOp) -> Result<Expression> {
 ///
 /// The condition and fallback part of a ternary expression.
 fn ternary_body(parser: &mut Parser) -> Result<(Expression, Expression)> {
-    let condition = try!(parser.expression(0));
-    try!(parser.expect(Token::Word("else")));
-    let fallback = try!(parser.expression(0));
+    let condition = parser.expression(0)?;
+    parser.expect(Token::Word("else"))?;
+    let fallback = parser.expression(0)?;
     Ok((condition, fallback))
 }
 
