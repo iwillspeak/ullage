@@ -2,7 +2,8 @@
 //! parsing.
 
 extern crate docopt;
-extern crate rustc_serialize;
+#[macro_use]
+extern crate serde_derive;
 extern crate tempdir;
 
 pub mod syntax;
@@ -46,7 +47,7 @@ Options:
 ///
 /// Structure to capture the command line arguments for the
 /// program. This is filled in for us by Docopt.
-#[derive(Debug, RustcDecodable)]
+#[derive(Debug, Deserialize)]
 struct Args {
     flag_help: bool,
     flag_version: bool,
@@ -63,7 +64,7 @@ struct Args {
 fn main() {
 
     let args: Args = Docopt::new(USAGE)
-        .and_then(|d| d.decode())
+        .and_then(|d| d.deserialize())
         .unwrap_or_else(|e| e.exit());
 
     if args.flag_version {
