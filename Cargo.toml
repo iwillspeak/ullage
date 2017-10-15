@@ -11,7 +11,7 @@ keywords = [ "llvm", "parser", "compiler" ]
 categories = [ "parsing" ]
 
 [dependencies]
-llvm-sys = "40"
+llvm-sys = "50"
 docopt = "0.7"
 rustc-serialize = "0.3"
 tempdir = "0.3"
