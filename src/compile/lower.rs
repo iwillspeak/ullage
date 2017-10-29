@@ -42,28 +42,24 @@ impl From<InfixOp> for Predicate {
 /// # Returns
 ///
 /// A `Result` indicating if the expression was lowered successfully.
-pub fn lower_expressions<'a>(
+pub fn lower_expression<'a>(
     ctx: &mut Context,
     module: &mut Module,
     fun: &mut Function,
     builder: &mut Builder,
-    expressions: Vec<Expression>,
+    expr: Expression,
 ) -> Result<()> {
     let mut vars = HashMap::new();
-    for expr in expressions.iter() {
-        if let syntax::Expression::Function(ref name, ref ret, ref params, ref _body) = expr.expr {
-            let ret = ctx.named_type(ret.simple_name());
-            let mut params = params
-                .iter()
-                .map(|p| ctx.named_type(p.typ.as_ref().unwrap().simple_name()))
-                .collect::<Vec<_>>();
-            ctx.add_function(module, &name, ret, &mut params[..]);
-        }
+    if let syntax::Expression::Function(ref name, ref ret, ref params, ref _body) = expr.expr {
+        let ret = ctx.named_type(ret.simple_name());
+        let mut params = params
+            .iter()
+            .map(|p| ctx.named_type(p.typ.as_ref().unwrap().simple_name()))
+            .collect::<Vec<_>>();
+        ctx.add_function(module, &name, ret, &mut params[..]);
     }
 
-    for expr in expressions {
-        lower_internal(ctx, module, fun, builder, &mut vars, expr.expr)?;
-    }
+    lower_internal(ctx, module, fun, builder, &mut vars, expr.expr)?;
     Ok(())
 }
 

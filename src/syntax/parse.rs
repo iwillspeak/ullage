@@ -31,10 +31,10 @@ pub fn parse_single<S: AsRef<str>>(s: S) -> Result<Expression> {
 
 #[derive(Debug, PartialEq)]
 pub enum Literal {
-    // A literal string
+    /// A literal string
     RawString(String),
 
-    // A numeric literal
+    /// A numeric literal
     Number(i64),
 }
 

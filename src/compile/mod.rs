@@ -32,14 +32,14 @@ fn add_core_decls(ctx: &mut Context, module: &mut Module) -> Result<()> {
 /// Encompases the inputs and settings for a given compilation.
 pub struct Compilation {
     /// The `Expression`s which are being compiled.
-    exprs: Vec<sem::Expression>,
+    expr: sem::Expression,
 }
 
 impl Compilation {
     /// Create a new compilation
-    pub fn new(exprs: Vec<syntax::Expression>) -> Self {
-        let sem_exprs = sem::transform_expressions(exprs);
-        Compilation { exprs: sem_exprs }
+    pub fn new(expr: syntax::Expression) -> Self {
+        let sem_expr = sem::transform_expression(expr);
+        Compilation { expr: sem_expr }
     }
 
     /// Emit
@@ -58,7 +58,7 @@ impl Compilation {
         let mut builder = ctx.add_builder();
         builder.position_at_end(bb);
 
-        lower::lower_expressions(&mut ctx, &mut module, &mut fun, &mut builder, self.exprs)?;
+        lower::lower_expression(&mut ctx, &mut module, &mut fun, &mut builder, self.expr)?;
 
         builder.build_ret(ctx.const_int(0));
 

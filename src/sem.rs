@@ -10,13 +10,9 @@ pub struct Expression {
     pub expr: syntax::Expression,
 }
 
-/// Transform Expressions
+/// Transform Expression
 ///
-/// Convert a group of expressions into
-pub fn transform_expressions(exprs: Vec<syntax::Expression>) -> Vec<Expression> {
-    exprs.into_iter().map(transform_expression).collect()
-}
-
+/// Convert a syntax expression into a symantic one.
 pub fn transform_expression(expr: syntax::Expression) -> Expression {
     Expression { expr: expr }
 }
