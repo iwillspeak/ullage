@@ -7,15 +7,26 @@ use super::{Expression, TypeRef, TypedId};
 use super::operators::{InfixOp, PrefixOp};
 pub use self::error::{Error, Result};
 
-impl Expression {
-    /// Parse expression from string. Takes a reference to an
-    /// expression and returns a result containing the parsed
-    /// expression, or an error if none could be parsed.
-    pub fn parse_str(s: &str) -> Result<Vec<Expression>> {
-        let t = Tokeniser::new_from_str(s);
-        let mut p = Parser::new(t);
-        p.expressions()
-    }
+/// Parse an Expression Tree from the Source
+///
+/// Runs the tokeniser and parser over the given input stirng. If the
+/// parse was successful then a sequence expression containing all the
+/// expressions in the source is returned. If any error is encountered
+/// then that is surfaced instead.
+pub fn parse_tree<S: AsRef<str>>(s: S) -> Result<Expression> {
+    let t = Tokeniser::new_from_str(s.as_ref());
+    let mut p = Parser::new(t);
+    Ok(Expression::sequence(p.expressions()?))
+}
+
+/// Parse a Single Expression
+///
+/// Runs the tokeniser and parser of the given input string, returning
+/// the first expression parsed.
+pub fn parse_single<S: AsRef<str>>(s: S) -> Result<Expression> {
+    let t = Tokeniser::new_from_str(s.as_ref());
+    let mut p = Parser::new(t);
+    p.single_expression()
 }
 
 #[derive(Debug,PartialEq)]
@@ -280,7 +291,10 @@ impl<'a> Parser<'a> {
         }
     }
 
-    /// Attempt to parse a single expressiond
+    /// Attempt to parse a single expression
+    ///
+    /// Parses a expresison with the given precedence. To parse a
+    /// single expression use `single_expression`.
     pub fn expression(&mut self, rbp: u32) -> Result<Expression> {
         let mut left = self.parse_nud()?;
         while self.next_binds_tighter_than(rbp) {
@@ -293,9 +307,16 @@ impl<'a> Parser<'a> {
     pub fn expressions(&mut self) -> Result<Vec<Expression>> {
         let mut expressions = Vec::new();
         while self.lexer.peek().is_some() {
-            expressions.push(self.expression(0)?);
+            expressions.push(self.single_expression()?);
         }
         Ok(expressions)
+    }
+
+    /// Attempt to Parse a Single Expression
+    ///
+    /// Used to parse 'top-level' expressions.
+    pub fn single_expression(&mut self) -> Result<Expression> {
+        self.expression(0)
     }
 
     /// Parse Type Reference
@@ -367,7 +388,7 @@ impl<'a> Parser<'a> {
         let id = self.identifier()?;
         let typ = self.optional_type_ref();
         self.expect(Token::Equals)?;
-        let rhs = self.expression(0)?;
+        let rhs = self.single_expression()?;
         Ok(Expression::declaration(TypedId::from_parts(id.clone(), typ), is_mut, rhs))
     }
 
@@ -375,7 +396,7 @@ impl<'a> Parser<'a> {
     pub fn block(&mut self) -> Result<Vec<Expression>> {
         let mut expressions = Vec::new();
         while self.lexer.peek().is_some() && !self.next_is(Token::Word("end")) {
-            expressions.push(self.expression(0)?);
+            expressions.push(self.single_expression()?);
         }
         Ok(expressions)
     }
@@ -452,7 +473,7 @@ impl<'a> Token<'a> {
                 Ok(Expression::from(res))
             }
             Token::Word("while") => {
-                let condition = parser.expression(0)?;
+                let condition = parser.single_expression()?;
                 let block = parser.block()?;
                 parser.expect(Token::Word("end"))?;
                 Ok(Expression::loop_while(condition, block))
@@ -460,7 +481,7 @@ impl<'a> Token<'a> {
             Token::Word("let") => parser.declaration(false),
             Token::Word("var") => parser.declaration(true),
             Token::Word("print") => {
-                let to_print = parser.expression(0)?;
+                let to_print = parser.single_expression()?;
                 Ok(Expression::print(to_print))
             }
             Token::Word("true") => Ok(Expression::constant_bool(true)),
@@ -476,7 +497,7 @@ impl<'a> Token<'a> {
             Token::Minus => prefix_op(parser, PrefixOp::Negate),
             Token::Bang => prefix_op(parser, PrefixOp::Not),
             Token::OpenBracket => {
-                let expr = parser.expression(0)?;
+                let expr = parser.single_expression()?;
                 parser.expect(Token::CloseBracket)?;
                 Ok(expr)
             }
@@ -502,7 +523,7 @@ impl<'a> Token<'a> {
 
             // array indexing
             Token::OpenSqBracket => {
-                let index = parser.expression(0)?;
+                let index = parser.single_expression()?;
                 parser.expect(Token::CloseSqBracket)?;
                 Ok(Expression::index(lhs, index))
             }
@@ -511,7 +532,7 @@ impl<'a> Token<'a> {
             Token::OpenBracket => {
                 let mut params = Vec::new();
                 while !parser.next_is(Token::CloseBracket) {
-                    let param = parser.expression(0)?;
+                    let param = parser.single_expression()?;
                     params.push(param);
                     if !parser.next_is(Token::CloseBracket) {
                         parser.expect(Token::Comma)?;
@@ -552,9 +573,9 @@ fn prefix_op(parser: &mut Parser, op: PrefixOp) -> Result<Expression> {
 ///
 /// The condition and fallback part of a ternary expression.
 fn ternary_body(parser: &mut Parser) -> Result<(Expression, Expression)> {
-    let condition = parser.expression(0)?;
+    let condition = parser.single_expression()?;
     parser.expect(Token::Word("else"))?;
-    let fallback = parser.expression(0)?;
+    let fallback = parser.single_expression()?;
     Ok((condition, fallback))
 }
 
@@ -582,7 +603,7 @@ pub mod error {
 #[cfg(test)]
 mod test {
 
-    use super::{Tokeniser, Parser};
+    use super::{Tokeniser, parse_single};
     use super::super::*;
     use super::super::operators::*;
     use super::super::Expression::*;
@@ -590,9 +611,8 @@ mod test {
     macro_rules! check_parse {
         ($src:expr, $expected:expr) => {
             let src:&str = $src;
-            let tokeniser = Tokeniser::new_from_str(src);
-            let mut parser = Parser::new(tokeniser);
-            assert_eq!(Ok($expected), parser.expression(0));
+            let actual = parse_single(src);
+            assert_eq!(Ok($expected), actual);
         }
     }
 

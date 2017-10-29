@@ -87,7 +87,7 @@ fn main() {
     };
 
     // Parse the module
-    let tree = Expression::parse_str(&source).expect("error: could not parse source");
+    let tree = parse::parse_tree(&source).expect("error: could not parse source");
 
     // Are we just dumping the AST or compiling the whole thing?
     if args.flag_dumpast {
@@ -96,7 +96,7 @@ fn main() {
     }
 
     // Create a compilation, and emit to the output path
-    let emit_result = Compilation::new(tree).emit(&output_path, args.flag_dumpir);
+    let emit_result = Compilation::new(vec![tree]).emit(&output_path, args.flag_dumpir);
 
     // Print any failures encountered and return a failure status
     if let Err(e) = emit_result {
