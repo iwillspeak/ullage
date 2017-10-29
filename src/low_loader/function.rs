@@ -9,7 +9,7 @@ use super::llvm_sys::analysis;
 /// Function
 ///
 /// A single function in a given module.
-#[derive(Debug,PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct Function {
     raw: LLVMValueRef,
 }

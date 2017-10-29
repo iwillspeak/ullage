@@ -10,7 +10,7 @@
 /// Used to represent a position within a the source of a compilation
 /// session. For a given compilation session a `Cursor` should
 /// uniquely identify a position in all sources.
-#[derive(Debug,PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct Cursor(usize);
 
 /// Source Buffer Span
@@ -19,7 +19,7 @@ pub struct Cursor(usize);
 /// span is deliniated by the start and end `Cursor`s. Spans can be
 /// used to identify the extent of lexemes in the AST, and ranges of
 /// interest when emitting error information.
-#[derive(Debug,PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct Span {
     start: Cursor,
     end: Cursor,
@@ -29,7 +29,7 @@ pub struct Span {
 ///
 /// Represents an abstraction over a source location. This is either a
 /// specific cursor within the input or a span.
-#[derive(Debug,PartialEq)]
+#[derive(Debug, PartialEq)]
 pub enum Location {
     /// A specific cursor location within the source.
     Cursor(Cursor),
@@ -95,10 +95,12 @@ pub mod test {
         let span_loc = Location::from(Span::new(456.into(), 789.into()));
 
         assert_eq!(Location::Cursor(Cursor(123)), cur_loc);
-        assert_eq!(Location::Span(Span {
-                       start: 456.into(),
-                       end: 789.into(),
-                   }),
-                   span_loc);
+        assert_eq!(
+            Location::Span(Span {
+                start: 456.into(),
+                end: 789.into(),
+            }),
+            span_loc
+        );
     }
 }

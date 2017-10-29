@@ -16,7 +16,7 @@ use std::ptr;
 /// A module repsents a single code unit. It maps down to a library or
 /// executable when compiled by LLVM. This type provides a safe
 /// abstraction around the raw `LLVMModule` type.
-#[derive(Debug,PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct Module {
     raw: LLVMModuleRef,
 }
@@ -50,10 +50,7 @@ impl Module {
             if core::LLVMPrintModuleToFile(self.raw, path.as_ptr(), &mut message) == 0 {
                 Ok(())
             } else {
-                let err_str = CStr::from_ptr(message)
-                    .to_owned()
-                    .into_string()
-                    .unwrap();
+                let err_str = CStr::from_ptr(message).to_owned().into_string().unwrap();
                 core::LLVMDisposeMessage(message);
                 Err(err_str)
             }
@@ -77,9 +74,11 @@ impl Module {
     pub fn add_global(&mut self, initialiser: LLVMValueRef, name: &str) -> LLVMValueRef {
         let global_name = CString::new(name).unwrap();
         unsafe {
-            let global = core::LLVMAddGlobal(self.as_raw(),
-                                             core::LLVMTypeOf(initialiser),
-                                             global_name.as_ptr());
+            let global = core::LLVMAddGlobal(
+                self.as_raw(),
+                core::LLVMTypeOf(initialiser),
+                global_name.as_ptr(),
+            );
             core::LLVMSetInitializer(global, initialiser);
             global
         }

@@ -17,7 +17,7 @@ use super::function::Function;
 /// IR Builder
 ///
 /// Creating yo instructions and manipulating yo basic blocks.
-#[derive(Debug,PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct Builder {
     raw: LLVMBuilderRef,
 }
@@ -71,11 +71,13 @@ impl Builder {
     pub fn build_call(&mut self, function: &Function, args: &mut [LLVMValueRef]) -> LLVMValueRef {
         unsafe {
             let name = CStr::from_bytes_with_nul_unchecked(b"printed\0");
-            core::LLVMBuildCall(self.raw,
-                                function.as_raw(),
-                                args.as_mut_ptr(),
-                                args.len() as c_uint,
-                                name.as_ptr())
+            core::LLVMBuildCall(
+                self.raw,
+                function.as_raw(),
+                args.as_mut_ptr(),
+                args.len() as c_uint,
+                name.as_ptr(),
+            )
         }
     }
 
@@ -85,11 +87,13 @@ impl Builder {
     pub fn build_gep(&mut self, value: LLVMValueRef, indices: &mut [LLVMValueRef]) -> LLVMValueRef {
         unsafe {
             let name = CStr::from_bytes_with_nul_unchecked(b"gep\0");
-            core::LLVMBuildGEP(self.raw,
-                               value,
-                               indices.as_mut_ptr(),
-                               indices.len() as c_uint,
-                               name.as_ptr())
+            core::LLVMBuildGEP(
+                self.raw,
+                value,
+                indices.as_mut_ptr(),
+                indices.len() as c_uint,
+                name.as_ptr(),
+            )
         }
     }
 
@@ -134,11 +138,12 @@ impl Builder {
     }
 
     /// Build an Integer Comparision
-    pub fn build_icmp(&mut self,
-                      op: Predicate,
-                      lhs: LLVMValueRef,
-                      rhs: LLVMValueRef)
-                      -> LLVMValueRef {
+    pub fn build_icmp(
+        &mut self,
+        op: Predicate,
+        lhs: LLVMValueRef,
+        rhs: LLVMValueRef,
+    ) -> LLVMValueRef {
         let op = match op {
             Predicate::Eq => LLVMIntPredicate::LLVMIntEQ,
             Predicate::Neq => LLVMIntPredicate::LLVMIntNE,
@@ -164,10 +169,12 @@ impl Builder {
     ///
     /// If the condition is true then execution continues in the first
     /// block, otherwise execution will move to the second block.
-    pub fn build_cond_br(&mut self,
-                         cond: LLVMValueRef,
-                         iftrue: LLVMBasicBlockRef,
-                         iffalse: LLVMBasicBlockRef) {
+    pub fn build_cond_br(
+        &mut self,
+        cond: LLVMValueRef,
+        iftrue: LLVMBasicBlockRef,
+        iffalse: LLVMBasicBlockRef,
+    ) {
         unsafe {
             core::LLVMBuildCondBr(self.raw, cond, iftrue, iffalse);
         }
@@ -202,11 +209,12 @@ impl Builder {
     }
 
     /// Bitcast
-    pub fn build_bitcast(&mut self,
-                         val: LLVMValueRef,
-                         typ: LLVMTypeRef,
-                         name: &str)
-                         -> LLVMValueRef {
+    pub fn build_bitcast(
+        &mut self,
+        val: LLVMValueRef,
+        typ: LLVMTypeRef,
+        name: &str,
+    ) -> LLVMValueRef {
         unsafe {
             let name = CString::new(name).unwrap();
             core::LLVMBuildBitCast(self.raw, val, typ, name.as_ptr())

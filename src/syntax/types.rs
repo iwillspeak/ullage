@@ -7,7 +7,7 @@
 ///
 /// Represents a reference to a type. This could be a simple reference
 /// to a named type or a complex type such as an array or Tuple.
-#[derive(Debug,PartialEq)]
+#[derive(Debug, PartialEq)]
 pub enum TypeRef {
     Simple(String),
     Unit,

@@ -47,9 +47,7 @@ impl Compilation {
     /// Performs the compilation, emitting the results to the given file.
     pub fn emit(self, output_path: &Path, dump_ir: bool) -> Result<()> {
         let mut ctx = Context::new();
-        let mut module = ctx.add_module(output_path.file_stem()
-            .and_then(|s| s.to_str())
-            .unwrap());
+        let mut module = ctx.add_module(output_path.file_stem().and_then(|s| s.to_str()).unwrap());
 
         add_core_decls(&mut ctx, &mut module)?;
 
@@ -87,8 +85,10 @@ impl Compilation {
         if status.success() {
             Ok(())
         } else {
-            Err(Error::Generic(format!("clang failed with exit status: {}",
-                                       status.code().unwrap())))
+            Err(Error::Generic(format!(
+                "clang failed with exit status: {}",
+                status.code().unwrap()
+            )))
         }
     }
 }

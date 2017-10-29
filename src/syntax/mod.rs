@@ -13,7 +13,7 @@ use self::operators::*;
 pub use self::types::*;
 
 /// An identifier, with an optional type attached
-#[derive(Debug,PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct TypedId {
     pub typ: Option<TypeRef>,
     pub id: String,
@@ -47,7 +47,7 @@ impl TypedId {
 }
 
 /// Literal / Constant Value
-#[derive(Debug,PartialEq)]
+#[derive(Debug, PartialEq)]
 pub enum Constant {
     Number(i64),
     Bool(bool),
@@ -55,7 +55,7 @@ pub enum Constant {
 }
 
 /// Represents an AST expression.
-#[derive(Debug,PartialEq)]
+#[derive(Debug, PartialEq)]
 pub enum Expression {
     Identifier(String),
     Literal(Constant),
@@ -95,7 +95,8 @@ impl Expression {
     /// string literal or computed from other known compile-time
     /// constants.
     pub fn constant_string<T>(s: T) -> Self
-        where T: Into<String>
+    where
+        T: Into<String>,
     {
         Expression::Literal(Constant::String(s.into()))
     }

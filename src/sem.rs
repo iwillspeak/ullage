@@ -14,9 +14,7 @@ pub struct Expression {
 ///
 /// Convert a group of expressions into
 pub fn transform_expressions(exprs: Vec<syntax::Expression>) -> Vec<Expression> {
-    exprs.into_iter()
-        .map(transform_expression)
-        .collect()
+    exprs.into_iter().map(transform_expression).collect()
 }
 
 pub fn transform_expression(expr: syntax::Expression) -> Expression {

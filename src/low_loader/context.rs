@@ -52,7 +52,7 @@ fn ensure_initialised() {
 /// guaranteed to be thread safe, and shouldn't be shared between
 /// threasds. We'll enforce this by taking `&mut self` when
 /// meddling with the context.
-#[derive(Debug,PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct Context(LLVMContextRef);
 
 impl Context {
@@ -94,12 +94,13 @@ impl Context {
     /// configuration will have to be added when we come to compile
     /// functions of our own rather than just functions to represent a
     /// group of top-level expressions.
-    pub fn add_function(&mut self,
-                        module: &mut Module,
-                        name: &str,
-                        ret_type: LLVMTypeRef,
-                        params: &mut [LLVMTypeRef])
-                        -> Function {
+    pub fn add_function(
+        &mut self,
+        module: &mut Module,
+        name: &str,
+        ret_type: LLVMTypeRef,
+        params: &mut [LLVMTypeRef],
+    ) -> Function {
         // Create a function to be used to evaluate our expression
         let function_type = unsafe {
             let param_count = params.len();
@@ -112,9 +113,11 @@ impl Context {
         // Function::from_raw is `unsafe` because it doesn't verify that the value you
         // give it is an LLVM Function. I think we can be sure this one is though :-p
         unsafe {
-            Function::from_raw(core::LLVMAddFunction(module.as_raw(),
-                                                     function_name.as_ptr(),
-                                                     function_type))
+            Function::from_raw(core::LLVMAddFunction(
+                module.as_raw(),
+                function_name.as_ptr(),
+                function_type,
+            ))
         }
     }
 
@@ -126,8 +129,9 @@ impl Context {
     pub fn add_printf_decl(&mut self, module: &mut Module) {
         unsafe {
             let int32 = core::LLVMInt32TypeInContext(self.as_raw());
-            let mut args = vec![core::LLVMPointerType(core::LLVMInt8TypeInContext(self.as_raw()),
-                                                      0)];
+            let mut args = vec![
+                core::LLVMPointerType(core::LLVMInt8TypeInContext(self.as_raw()), 0),
+            ];
             let printf_type = core::LLVMFunctionType(int32, args.as_mut_ptr(), 1, 1);
             let function_name = CStr::from_bytes_with_nul_unchecked(b"printf\0");
             core::LLVMAddFunction(module.as_raw(), function_name.as_ptr(), printf_type);
@@ -187,9 +191,7 @@ impl Context {
     /// The returned value is a constant i8 array with characters from
     /// the given string stored as UTF8.
     pub fn const_str(&self, s: &str) -> LLVMValueRef {
-        let mut bytes: Vec<_> = s.bytes()
-            .map(|b| self.const_char(b))
-            .collect();
+        let mut bytes: Vec<_> = s.bytes().map(|b| self.const_char(b)).collect();
         bytes.push(self.const_char(0));
         unsafe {
             let int8 = core::LLVMInt8TypeInContext(self.as_raw());
