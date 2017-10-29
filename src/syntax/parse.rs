@@ -405,6 +405,25 @@ impl<'a> Parser<'a> {
     fn next_binds_tighter_than(&mut self, rbp: u32) -> bool {
         self.lexer.peek().map_or(false, |t| t.lbp() > rbp)
     }
+    
+    /// Prefix Operator
+    ///
+    /// Parses the trailing expression for a prefix operator.
+    fn prefix_op(&mut self, op: PrefixOp) -> Result<Expression> {
+        let rhs = self.expression(100)?;
+        Ok(Expression::prefix(op, rhs))
+    }
+
+
+    /// Ternay Body
+    ///
+    /// The condition and fallback part of a ternary expression.
+    fn ternary_body(&mut self) -> Result<(Expression, Expression)> {
+        let condition = self.single_expression()?;
+        self.expect(Token::Word("else"))?;
+        let fallback = self.single_expression()?;
+        Ok((condition, fallback))
+    }
 
     /// Attempt to parse a single left denotation
     fn parse_led(&mut self, lhs: Expression) -> Result<Expression> {
@@ -494,8 +513,8 @@ impl<'a> Token<'a> {
                 }
             }
             Token::Plus => parser.expression(100),
-            Token::Minus => prefix_op(parser, PrefixOp::Negate),
-            Token::Bang => prefix_op(parser, PrefixOp::Not),
+            Token::Minus => parser.prefix_op(PrefixOp::Negate),
+            Token::Bang => parser.prefix_op(PrefixOp::Not),
             Token::OpenBracket => {
                 let expr = parser.single_expression()?;
                 parser.expect(Token::CloseBracket)?;
@@ -545,38 +564,20 @@ impl<'a> Token<'a> {
             // Ternay statement:
             // <x> if <y> else <z>
             Token::Word("if") => {
-                let (condition, fallback) = ternary_body(parser)?;
+                let (condition, fallback) = parser.ternary_body()?;
                 Ok(Expression::if_then_else(condition, lhs, fallback))
             }
 
             // Ternay statement:
             // <x> unless <y> else <z>
             Token::Word("unless") => {
-                let (condition, fallback) = ternary_body(parser)?;
+                let (condition, fallback) = parser.ternary_body()?;
                 Ok(Expression::if_then_else(condition, fallback, lhs))
             }
 
             _ => Err(Error::Incomplete),
         }
     }
-}
-
-/// Prefix Operator
-///
-/// Parses the trailing expression for a prefix operator.
-fn prefix_op(parser: &mut Parser, op: PrefixOp) -> Result<Expression> {
-    let rhs = parser.expression(100)?;
-    Ok(Expression::prefix(op, rhs))
-}
-
-/// Ternay Body
-///
-/// The condition and fallback part of a ternary expression.
-fn ternary_body(parser: &mut Parser) -> Result<(Expression, Expression)> {
-    let condition = parser.single_expression()?;
-    parser.expect(Token::Word("else"))?;
-    let fallback = parser.single_expression()?;
-    Ok((condition, fallback))
 }
 
 /// Parse error module. Contains the Result and Error types for the
