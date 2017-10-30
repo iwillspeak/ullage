@@ -19,12 +19,23 @@ mod lower;
 /// This method is responsible for making sure that
 /// declarations/definitions of any builtin funtions are emitted.
 fn add_core_decls(ctx: &mut Context, module: &mut Module) -> Result<()> {
-    ctx.add_printf_decl(module);
+    add_printf_decl(ctx, module);
     module.add_global(ctx.const_str("%d\n"), "printf_num_format");
     module.add_global(ctx.const_str("%s\n"), "printf_cstr_format");
     module.add_global(ctx.const_str("true"), "print_true");
     module.add_global(ctx.const_str("false"), "print_false");
     Ok(())
+}
+
+/// Add a Printf Declaration to the Module
+///
+/// Creates a new function in the given module which maps to the
+/// `printf` function. This will be used by the `print` operator
+/// to write output.
+pub fn add_printf_decl(ctx: &mut Context, module: &mut Module) {
+    let mut params = [ctx.cstr_type()];
+    let int_type = ctx.int_type(32);
+    ctx.add_varargs_function(module, "printf", int_type, &mut params);
 }
 
 /// Compilation State

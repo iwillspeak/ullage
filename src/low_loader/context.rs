@@ -2,7 +2,7 @@
 //!
 //! Contains a Rust wrapper for dealing with LLVM Context objects.
 
-use std::ffi::{CStr, CString};
+use std::ffi::CString;
 use std::os::raw::c_uint;
 use super::llvm_sys::prelude::*;
 use super::llvm_sys::{target, core};
@@ -88,12 +88,9 @@ impl Context {
 
     /// Add a Function to the Module
     ///
-    /// Creates a new function in the module. The funciton has a fixed
-    /// return type of int64 at the moment and takes no
-    /// parameters. This is just for testing though and more
-    /// configuration will have to be added when we come to compile
-    /// functions of our own rather than just functions to represent a
-    /// group of top-level expressions.
+    /// Creates a new function in the module. The function has no body
+    /// attached. If nothing extra is done with the returned
+    /// `Fucntion` then it will serve as an external declaration/import.
     pub fn add_function(
         &mut self,
         module: &mut Module,
@@ -101,11 +98,43 @@ impl Context {
         ret_type: LLVMTypeRef,
         params: &mut [LLVMTypeRef],
     ) -> Function {
+        self.add_function_internal(module, name, ret_type, params, false)
+    }
+
+    /// Ad a Function with Variable Arguments
+    ///
+    /// Creates a new function in the module in the same way as
+    /// `add_function`. In addition the function is declared with a
+    /// variable argument list.
+    pub fn add_varargs_function(
+        &mut self,
+        module: &mut Module,
+        name: &str,
+        ret_type: LLVMTypeRef,
+        params: &mut [LLVMTypeRef],
+    ) -> Function {
+        self.add_function_internal(module, name, ret_type, params, true)
+    }
+
+    /// Internal Add Function
+    ///
+    /// Thinner wrapper over `LLVMAddfunction`. Clients should use
+    /// `add_function` or `add_varargs_function`.
+    fn add_function_internal(
+        &mut self,
+        module: &mut Module,
+        name: &str,
+        ret_type: LLVMTypeRef,
+        params: &mut [LLVMTypeRef],
+        varargs: bool,
+    ) -> Function {
+        let varargs = if varargs { 1 } else { 0 };
+
         // Create a function to be used to evaluate our expression
         let function_type = unsafe {
             let param_count = params.len();
             let params = params.as_mut_ptr();
-            core::LLVMFunctionType(ret_type, params, param_count as c_uint, 0)
+            core::LLVMFunctionType(ret_type, params, param_count as c_uint, varargs)
         };
 
         let function_name = CString::new(name).unwrap();
@@ -118,23 +147,6 @@ impl Context {
                 function_name.as_ptr(),
                 function_type,
             ))
-        }
-    }
-
-    /// Add a Printf Declaration to the Module
-    ///
-    /// Creates a new function in the given module which maps to the
-    /// `printf` function. This will be used by the `print` operator
-    /// to write output.
-    pub fn add_printf_decl(&mut self, module: &mut Module) {
-        unsafe {
-            let int32 = core::LLVMInt32TypeInContext(self.as_raw());
-            let mut args = vec![
-                core::LLVMPointerType(core::LLVMInt8TypeInContext(self.as_raw()), 0),
-            ];
-            let printf_type = core::LLVMFunctionType(int32, args.as_mut_ptr(), 1, 1);
-            let function_name = CStr::from_bytes_with_nul_unchecked(b"printf\0");
-            core::LLVMAddFunction(module.as_raw(), function_name.as_ptr(), printf_type);
         }
     }
 
