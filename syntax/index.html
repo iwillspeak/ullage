@@ -1,0 +1,134 @@
+<html>
+  <head>
+    <title>Syntax &amp; Grammar</title>
+    <link href="https://fonts.googleapis.com/css?family=Merriweather|Open+Sans" rel="stylesheet">
+    <link rel="stylesheet"
+      href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/default.min.css">
+    <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
+    <style>body {
+	margin: 16px auto;
+	width: 650px;
+	font-size: 16px;
+	font-family: 'Open Sans', sans-serif;
+}
+
+h1, h2, h3, h4, h5, h6 {
+	font-family: 'Merriweather', serif;
+	margin: 1em 0 0 0;
+	font-weight: semibold;
+}
+
+h1 {
+	font-size: 48px;
+}
+
+h2 {
+	font-size: 36px;
+}
+
+h3 {
+	font-size: 28px;
+}
+
+h4 {
+	font-size: 24px;
+}
+
+ol.index-toc {
+	list-style-type: none;
+	padding-left: 0;
+}
+
+ol.index-toc li {
+	margin-top: 0.2em;
+}
+
+header.index-heading {
+	text-align: center;
+	padding: 5em 0 1.5em 0;
+}
+
+header.page-heading {
+	position: relative;
+}
+
+header.page-heading > a {
+	position: absolute;
+	font-size: 24px;
+	font-family: 'Merriweather', serif;
+	margin: 0;
+	top: 0;
+	right: 0;
+}
+
+p {
+	line-height: 1.6;
+}
+
+a {
+	color: #00BCD4;
+	text-decoration: none;
+}
+
+a:hover {
+	color: #00BCD4;
+	text-decoration: underline;
+}
+
+h1 a, h2 a, h3 a,
+h4 a, h5 a, h6 a {
+	color: black;
+}
+
+code {
+	font-family: Monospace;
+	background-color: #ccf9ff;
+	border: 1px solid #00BCD4;
+	border-radius: 2px;
+	padding: 1px 7px;
+}
+
+pre > code {
+	margin: 1em 0;
+	border-top: none;
+	border-right: none;
+	border-bottom: none;
+	border-left: 2px solid #00BCD4;
+	display: block;
+	padding: 10px;
+}
+
+footer {
+	color: #555;
+	text-align: center;
+	border-top: 1px solid #EFEFEF;
+}
+</style>
+    <script>hljs.initHighlightingOnLoad();</script>
+  </head>
+<body><header class="page-heading"><h1><a href="#">Syntax &amp; Grammar</h1><a class="home-link" href="/">ullage</a></header><p>Ullage files are plain-old UTF-8. The language itself is built mainly around <em>words</em> rather than fancy sigils; more reminiscent of Ruby than C and friends.</p>
+<p><ol><li><a href="#Tokens">Tokens</a><ol><li><a href="#Words">Words</a></li><li><a href="#Punctuation">Punctuation</a></li><li><a href="#Literals">Literals</a></li><li><a href="#Whitespace">Whitespace</a></li></ol></li><li><a href="#Types">Types</a><ol><li><a href="#Bool"><code>Bool</code></a></li><li><a href="#Number"><code>Number</code></a></li><li><a href="#String"><code>String</code></a></li><li><a href="#Arrays">Arrays</a></li><li><a href="#Tuples">Tuples</a></li></ol></li></ol></p>
+<h2 id="Tokens"><a href="#Tokens">Tokens</a></h2><p>Source text is treated as one of four basic token types: <em>words</em>, <em>punctuation</em>, <em>literals</em> and <em>whitespace</em>. Words and whitespace are unicode-aware.</p>
+<h3 id="Words"><a href="#Words">Words</a></h3><p>Word tokens start with an alphabetic character or an underscore. They may then contain any number of alphanumeric or underscore characters.</p>
+<p>Examples of words are: <code>foo</code>, <code>fn</code>, <code>_1</code> and <code>∂</code>. Some words have special meanings in the grammar:</p>
+<pre><code>if unless else while end fn var let print
+</code></pre>
+<h3 id="Punctuation"><a href="#Punctuation">Punctuation</a></h3><p>Punctuation characters, such as <code>-</code> and <code>!=</code> are used to represent operators in the language. Currently a handful of punctuation characters are recognised: <code>=</code>, <code>==</code>, <code>!</code>, <code>!=</code>, <code>+</code>, <code>-</code>, <code>*</code>, <code>/</code>, <code>(</code>, <code>)</code>, <code>[</code>, <code>]</code>, <code>,</code>, <code>:</code>, <code>&lt;</code>, and <code>&gt;</code>.</p>
+<h3 id="Literals"><a href="#Literals">Literals</a></h3><p>Literals are used to represent constant input values to the program. Literals can be used to specify values of any primitive type (<code>Number</code>, <code>Bool</code> and <code>String</code> so far). Numeric literals consist of one or more consecutive digits: <code>0</code>, <code>42</code>, <code>1337</code>. Although <code>-47</code> evaluates to a negative number the <code>-</code> isn't part of the literal; in fact it is an operator.</p>
+<h3 id="Whitespace"><a href="#Whitespace">Whitespace</a></h3><p>Whitespace tokens are made up of one or more <em>space</em> characters. These <em>space</em> characters are either Unicode whitespace, such as tabs &amp; spaces, or comments. Comments are introduced with a <code>#</code> and continue to the end of the line.</p>
+<pre><code># This is a comment!
+</code></pre>
+<h2 id="Types"><a href="#Types">Types</a></h2><p>There are three main base types: <code>Number</code>, <code>String</code> and <code>Bool</code>. These can be extended by creating arrays and tuples.</p>
+<h3 id="Bool"><a href="#Bool"><code>Bool</code></a></h3><p>A boolean holds a single bit of information. Boolean values can be created wit the literals <code>true</code> and <code>false</code>; or as the result of a comparison (<code>foo == 100</code>).</p>
+<h3 id="Number"><a href="#Number"><code>Number</code></a></h3><p>Number values hold whole numbers, or integers. Currently only decimal numeric literals are supported. All number values are stored in a 64 bit integer value.</p>
+<h3 id="String"><a href="#String"><code>String</code></a></h3><p>String literals define a sequence of unicode code points. All strings in the language are UTF-8.</p>
+<pre><code>'I am a string'
+</code></pre>
+<h3 id="Arrays"><a href="#Arrays">Arrays</a></h3><p>An array type is declared by wrapping an existing type in <code>[]</code>. For example <code>[Number]</code> is the type for an array of <code>Number</code> values. To create a new array an array literal can be used:</p>
+<pre><code>[1, 2, 3, 4]
+</code></pre>
+<p>All the values in an array must be of a single type.</p>
+<h3 id="Tuples"><a href="#Tuples">Tuples</a></h3><p>Tuples are similar to arrays but can contain values with different types. Tuples are defined by wrapping a comma-separated list of types in <code>()</code>. For example the type <code>(Number, Bool)</code> defines a two-element tuple with the first element a <code>Number</code> and the second a <code>Bool</code>. Instances of a tuple can be created by wrapping values in <code>()</code>:</p>
+<pre><code>(100, false)
+</code></pre>
+<footer></footer></body>

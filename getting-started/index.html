@@ -1,0 +1,117 @@
+<html>
+  <head>
+    <title>Getting Started</title>
+    <link href="https://fonts.googleapis.com/css?family=Merriweather|Open+Sans" rel="stylesheet">
+    <link rel="stylesheet"
+      href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/default.min.css">
+    <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
+    <style>body {
+	margin: 16px auto;
+	width: 650px;
+	font-size: 16px;
+	font-family: 'Open Sans', sans-serif;
+}
+
+h1, h2, h3, h4, h5, h6 {
+	font-family: 'Merriweather', serif;
+	margin: 1em 0 0 0;
+	font-weight: semibold;
+}
+
+h1 {
+	font-size: 48px;
+}
+
+h2 {
+	font-size: 36px;
+}
+
+h3 {
+	font-size: 28px;
+}
+
+h4 {
+	font-size: 24px;
+}
+
+ol.index-toc {
+	list-style-type: none;
+	padding-left: 0;
+}
+
+ol.index-toc li {
+	margin-top: 0.2em;
+}
+
+header.index-heading {
+	text-align: center;
+	padding: 5em 0 1.5em 0;
+}
+
+header.page-heading {
+	position: relative;
+}
+
+header.page-heading > a {
+	position: absolute;
+	font-size: 24px;
+	font-family: 'Merriweather', serif;
+	margin: 0;
+	top: 0;
+	right: 0;
+}
+
+p {
+	line-height: 1.6;
+}
+
+a {
+	color: #00BCD4;
+	text-decoration: none;
+}
+
+a:hover {
+	color: #00BCD4;
+	text-decoration: underline;
+}
+
+h1 a, h2 a, h3 a,
+h4 a, h5 a, h6 a {
+	color: black;
+}
+
+code {
+	font-family: Monospace;
+	background-color: #ccf9ff;
+	border: 1px solid #00BCD4;
+	border-radius: 2px;
+	padding: 1px 7px;
+}
+
+pre > code {
+	margin: 1em 0;
+	border-top: none;
+	border-right: none;
+	border-bottom: none;
+	border-left: 2px solid #00BCD4;
+	display: block;
+	padding: 10px;
+}
+
+footer {
+	color: #555;
+	text-align: center;
+	border-top: 1px solid #EFEFEF;
+}
+</style>
+    <script>hljs.initHighlightingOnLoad();</script>
+  </head>
+<body><header class="page-heading"><h1><a href="#">Getting Started</h1><a class="home-link" href="/">ullage</a></header><p>This is only known to work on my machine at the moment. I'm running macOS and stable Rust If you'd still like to give it a go then make sure you have:</p>
+<ul>
+<li>Rust - to compile the compiler</li>
+<li>Ruby - to run the tests</li>
+<li>Python - To build these docs.</li>
+</ul>
+<p>The compiler can be built with <em>Cargo</em>. Functional tests are defined by a collection of source in <code>spec/</code> and run by <code>specs.rb</code>. It's easier to run them with Python's invoke however. Unit and functional test can be run with <code>invoke test</code>.</p>
+<h2 id="Source"><a href="#Source">Source</a></h2><p>The source is all available <a href="https://github.com/iwillspeak/ullage">at GitHub</a>. Pull requests, comments and issues are welcome. Any thoughts I find interesting during development might be posted to <a href="http://willspeak.me/">my blog</a>.</p>
+<footer></footer></body>

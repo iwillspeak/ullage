@@ -1,8 +1,0 @@
-[package]
-name = "ullage"
-version = "0.1.0"
-authors = ["Will Speak <will@willspeak.me>"]
-type = "bin"
-
-[dependencies]
-    peg = "*"
