@@ -13,7 +13,7 @@ def build(ctx):
 @task
 def docs(ctx):
     with ctx.cd("docs/"):
-        ctx.run("d")
+        ctx.run("docket")
 
 @task(build)
 def test(ctx):
