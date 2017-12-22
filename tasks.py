@@ -15,7 +15,7 @@ def docs(ctx):
     with ctx.cd("docs/"):
         ctx.run("d")
 
-@task
+@task(build)
 def test(ctx):
     ctx.run("cargo test")
     ctx.run("python specs.py")

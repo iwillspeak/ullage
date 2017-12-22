@@ -139,8 +139,9 @@ impl Context {
 
         let function_name = CString::new(name).unwrap();
 
-        // Function::from_raw is `unsafe` because it doesn't verify that the value you
-        // give it is an LLVM Function. I think we can be sure this one is though :-p
+        // Function::from_raw is `unsafe` because it doesn't verify
+        // that the value you give it is an LLVM Function. I think we
+        // can be sure this one is though :-p
         unsafe {
             Function::from_raw(core::LLVMAddFunction(
                 module.as_raw(),

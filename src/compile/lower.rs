@@ -111,8 +111,7 @@ pub fn lower_internal<'a>(
                     }
                 } else {
                     Err(Error::Generic(String::from(
-                        "left hand side of an assignment \
-                                                     must be an identifier",
+                        "left hand side of an assignment must be an identifier",
                     )))
                 }
             } else {
