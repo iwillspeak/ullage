@@ -50,17 +50,31 @@ pub fn lower_expression<'a>(
     expr: Expression,
 ) -> Result<()> {
     let mut vars = HashMap::new();
-    if let syntax::Expression::Function(ref name, ref ret, ref params, ref _body) = expr.expr {
-        let ret = ctx.named_type(ret.simple_name());
-        let mut params = params
-            .iter()
-            .map(|p| ctx.named_type(p.typ.as_ref().unwrap().simple_name()))
-            .collect::<Vec<_>>();
-        ctx.add_function(module, &name, ret, &mut params[..]);
-    }
+
+    add_decls(ctx, module, &expr.expr);
 
     lower_internal(ctx, module, fun, builder, &mut vars, expr.expr)?;
     Ok(())
+}
+
+fn add_decls(ctx: &mut Context, module: &mut Module, expr: &syntax::Expression) {
+
+    match expr {
+        &syntax::Expression::Sequence(ref exprs) => {
+            for expr in exprs.iter() {
+                add_decls(ctx, module, expr)
+            }
+        },
+        &syntax::Expression::Function(ref name, ref ret, ref params, ref _body) => {
+            let ret = ctx.named_type(ret.simple_name());
+            let mut params = params
+                .iter()
+                .map(|p| ctx.named_type(p.typ.as_ref().unwrap().simple_name()))
+                .collect::<Vec<_>>();
+            ctx.add_function(module, &name, ret, &mut params[..]);
+        },
+        _ => { }
+    }
 }
 
 /// Internal Lowering of `Expression`s
@@ -242,7 +256,7 @@ pub fn lower_internal<'a>(
         syntax::Expression::Function(name, _typ, params, body) => {
 
             let mut fun = module.find_function(&name).expect(
-                "missing function declaration",
+                &format!("missing function declaration '{}'", name),
             );
             let bb = ctx.add_block(&mut fun, "body");
             let mut builder = ctx.add_builder();
