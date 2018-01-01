@@ -9,6 +9,7 @@ pub mod context;
 pub mod function;
 pub mod builder;
 pub mod types;
+pub mod value;
 
 /// Prelude Module
 ///
@@ -21,7 +22,8 @@ pub mod prelude {
     pub use super::builder::Builder;
     pub use super::builder::Predicate;
     pub use super::types::Type;
+    pub use super::value::Value;
 
-    // TOOD: HAX?
+    // FIXME: only expose Value in public interface.
     pub use super::llvm_sys::prelude::LLVMValueRef;
 }

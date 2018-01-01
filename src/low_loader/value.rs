@@ -1,3 +1,5 @@
+use super::llvm_sys::prelude::LLVMValueRef;
+
 /// Wrapped Value Reference
 #[derive(Debug,PartialEq)]
 pub struct Value(LLVMValueRef);
@@ -12,5 +14,12 @@ impl From<Value> for LLVMValueRef {
     fn from(v: Value) -> Self {
         let Value(inner) = v;
         inner
+    }
+}
+
+impl Value {
+    pub fn as_llvm_value(&self) -> LLVMValueRef {
+        let &Value(v) = self;
+        v
     }
 }
