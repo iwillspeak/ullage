@@ -64,7 +64,7 @@ fn add_decls(ctx: &mut Context, module: &mut Module, expr: &syntax::Expression) 
             for expr in exprs.iter() {
                 add_decls(ctx, module, expr)
             }
-        },
+        }
         &syntax::Expression::Function(ref name, ref ret, ref params, ref _body) => {
             let ret = ctx.named_type(ret.simple_name());
             let mut params = params
@@ -72,8 +72,8 @@ fn add_decls(ctx: &mut Context, module: &mut Module, expr: &syntax::Expression) 
                 .map(|p| ctx.named_type(p.typ.as_ref().unwrap().simple_name()))
                 .collect::<Vec<_>>();
             ctx.add_function(module, &name, ret, &mut params[..]);
-        },
-        _ => { }
+        }
+        _ => {}
     }
 }
 
@@ -255,9 +255,10 @@ pub fn lower_internal<'a>(
         }
         syntax::Expression::Function(name, _typ, params, body) => {
 
-            let mut fun = module.find_function(&name).expect(
-                &format!("missing function declaration '{}'", name),
-            );
+            let mut fun = module.find_function(&name).expect(&format!(
+                "missing function declaration '{}'",
+                name
+            ));
             let bb = ctx.add_block(&mut fun, "body");
             let mut builder = ctx.add_builder();
             builder.position_at_end(bb);

@@ -1,7 +1,7 @@
 use super::llvm_sys::prelude::LLVMValueRef;
 
 /// Wrapped Value Reference
-#[derive(Debug,PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct Value(LLVMValueRef);
 
 // Allow conversion from our wrapped type to the underlying LLVM
