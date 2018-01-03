@@ -13,6 +13,7 @@ pub use self::error::{Error, Result};
 pub mod error;
 
 mod lower;
+mod lower_context;
 
 /// Add the Core Declarations to the Module
 ///
@@ -32,7 +33,7 @@ fn add_core_decls(ctx: &mut Context, module: &mut Module) -> Result<()> {
 /// Creates a new function in the given module which maps to the
 /// `printf` function. This will be used by the `print` operator
 /// to write output.
-pub fn add_printf_decl(ctx: &mut Context, module: &mut Module) {
+fn add_printf_decl(ctx: &mut Context, module: &mut Module) {
     let mut params = [ctx.cstr_type()];
     let int_type = ctx.int_type(32);
     ctx.add_varargs_function(module, "printf", int_type, &mut params);
@@ -62,17 +63,11 @@ impl Compilation {
 
         add_core_decls(&mut ctx, &mut module)?;
 
-        let int_type = ctx.int_type(64);
-        let mut fun = ctx.add_function(&mut module, "main", int_type, &mut []);
-        let bb = ctx.add_block(&mut fun, "entry");
-
-        let mut builder = ctx.add_builder();
-        builder.position_at_end(bb);
-
-        lower::lower_expression(&mut ctx, &mut module, &mut fun, &mut builder, self.expr)?;
-
-        builder.build_ret(ctx.const_int(0));
-
+        let fun = {
+            let mut lower_ctx = lower_context::LowerContext::new(&mut ctx, &mut module);
+            lower::lower_as_main(&mut lower_ctx, self.expr)?
+        };
+        
         // Check what we have, and dump it to the screen
         if dump_ir {
             module.dump();

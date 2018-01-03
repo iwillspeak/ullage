@@ -8,6 +8,7 @@ use sem::Expression;
 use syntax::operators::{PrefixOp, InfixOp};
 use low_loader::prelude::*;
 
+use super::lower_context::LowerContext;
 use super::error::*;
 
 use std::collections::HashMap;
@@ -24,6 +25,25 @@ impl From<InfixOp> for Predicate {
             _ => panic!("Infix op {:?} is not a predicate", op),
         }
     }
+}
+
+pub fn lower_as_main(ctx: &mut LowerContext, expr: Expression) -> Result<Function> {
+    // TODO: HAXX. Should pass on the `LowerContext` to `lower_expression`.
+    let ref mut module = ctx.module;
+    let ref mut ctx = ctx.llvm_ctx;
+
+    let int_type = ctx.int_type(64);
+    let mut fun = ctx.add_function(module, "main", int_type, &mut []);
+    let bb = ctx.add_block(&mut fun, "entry");
+
+    let mut builder = ctx.add_builder();
+    builder.position_at_end(bb);
+
+    lower_expression(ctx, module, &mut fun, &mut builder, expr)?;
+
+    builder.build_ret(ctx.const_int(0));
+
+    Ok(fun)
 }
 
 /// Lower an Expression to LLVM
