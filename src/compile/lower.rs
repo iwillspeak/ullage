@@ -35,7 +35,12 @@ impl From<InfixOp> for Predicate {
 pub fn lower_as_main(ctx: &mut LowerContext, expr: Expression) -> Result<Function> {
 
     let int_type = ctx.llvm_ctx.int_type(64);
-    let mut fun = ctx.llvm_ctx.add_function(ctx.module, "main", int_type, &mut []);
+    let mut fun = ctx.llvm_ctx.add_function(
+        ctx.module,
+        "main",
+        int_type,
+        &mut [],
+    );
     let bb = ctx.llvm_ctx.add_block(&mut fun, "entry");
 
     let mut builder = ctx.llvm_ctx.add_builder();
@@ -96,9 +101,18 @@ fn add_decls(ctx: &mut LowerContext, expr: &syntax::Expression) {
             let ret = ctx.llvm_ctx.named_type(ret.simple_name());
             let mut params = params
                 .iter()
-                .map(|p| ctx.llvm_ctx.named_type(p.typ.as_ref().unwrap().simple_name()))
+                .map(|p| {
+                    ctx.llvm_ctx.named_type(
+                        p.typ.as_ref().unwrap().simple_name(),
+                    )
+                })
                 .collect::<Vec<_>>();
-            ctx.llvm_ctx.add_function(ctx.module, &name, ret, &mut params[..]);
+            ctx.llvm_ctx.add_function(
+                ctx.module,
+                &name,
+                ret,
+                &mut params[..],
+            );
         }
         _ => {}
     }
@@ -208,7 +222,10 @@ pub fn lower_internal<'a>(
                 _ => unimplemented!(),
             };
             let format = ctx.module.find_global(format_name).unwrap();
-            let format_ptr = builder.build_gep(format, &mut [ctx.llvm_ctx.const_int(0), ctx.llvm_ctx.const_int(0)]);
+            let format_ptr = builder.build_gep(
+                format,
+                &mut [ctx.llvm_ctx.const_int(0), ctx.llvm_ctx.const_int(0)],
+            );
             let mut args = vec![format_ptr, to_format];
             let printf = ctx.module.find_function("printf").unwrap();
             builder.build_call(&printf, &mut args);

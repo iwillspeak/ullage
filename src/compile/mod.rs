@@ -67,7 +67,7 @@ impl Compilation {
             let mut lower_ctx = lower_context::LowerContext::new(&mut ctx, &mut module);
             lower::lower_as_main(&mut lower_ctx, self.expr)?
         };
-        
+
         // Check what we have, and dump it to the screen
         if dump_ir {
             module.dump();

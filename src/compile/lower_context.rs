@@ -12,7 +12,7 @@ pub struct LowerContext<'a> {
     pub module: &'a mut Module,
 }
 
-impl <'a> LowerContext<'a> {
+impl<'a> LowerContext<'a> {
     pub fn new(ctx: &'a mut Context, module: &'a mut Module) -> Self {
         LowerContext {
             llvm_ctx: ctx,
