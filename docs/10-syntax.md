@@ -62,3 +62,17 @@ Tuples are similar to arrays but can contain values with different types. Tuples
 
     (100, false)
 
+## Variables
+
+Variables are introduced with the `var` keyword followed by an identifier and an optional type. Immutable variables can be introduced with the `let` keyword.
+
+    let foo = 100
+    var bar: Number = 10
+
+## Operators
+
+TODO
+
+## Compound Expressions
+
+TODO
