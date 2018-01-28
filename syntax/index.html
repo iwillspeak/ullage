@@ -1,113 +1,16 @@
 <html>
   <head>
     <title>Syntax &amp; Grammar</title>
+    <meta name="viewport" content="width=700">
     <link href="https://fonts.googleapis.com/css?family=Merriweather|Open+Sans" rel="stylesheet">
     <link rel="stylesheet"
       href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/default.min.css">
     <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
-    <style>body {
-	margin: 16px auto;
-	width: 650px;
-	font-size: 16px;
-	font-family: 'Open Sans', sans-serif;
-}
-
-h1, h2, h3, h4, h5, h6 {
-	font-family: 'Merriweather', serif;
-	margin: 1em 0 0 0;
-	font-weight: semibold;
-}
-
-h1 {
-	font-size: 48px;
-}
-
-h2 {
-	font-size: 36px;
-}
-
-h3 {
-	font-size: 28px;
-}
-
-h4 {
-	font-size: 24px;
-}
-
-ol.index-toc {
-	list-style-type: none;
-	padding-left: 0;
-}
-
-ol.index-toc li {
-	margin-top: 0.2em;
-}
-
-header.index-heading {
-	text-align: center;
-	padding: 5em 0 1.5em 0;
-}
-
-header.page-heading {
-	position: relative;
-}
-
-header.page-heading > a {
-	position: absolute;
-	font-size: 24px;
-	font-family: 'Merriweather', serif;
-	margin: 0;
-	top: 0;
-	right: 0;
-}
-
-p {
-	line-height: 1.6;
-}
-
-a {
-	color: #00BCD4;
-	text-decoration: none;
-}
-
-a:hover {
-	color: #00BCD4;
-	text-decoration: underline;
-}
-
-h1 a, h2 a, h3 a,
-h4 a, h5 a, h6 a {
-	color: black;
-}
-
-code {
-	font-family: Monospace;
-	background-color: #ccf9ff;
-	border: 1px solid #00BCD4;
-	border-radius: 2px;
-	padding: 1px 7px;
-}
-
-pre > code {
-	margin: 1em 0;
-	border-top: none;
-	border-right: none;
-	border-bottom: none;
-	border-left: 2px solid #00BCD4;
-	display: block;
-	padding: 10px;
-}
-
-footer {
-	color: #555;
-	text-align: center;
-	border-top: 1px solid #EFEFEF;
-}
-</style>
+    <link rel="stylesheet" href="../style.css">
     <script>hljs.initHighlightingOnLoad();</script>
   </head>
   <body><header class="page-heading"><h1><a href="#">Syntax &amp; Grammar</h1><a class="home-link" href="../">ullage</a></header><p>Ullage files are plain-old UTF-8. The language itself is built mainly around <em>words</em> rather than fancy sigils; more reminiscent of Ruby than C and friends.</p>
-<p><ol><li><a href="#Tokens">Tokens</a><ol><li><a href="#Words">Words</a></li><li><a href="#Punctuation">Punctuation</a></li><li><a href="#Literals">Literals</a></li><li><a href="#Whitespace">Whitespace</a></li></ol></li><li><a href="#Types">Types</a><ol><li><a href="#Bool"><code>Bool</code></a></li><li><a href="#Number"><code>Number</code></a></li><li><a href="#String"><code>String</code></a></li><li><a href="#Arrays">Arrays</a></li><li><a href="#Tuples">Tuples</a></li></ol></li></ol></p>
+<p><ol><li><a href="#Tokens">Tokens</a><ol><li><a href="#Words">Words</a></li><li><a href="#Punctuation">Punctuation</a></li><li><a href="#Literals">Literals</a></li><li><a href="#Whitespace">Whitespace</a></li></ol></li><li><a href="#Types">Types</a><ol><li><a href="#Bool"><code>Bool</code></a></li><li><a href="#Number"><code>Number</code></a></li><li><a href="#String"><code>String</code></a></li><li><a href="#Arrays">Arrays</a></li><li><a href="#Tuples">Tuples</a></li></ol></li><li><a href="#Variables">Variables</a><ol></ol></li><li><a href="#Operators">Operators</a><ol></ol></li><li><a href="#Compound-Expressions">Compound Expressions</a><ol></ol></li></ol></p>
 <h2 id="Tokens"><a href="#Tokens">Tokens</a></h2><p>Source text is treated as one of four basic token types: <em>words</em>, <em>punctuation</em>, <em>literals</em> and <em>whitespace</em>. Words and whitespace are unicode-aware.</p>
 <h3 id="Words"><a href="#Words">Words</a></h3><p>Word tokens start with an alphabetic character or an underscore. They may then contain any number of alphanumeric or underscore characters.</p>
 <p>Examples of words are: <code>foo</code>, <code>fn</code>, <code>_1</code> and <code>∂</code>. Some words have special meanings in the grammar:</p>
@@ -131,4 +34,10 @@ footer {
 <h3 id="Tuples"><a href="#Tuples">Tuples</a></h3><p>Tuples are similar to arrays but can contain values with different types. Tuples are defined by wrapping a comma-separated list of types in <code>()</code>. For example the type <code>(Number, Bool)</code> defines a two-element tuple with the first element a <code>Number</code> and the second a <code>Bool</code>. Instances of a tuple can be created by wrapping values in <code>()</code>:</p>
 <pre><code>(100, false)
 </code></pre>
+<h2 id="Variables"><a href="#Variables">Variables</a></h2><p>Variables are introduced with the <code>var</code> keyword followed by an identifier and an optional type. Immutable variables can be introduced with the <code>let</code> keyword.</p>
+<pre><code>let foo = 100
+var bar: Number = 10
+</code></pre>
+<h2 id="Operators"><a href="#Operators">Operators</a></h2><p>TODO</p>
+<h2 id="Compound-Expressions"><a href="#Compound-Expressions">Compound Expressions</a></h2><p>TODO</p>
 <footer></footer></body></html>
