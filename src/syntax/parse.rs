@@ -146,31 +146,26 @@ impl<'a> Tokeniser<'a> {
     /// in the buffer, and may include whitespace and other trivia
     /// tokens.
     fn next_raw(&mut self) -> Option<Token<'a>> {
-
         let ts = self.idx;
         let mut te = ts;
         let mut chars = self.buff[ts..].chars();
         let tok = chars.next().and_then(|c| {
             te += c.len_utf8();
             match c {
-                '=' => {
-                    match chars.next() {
-                        Some('=') => {
-                            te += 1;
-                            Some(Token::DoubleEquals)
-                        }
-                        _ => Some(Token::Equals),
+                '=' => match chars.next() {
+                    Some('=') => {
+                        te += 1;
+                        Some(Token::DoubleEquals)
                     }
-                }
-                '!' => {
-                    match chars.next() {
-                        Some('=') => {
-                            te += 1;
-                            Some(Token::BangEquals)
-                        }
-                        _ => Some(Token::Bang),
+                    _ => Some(Token::Equals),
+                },
+                '!' => match chars.next() {
+                    Some('=') => {
+                        te += 1;
+                        Some(Token::BangEquals)
                     }
-                }
+                    _ => Some(Token::Bang),
+                },
                 '+' => Some(Token::Plus),
                 '-' => Some(Token::Minus),
                 '*' => Some(Token::Star),
@@ -184,10 +179,9 @@ impl<'a> Tokeniser<'a> {
                 '<' => Some(Token::LessThan),
                 '>' => Some(Token::MoreThan),
                 '#' => {
-                    te += chars.take_while(|c| *c != '\n').fold(
-                        0,
-                        |l, c| l + c.len_utf8(),
-                    );
+                    te += chars
+                        .take_while(|c| *c != '\n')
+                        .fold(0, |l, c| l + c.len_utf8());
                     Some(Token::Whitespace(&self.buff[ts..te]))
                 }
                 '0'...'9' => {
@@ -195,18 +189,17 @@ impl<'a> Tokeniser<'a> {
                     let token_str = &self.buff[ts..te];
                     // we have cheked that it's a valid numeric literal,
                     // so unwrap is fine here.
-                    Some(Token::Literal(
-                        Literal::Number(token_str.parse::<i64>().unwrap()),
-                    ))
+                    Some(Token::Literal(Literal::Number(
+                        token_str.parse::<i64>().unwrap(),
+                    )))
                 }
                 '\'' => {
-                    te += chars.take_while(|c| *c != '\'').fold(
-                        0,
-                        |l, c| l + c.len_utf8(),
-                    ) + 1;
-                    Some(Token::Literal(
-                        Literal::RawString(String::from(&self.buff[ts + 1..te - 1])),
-                    ))
+                    te += chars
+                        .take_while(|c| *c != '\'')
+                        .fold(0, |l, c| l + c.len_utf8()) + 1;
+                    Some(Token::Literal(Literal::RawString(String::from(
+                        &self.buff[ts + 1..te - 1],
+                    ))))
                 }
                 c if c.is_alphabetic() || c == '_' => {
                     te += chars
@@ -215,9 +208,9 @@ impl<'a> Tokeniser<'a> {
                     Some(Token::Word(&self.buff[ts..te]))
                 }
                 c if c.is_whitespace() => {
-                    te += chars.take_while(|c| c.is_whitespace()).fold(0, |l, c| {
-                        l + c.len_utf8()
-                    });
+                    te += chars
+                        .take_while(|c| c.is_whitespace())
+                        .fold(0, |l, c| l + c.len_utf8());
                     Some(Token::Whitespace(&self.buff[ts..te]))
                 }
                 _ => Some(Token::Unknown(c)),
@@ -259,7 +252,9 @@ struct Parser<'a> {
 impl<'a> Parser<'a> {
     /// Create a new Parser from a given token stream.
     pub fn new(t: Tokeniser<'a>) -> Self {
-        Parser { lexer: t.peekable() }
+        Parser {
+            lexer: t.peekable(),
+        }
     }
 
     /// Moves the token stream on by a single token
@@ -426,7 +421,6 @@ impl<'a> Parser<'a> {
         Ok(Expression::prefix(op, rhs))
     }
 
-
     /// Ternay Body
     ///
     /// The condition and fallback part of a ternary expression.
@@ -439,18 +433,16 @@ impl<'a> Parser<'a> {
 
     /// Attempt to parse a single left denotation
     fn parse_led(&mut self, lhs: Expression) -> Result<Expression> {
-        self.lexer.next().map_or(
-            Err(Error::Incomplete),
-            |t| t.led(self, lhs),
-        )
+        self.lexer
+            .next()
+            .map_or(Err(Error::Incomplete), |t| t.led(self, lhs))
     }
 
     /// Attempt to parse a single null denotation
     fn parse_nud(&mut self) -> Result<Expression> {
-        self.lexer.next().map_or(
-            Err(Error::Incomplete),
-            |t| t.nud(self),
-        )
+        self.lexer
+            .next()
+            .map_or(Err(Error::Incomplete), |t| t.nud(self))
     }
 }
 
@@ -466,8 +458,7 @@ impl<'a> Token<'a> {
             Token::Equals => 10,
 
             // ternary if
-            Token::Word("if") |
-            Token::Word("unless") => 20,
+            Token::Word("if") | Token::Word("unless") => 20,
 
             // boolean conditional operators
             Token::DoubleEquals | Token::BangEquals | Token::LessThan | Token::MoreThan => 40,
@@ -504,9 +495,8 @@ impl<'a> Token<'a> {
                     res = res.with_arg(parser.typed_id()?);
                 }
                 parser.expect(Token::CloseBracket)?;
-                res = res.with_return_type(parser.type_ref()?).with_body(
-                    parser.block()?,
-                );
+                res = res.with_return_type(parser.type_ref()?)
+                    .with_body(parser.block()?);
                 parser.expect(Token::Word("end"))?;
                 Ok(Expression::from(res))
             }
@@ -525,12 +515,10 @@ impl<'a> Token<'a> {
             Token::Word("true") => Ok(Expression::constant_bool(true)),
             Token::Word("false") => Ok(Expression::constant_bool(false)),
             Token::Word(word) => Ok(Expression::identifier(String::from(word))),
-            Token::Literal(ref l) => {
-                match l {
-                    &Literal::Number(i) => Ok(Expression::constant_num(i)),
-                    &Literal::RawString(ref s) => Ok(Expression::constant_string(s.clone())),
-                }
-            }
+            Token::Literal(ref l) => match l {
+                &Literal::Number(i) => Ok(Expression::constant_num(i)),
+                &Literal::RawString(ref s) => Ok(Expression::constant_string(s.clone())),
+            },
             Token::Plus => parser.expression(100),
             Token::Minus => parser.prefix_op(PrefixOp::Negate),
             Token::Bang => parser.prefix_op(PrefixOp::Not),
@@ -550,10 +538,16 @@ impl<'a> Token<'a> {
     /// calls.
     fn led(&self, parser: &mut Parser, lhs: Expression) -> Result<Expression> {
         match *self {
-
             // Binary infix operator
-            Token::DoubleEquals | Token::BangEquals | Token::LessThan | Token::MoreThan |
-            Token::Equals | Token::Plus | Token::Minus | Token::Star | Token::Slash => {
+            Token::DoubleEquals
+            | Token::BangEquals
+            | Token::LessThan
+            | Token::MoreThan
+            | Token::Equals
+            | Token::Plus
+            | Token::Minus
+            | Token::Star
+            | Token::Slash => {
                 let rhs = parser.expression(self.lbp())?;
                 let op = InfixOp::for_token(self).unwrap();
                 Ok(Expression::infix(lhs, op, rhs))
@@ -623,7 +617,7 @@ pub mod error {
 #[cfg(test)]
 mod test {
 
-    use super::{Tokeniser, parse_single};
+    use super::{parse_single, Tokeniser};
     use super::super::*;
     use super::super::operators::*;
     use super::super::Expression::*;
@@ -793,17 +787,16 @@ mod test {
                     Expression::infix(
                         Expression::constant_num(1),
                         InfixOp::Add,
-                        Expression::constant_num(23)
+                        Expression::constant_num(23),
                     ),
                     Expression::prefix(
                         PrefixOp::Negate,
-                        Expression::identifier("world".to_string())
+                        Expression::identifier("world".to_string()),
                     ),
                 ],
             )
         );
     }
-
 
     #[test]
     fn parse_groups_with_parens() {
@@ -910,7 +903,7 @@ mod test {
                     Expression::if_then_else(
                         Expression::constant_num(74),
                         Expression::constant_num(0),
-                        Expression::constant_num(888)
+                        Expression::constant_num(888),
                     ),
                 ])
                 .into()
@@ -940,10 +933,7 @@ mod test {
                 .with_arg(TypedId::new("i".to_string(), TypeRef::simple("Num")))
                 .with_return_type(TypeRef::simple("Num"))
                 .with_body(vec![
-                    Expression::prefix(
-                        PrefixOp::Negate,
-                        Expression::identifier("i".to_string())
-                    ),
+                    Expression::prefix(PrefixOp::Negate, Expression::identifier("i".to_string())),
                 ])
                 .into()
         );
@@ -963,7 +953,7 @@ mod test {
                             Expression::identifier("j".to_string()),
                         ),
                         InfixOp::Add,
-                        Expression::identifier("k".to_string())
+                        Expression::identifier("k".to_string()),
                     ),
                 ])
                 .into()
@@ -1044,7 +1034,6 @@ mod test {
                 Expression::prefix(PrefixOp::Negate, Expression::constant_num(99999)),
             )
         );
-
     }
 
     #[test]

@@ -38,7 +38,6 @@ pub enum Location {
     Span(Span),
 }
 
-
 impl From<usize> for Cursor {
     fn from(offset: usize) -> Self {
         Cursor(offset)

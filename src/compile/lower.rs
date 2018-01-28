@@ -5,7 +5,7 @@
 
 use syntax::{self, Constant};
 use sem::Expression;
-use syntax::operators::{PrefixOp, InfixOp};
+use syntax::operators::{InfixOp, PrefixOp};
 use low_loader::prelude::*;
 
 use super::lower_context::LowerContext;
@@ -33,14 +33,9 @@ impl From<InfixOp> for Predicate {
 /// to the LLVM Context. When called `main` will compute the value of
 /// the expression and return `0`.
 pub fn lower_as_main(ctx: &mut LowerContext, expr: Expression) -> Result<Function> {
-
     let int_type = ctx.llvm_ctx.int_type(64);
-    let mut fun = ctx.llvm_ctx.add_function(
-        ctx.module,
-        "main",
-        int_type,
-        &mut [],
-    );
+    let mut fun = ctx.llvm_ctx
+        .add_function(ctx.module, "main", int_type, &mut []);
     let bb = ctx.llvm_ctx.add_block(&mut fun, "entry");
 
     let mut builder = ctx.llvm_ctx.add_builder();
@@ -75,7 +70,6 @@ pub fn lower_expression<'a>(
     builder: &mut Builder,
     expr: Expression,
 ) -> Result<()> {
-
     let mut vars = HashMap::new();
 
     add_decls(ctx, &expr.expr);
@@ -90,29 +84,21 @@ pub fn lower_expression<'a>(
 /// declarations for each defined function. This ensures mutal
 /// recursion is possible.
 fn add_decls(ctx: &mut LowerContext, expr: &syntax::Expression) {
-
     match expr {
-        &syntax::Expression::Sequence(ref exprs) => {
-            for expr in exprs.iter() {
-                add_decls(ctx, expr)
-            }
-        }
+        &syntax::Expression::Sequence(ref exprs) => for expr in exprs.iter() {
+            add_decls(ctx, expr)
+        },
         &syntax::Expression::Function(ref name, ref ret, ref params, ref _body) => {
             let ret = ctx.llvm_ctx.named_type(ret.simple_name());
             let mut params = params
                 .iter()
                 .map(|p| {
-                    ctx.llvm_ctx.named_type(
-                        p.typ.as_ref().unwrap().simple_name(),
-                    )
+                    ctx.llvm_ctx
+                        .named_type(p.typ.as_ref().unwrap().simple_name())
                 })
                 .collect::<Vec<_>>();
-            ctx.llvm_ctx.add_function(
-                ctx.module,
-                &name,
-                ret,
-                &mut params[..],
-            );
+            ctx.llvm_ctx
+                .add_function(ctx.module, &name, ret, &mut params[..]);
         }
         _ => {}
     }
@@ -129,19 +115,15 @@ pub fn lower_internal<'a>(
     expr: syntax::Expression,
 ) -> Result<LLVMValueRef> {
     match expr {
-        syntax::Expression::Identifier(id) => {
-            match vars.get(&id) {
-                Some(&(is_mut, val)) => Ok(if is_mut { builder.build_load(val) } else { val }),
-                None => Err(Error::from(format!("Reference to undefined '{}'", id))),
-            }
-        }
-        syntax::Expression::Literal(lit) => {
-            match lit {
-                Constant::Number(n) => Ok(ctx.llvm_ctx.const_int(n)),
-                Constant::Bool(b) => Ok(ctx.llvm_ctx.const_bool(b)),
-                Constant::String(_) => unimplemented!(),
-            }
-        }
+        syntax::Expression::Identifier(id) => match vars.get(&id) {
+            Some(&(is_mut, val)) => Ok(if is_mut { builder.build_load(val) } else { val }),
+            None => Err(Error::from(format!("Reference to undefined '{}'", id))),
+        },
+        syntax::Expression::Literal(lit) => match lit {
+            Constant::Number(n) => Ok(ctx.llvm_ctx.const_int(n)),
+            Constant::Bool(b) => Ok(ctx.llvm_ctx.const_bool(b)),
+            Constant::String(_) => unimplemented!(),
+        },
         syntax::Expression::Prefix(op, expr) => {
             let val = lower_internal(ctx, fun, builder, vars, *expr)?;
             let val = match op {
@@ -198,17 +180,17 @@ pub fn lower_internal<'a>(
                     builder.build_cond_br(val, true_bb, false_bb);
 
                     builder.position_at_end(true_bb);
-                    let true_s = ctx.module.find_global("print_true").expect(
-                        "could't find `print_true`",
-                    );
+                    let true_s = ctx.module
+                        .find_global("print_true")
+                        .expect("could't find `print_true`");
                     let true_s = builder.build_bitcast(true_s, cstr_type, "true");
                     builder.build_store(true_s, temp);
                     builder.build_br(join_bb);
 
                     builder.position_at_end(false_bb);
-                    let false_s = ctx.module.find_global("print_false").expect(
-                        "couldn't find `print_false`",
-                    );
+                    let false_s = ctx.module
+                        .find_global("print_false")
+                        .expect("couldn't find `print_false`");
                     let false_s = builder.build_bitcast(false_s, cstr_type, "false");
                     builder.build_store(false_s, temp);
                     builder.build_br(join_bb);
@@ -289,19 +271,15 @@ pub fn lower_internal<'a>(
 
             Ok(cond)
         }
-        syntax::Expression::Sequence(exprs) => {
-            exprs
-                .into_iter()
-                .map(|expr| lower_internal(ctx, fun, builder, vars, expr))
-                .last()
-                .unwrap()
-        }
+        syntax::Expression::Sequence(exprs) => exprs
+            .into_iter()
+            .map(|expr| lower_internal(ctx, fun, builder, vars, expr))
+            .last()
+            .unwrap(),
         syntax::Expression::Function(name, _typ, params, body) => {
-
-            let mut fun = ctx.module.find_function(&name).expect(&format!(
-                "missing function declaration '{}'",
-                name
-            ));
+            let mut fun = ctx.module
+                .find_function(&name)
+                .expect(&format!("missing function declaration '{}'", name));
             let bb = ctx.llvm_ctx.add_block(&mut fun, "body");
             let mut builder = ctx.llvm_ctx.add_builder();
             builder.position_at_end(bb);

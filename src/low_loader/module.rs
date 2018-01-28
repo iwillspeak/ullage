@@ -10,7 +10,6 @@ use std::ffi::{CStr, CString};
 use std::path::Path;
 use std::ptr;
 
-
 /// Module
 ///
 /// A module repsents a single code unit. It maps down to a library or
@@ -93,7 +92,11 @@ impl Module {
         let global_name = CString::new(name).unwrap();
         unsafe {
             let found = core::LLVMGetNamedGlobal(self.as_raw(), global_name.as_ptr());
-            if found.is_null() { None } else { Some(found) }
+            if found.is_null() {
+                None
+            } else {
+                Some(found)
+            }
         }
     }
 

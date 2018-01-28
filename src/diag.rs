@@ -53,7 +53,6 @@
 //         self.has_errors
 //     }
 
-
 //     /// Add a Diagnostic to the Session
 //     ///
 //     /// Updates the list of diagnostics in the session to add the

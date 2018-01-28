@@ -5,7 +5,7 @@
 use std::ffi::CString;
 use std::os::raw::c_uint;
 use super::llvm_sys::prelude::*;
-use super::llvm_sys::{target, core};
+use super::llvm_sys::{core, target};
 use super::prelude::*;
 
 /// Ensure Initialised
@@ -74,7 +74,6 @@ impl Context {
         ensure_initialised();
         Context(unsafe { core::LLVMContextCreate() })
     }
-
 
     /// Add Module
     ///

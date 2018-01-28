@@ -62,7 +62,6 @@ struct Args {
 /// The main function for `ullage`. Parses the options and runs the
 /// selected command.
 fn main() {
-
     let args: Args = Docopt::new(USAGE)
         .and_then(|d| d.deserialize())
         .unwrap_or_else(|e| e.exit());
