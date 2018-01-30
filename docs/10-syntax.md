@@ -71,7 +71,17 @@ Variables are introduced with the `var` keyword followed by an identifier and an
 
 ## Operators
 
-TODO
+Ullage has both infix and prefix operators. Operators are grouped by precedence. Precedence can be overridden or enforced with parentheses.
+
+The following infix operators exist, in precedence order from lowest to highest:
+
+ * `==`, `!=`, `<`, `>` - Comparison operators
+ * `+`, `-` - Addition and Subtraction
+ * `*`, `/` - Multiplication and division
+
+The following infix operators exist. All prefix operators bind directly to the next expression:
+
+ * `-`, `+`, `!`
 
 ## Compound Expressions
 
