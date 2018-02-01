@@ -85,4 +85,61 @@ The following infix operators exist. All prefix operators bind directly to the n
 
 ## Compound Expressions
 
-TODO
+As well as just simple expressions Ullage supports compound ones too. There aren't that many at this time:
+
+### While loop
+
+A basic while loop has the form:
+
+```
+while foo
+   do_stuff()
+   ..
+end
+```
+
+This continues until the expression `foo` is false.
+
+There is also an alternate form, the `until` loop which continues until the expression is true:
+
+```
+until bar
+   do_other_stuff()
+end
+```
+
+### Print Expression
+
+The `print` word acts as a prefix operator. It will print the expression immediately to the right of it to standard output and return the value.
+
+```
+print 'hello world'
+```
+
+### Ternary Conditional Expression
+
+The ternary expression in Ullage has two forms: `if` and `ulesss`.
+
+```
+foo if bar else baz
+```
+
+will evaluate the expression on the left hand side if the condition `bar` is true, or the right hand size `baz` if false.
+
+The `unless` expression does the opposite:
+
+```
+biff unless bop else buzz
+```
+
+### Function Expression
+
+Finally an `fn` expression can be used to introduce a function:
+
+```
+fn mod(n: Number, d: Number): Number
+   n if n < d else mod(n - d, d)
+end
+```
+
+This defines a function named `mod` which takes two `Number` parameters, `n` and `d`, and returns a `Number`.
