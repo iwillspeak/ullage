@@ -10,7 +10,7 @@
     <script>hljs.initHighlightingOnLoad();</script>
   </head>
   <body><header class="page-heading"><h1><a href="#">Syntax &amp; Grammar</h1><a class="home-link" href="../">ullage</a></header><p>Ullage files are plain-old UTF-8. The language itself is built mainly around <em>words</em> rather than fancy sigils; more reminiscent of Ruby than C and friends.</p>
-<p><ol><li><a href="#Tokens">Tokens</a><ol><li><a href="#Words">Words</a></li><li><a href="#Punctuation">Punctuation</a></li><li><a href="#Literals">Literals</a></li><li><a href="#Whitespace">Whitespace</a></li></ol></li><li><a href="#Types">Types</a><ol><li><a href="#Bool"><code>Bool</code></a></li><li><a href="#Number"><code>Number</code></a></li><li><a href="#String"><code>String</code></a></li><li><a href="#Arrays">Arrays</a></li><li><a href="#Tuples">Tuples</a></li></ol></li><li><a href="#Variables">Variables</a><ol></ol></li><li><a href="#Operators">Operators</a><ol></ol></li><li><a href="#Compound-Expressions">Compound Expressions</a><ol></ol></li></ol></p>
+<p><ol><li><a href="#Tokens">Tokens</a><ol><li><a href="#Words">Words</a></li><li><a href="#Punctuation">Punctuation</a></li><li><a href="#Literals">Literals</a></li><li><a href="#Whitespace">Whitespace</a></li></ol></li><li><a href="#Types">Types</a><ol><li><a href="#Bool"><code>Bool</code></a></li><li><a href="#Number"><code>Number</code></a></li><li><a href="#String"><code>String</code></a></li><li><a href="#Arrays">Arrays</a></li><li><a href="#Tuples">Tuples</a></li></ol></li><li><a href="#Variables">Variables</a><ol></ol></li><li><a href="#Operators">Operators</a><ol></ol></li><li><a href="#Compound-Expressions">Compound Expressions</a><ol><li><a href="#While-loop">While loop</a></li><li><a href="#Print-Expression">Print Expression</a></li><li><a href="#Ternary-Conditional-Expression">Ternary Conditional Expression</a></li><li><a href="#Function-Expression">Function Expression</a></li></ol></li></ol></p>
 <h2 id="Tokens"><a href="#Tokens">Tokens</a></h2><p>Source text is treated as one of four basic token types: <em>words</em>, <em>punctuation</em>, <em>literals</em> and <em>whitespace</em>. Words and whitespace are unicode-aware.</p>
 <h3 id="Words"><a href="#Words">Words</a></h3><p>Word tokens start with an alphabetic character or an underscore. They may then contain any number of alphanumeric or underscore characters.</p>
 <p>Examples of words are: <code>foo</code>, <code>fn</code>, <code>_1</code> and <code>∂</code>. Some words have special meanings in the grammar:</p>
@@ -49,5 +49,33 @@ var bar: Number = 10
 <ul>
 <li><code>-</code>, <code>+</code>, <code>!</code></li>
 </ul>
-<h2 id="Compound-Expressions"><a href="#Compound-Expressions">Compound Expressions</a></h2><p>TODO</p>
+<h2 id="Compound-Expressions"><a href="#Compound-Expressions">Compound Expressions</a></h2><p>As well as just simple expressions Ullage supports compound ones too. There aren't that many at this time:</p>
+<h3 id="While-loop"><a href="#While-loop">While loop</a></h3><p>A basic while loop has the form:</p>
+<pre><code>while foo
+   do_stuff()
+   ..
+end
+</code></pre>
+<p>This continues until the expression <code>foo</code> is false.</p>
+<p>There is also an alternate form, the <code>until</code> loop which continues until the expression is true:</p>
+<pre><code>until bar
+   do_other_stuff()
+end
+</code></pre>
+<h3 id="Print-Expression"><a href="#Print-Expression">Print Expression</a></h3><p>The <code>print</code> word acts as a prefix operator. It will print the expression immediately to the right of it to standard output and return the value.</p>
+<pre><code>print 'hello world'
+</code></pre>
+<h3 id="Ternary-Conditional-Expression"><a href="#Ternary-Conditional-Expression">Ternary Conditional Expression</a></h3><p>The ternary expression in Ullage has two forms: <code>if</code> and <code>ulesss</code>.</p>
+<pre><code>foo if bar else baz
+</code></pre>
+<p>will evaluate the expression on the left hand side if the condition <code>bar</code> is true, or the right hand size <code>baz</code> if false.</p>
+<p>The <code>unless</code> expression does the opposite:</p>
+<pre><code>biff unless bop else buzz
+</code></pre>
+<h3 id="Function-Expression"><a href="#Function-Expression">Function Expression</a></h3><p>Finally an <code>fn</code> expression can be used to introduce a function:</p>
+<pre><code>fn mod(n: Number, d: Number): Number
+   n if n &lt; d else mod(n - d, d)
+end
+</code></pre>
+<p>This defines a function named <code>mod</code> which takes two <code>Number</code> parameters, <code>n</code> and <code>d</code>, and returns a <code>Number</code>.</p>
 <footer></footer></body></html>
