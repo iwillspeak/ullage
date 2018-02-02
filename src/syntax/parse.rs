@@ -500,8 +500,12 @@ impl<'a> Token<'a> {
                 parser.expect(Token::Word("end"))?;
                 Ok(Expression::from(res))
             }
+            Token::Word("until") |
             Token::Word("while") => {
-                let condition = parser.single_expression()?;
+                let mut condition = parser.single_expression()?;
+                if *self == Token::Word("until") {
+                    condition = Expression::Prefix(PrefixOp::Not, Box::new(condition));
+                }
                 let block = parser.block()?;
                 parser.expect(Token::Word("end"))?;
                 Ok(Expression::loop_while(condition, block))

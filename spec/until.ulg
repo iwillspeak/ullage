@@ -1,0 +1,6 @@
+var bar = 0
+until bar > 5
+	  print bar = bar + 2 # => 2
+	                      # => 4
+						  # => 6
+end
