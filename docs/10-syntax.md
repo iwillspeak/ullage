@@ -14,7 +14,7 @@ Word tokens start with an alphabetic character or an underscore. They may then c
 
 Examples of words are: `foo`, `fn`, `_1` and `∂`. Some words have special meanings in the grammar:
 
-    if unless else while end fn var let print
+    if unless else while until end fn var let print
 
 ### Punctuation
 
