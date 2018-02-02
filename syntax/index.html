@@ -14,7 +14,7 @@
 <h2 id="Tokens"><a href="#Tokens">Tokens</a></h2><p>Source text is treated as one of four basic token types: <em>words</em>, <em>punctuation</em>, <em>literals</em> and <em>whitespace</em>. Words and whitespace are unicode-aware.</p>
 <h3 id="Words"><a href="#Words">Words</a></h3><p>Word tokens start with an alphabetic character or an underscore. They may then contain any number of alphanumeric or underscore characters.</p>
 <p>Examples of words are: <code>foo</code>, <code>fn</code>, <code>_1</code> and <code>∂</code>. Some words have special meanings in the grammar:</p>
-<pre><code>if unless else while end fn var let print
+<pre><code>if unless else while until end fn var let print
 </code></pre>
 <h3 id="Punctuation"><a href="#Punctuation">Punctuation</a></h3><p>Punctuation characters, such as <code>-</code> and <code>!=</code> are used to represent operators in the language. Currently a handful of punctuation characters are recognised: <code>=</code>, <code>==</code>, <code>!</code>, <code>!=</code>, <code>+</code>, <code>-</code>, <code>*</code>, <code>/</code>, <code>(</code>, <code>)</code>, <code>[</code>, <code>]</code>, <code>,</code>, <code>:</code>, <code>&lt;</code>, and <code>&gt;</code>.</p>
 <h3 id="Literals"><a href="#Literals">Literals</a></h3><p>Literals are used to represent constant input values to the program. Literals can be used to specify values of any primitive type (<code>Number</code>, <code>Bool</code> and <code>String</code> so far). Numeric literals consist of one or more consecutive digits: <code>0</code>, <code>42</code>, <code>1337</code>. Although <code>-47</code> evaluates to a negative number the <code>-</code> isn't part of the literal; in fact it is an operator.</p>
