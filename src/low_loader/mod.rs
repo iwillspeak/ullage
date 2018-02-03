@@ -2,6 +2,8 @@
 //!
 //! Low-level bindings to LLVM for building JIT compilers.
 
+#![deny(missing_docs)]
+
 extern crate llvm_sys;
 
 pub mod module;

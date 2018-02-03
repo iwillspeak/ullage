@@ -1,3 +1,9 @@
+//! LLVM Value Wrappers
+//!
+//! This module contains wrapping code and types for the LLVM
+//! Value. The intention is to prevent exposing raw LLVM types from
+//! `low_loader`.
+
 use super::llvm_sys::prelude::LLVMValueRef;
 
 /// Wrapped Value Reference
@@ -18,6 +24,9 @@ impl From<Value> for LLVMValueRef {
 }
 
 impl Value {
+    /// Convert an Value into an LLVM One
+    ///
+    /// TODO: This shouldn't be public
     pub fn as_llvm_value(&self) -> LLVMValueRef {
         let &Value(v) = self;
         v

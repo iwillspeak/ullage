@@ -28,9 +28,13 @@ pub struct Builder {
 /// `LLVMIntPreidcate` or `LLVMRealPredicate`s depending on the types
 /// being used.
 pub enum Predicate {
+    /// Equality predicate
     Eq,
+    /// Inequality predicate
     Neq,
+    /// Arithmetic less than comparison
     Lt,
+    /// Arithmetic greter than comparision
     Gt,
 }
 
