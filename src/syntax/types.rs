@@ -9,9 +9,13 @@
 /// to a named type or a complex type such as an array or Tuple.
 #[derive(Debug, PartialEq)]
 pub enum TypeRef {
+    /// Simple Named Type
     Simple(String),
+    /// The Unit Type
     Unit,
+    /// A non-empty Tuple
     Tuple(Vec<TypeRef>),
+    /// An Array Type
     Array(Box<TypeRef>),
 }
 

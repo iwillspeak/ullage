@@ -1,4 +1,5 @@
-//! Compilation error module. Contains the Result and Error types for the compile module.
+//! Compilation error module. Contains the Result and Error types for
+//! the compile module.
 
 use std::io;
 use std::fmt;

@@ -224,15 +224,28 @@ impl Context {
         raw_ctx
     }
 
-    /// Get Type in this Context
+    /// A Sized Integer Type in this Context
+    ///
+    /// This looks up the integer type of a given `width` in the LLVM
+    /// Context and returns it. Multiple calls should return the same
+    /// type for the same width integer.
     pub fn int_type(&self, width: usize) -> LLVMTypeRef {
         unsafe { core::LLVMIntTypeInContext(self.as_raw(), width as c_uint) }
     }
 
+    /// Boolean Type in this Context
+    ///
+    /// Looks up the boolean type from LLVM. This is just a 1-bit
+    /// integer type under the hood.
     pub fn bool_type(&self) -> LLVMTypeRef {
         self.int_type(1)
     }
 
+    /// Get the Raw C String Type
+    ///
+    /// Looks up the c-style 'pointer to character' string type in the
+    /// context. This is different from the langauage's string
+    /// type. It is intended to be used when creating FFI calls.
     pub fn cstr_type(&self) -> LLVMTypeRef {
         unsafe {
             let int8 = core::LLVMInt8TypeInContext(self.as_raw());
@@ -240,11 +253,17 @@ impl Context {
         }
     }
 
-    /// Get the type kind from a given type.
+    /// Get the LLVM Type from a Value
+    ///
+    /// Inspects a given LLVM Value and returns the type as known by
+    /// LLVM. This is basically jsut an `LLVMTypeOf` call.
     pub fn get_type(&self, value: LLVMValueRef) -> LLVMTypeRef {
         unsafe { core::LLVMTypeOf(value) }
     }
 
+    /// Lookup Named Type
+    ///
+    /// Retrieves a given named type from this context.
     pub fn named_type(&self, type_name: &str) -> LLVMTypeRef {
         match type_name {
             "Bool" => self.bool_type(),

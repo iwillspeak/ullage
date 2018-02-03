@@ -29,6 +29,9 @@ pub fn parse_single<S: AsRef<str>>(s: S) -> Result<Expression> {
     p.single_expression()
 }
 
+/// Literal Value
+///
+/// Represents any constant / literal value in the syntax tree.
 #[derive(Debug, PartialEq)]
 pub enum Literal {
     /// A literal string

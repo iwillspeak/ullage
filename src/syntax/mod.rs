@@ -15,7 +15,13 @@ pub use self::types::*;
 /// An identifier, with an optional type attached
 #[derive(Debug, PartialEq)]
 pub struct TypedId {
+    /// The Type of this Identifier
+    ///
+    /// If a type was specified then this contains the type
+    /// reference. If empty then the type should be inferred.
     pub typ: Option<TypeRef>,
+
+    /// The Idnetifier Itself
     pub id: String,
 }
 
