@@ -2,7 +2,7 @@
 //!
 //! Contains a Rust wrapper for dealing with LLVM Intermediate
 //! Representation Builders. These objects are responsible for
-//! creating instructions and addind them to basic blocks. Essentially
+//! creating instructions and adding them to basic blocks. Essentially
 //! they make up the ponity end of the whole thing. Useful!
 
 use super::llvm_sys::prelude::*;
@@ -22,7 +22,7 @@ pub struct Builder {
     raw: LLVMBuilderRef,
 }
 
-/// Predicate
+/// Comparison Predicate Type
 ///
 /// Choice of comparison operators. These will be mapped through to
 /// `LLVMIntPreidcate` or `LLVMRealPredicate`s depending on the types
@@ -213,6 +213,10 @@ impl Builder {
     }
 
     /// Bitcast
+    ///
+    /// Re-interpret the input value to be of the given type. This
+    /// just transforms how the underlying bits are interpreted rather
+    /// than performing any smarter coercion.
     pub fn build_bitcast(
         &mut self,
         val: LLVMValueRef,
