@@ -65,6 +65,7 @@ pub enum Constant {
 
 /// Represents an AST expression.
 #[derive(Debug, PartialEq)]
+#[allow(missing_docs)]
 pub enum Expression {
     Identifier(String),
     Literal(Constant),

@@ -1,6 +1,8 @@
 //! Expression tree parsing using Top-Down Operator Precedence
 //! parsing.
 
+#![warn(missing_docs)]
+
 extern crate docopt;
 #[macro_use]
 extern crate serde_derive;

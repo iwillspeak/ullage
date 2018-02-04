@@ -8,7 +8,9 @@ use std::fmt;
 /// when compiling.
 #[derive(Debug)]
 pub enum Error {
+    /// Generic Error String
     Generic(String),
+    /// Wrapped IO Error
     IO(::std::io::Error),
 }
 

@@ -1,7 +1,7 @@
-// //! Compiler Diagnostics Handling
-// //!
-// //! This module contians the `DiagSession` type. This type holds a
-// //! collection of compiler warnings and errors.
+//! Compiler Diagnostics Handling
+//!
+//! This module contians the `DiagSession` type. This type holds a
+//! collection of compiler warnings and errors.
 
 // use syntax::position::Location;
 
