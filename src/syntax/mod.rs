@@ -55,8 +55,11 @@ impl TypedId {
 /// Literal / Constant Value
 #[derive(Debug, PartialEq)]
 pub enum Constant {
+    /// A Numeric Value
     Number(i64),
+    /// A Boolean Value
     Bool(bool),
+    /// A Literal String
     String(String),
 }
 
