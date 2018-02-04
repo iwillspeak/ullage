@@ -10,5 +10,5 @@
 /// representation of the code as it was written.
 pub struct Expression {
     /// TODO: Properly implement this.
-    pub expr: syntax::Expression,
+    pub expr: ::syntax::Expression,
 }
