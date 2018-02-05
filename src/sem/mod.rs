@@ -6,6 +6,7 @@
 
 mod transform;
 mod tree;
+mod types;
 
 pub use self::tree::Expression;
 pub use self::transform::transform_expression;

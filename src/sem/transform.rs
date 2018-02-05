@@ -14,5 +14,5 @@ use super::tree::*;
 ///
 /// Convert a syntax expression into a symantic one.
 pub fn transform_expression(expr: syntax::Expression) -> Expression {
-    Expression { expr: expr }
+    Expression { expr: expr, typ: None }
 }

@@ -3,6 +3,8 @@
 //! This module contains the types used to construct the
 //! decorated/semantic expression tree.
 
+use super::types::*;
+
 /// A Semantically Decorated Expression
 ///
 /// This struct represents the expression tree after semantic
@@ -11,4 +13,7 @@
 pub struct Expression {
     /// TODO: Properly implement this.
     pub expr: ::syntax::Expression,
+
+    /// The type of this node
+    pub typ: Option<Typ>,
 }
