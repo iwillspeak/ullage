@@ -4,6 +4,7 @@
 //! decorated/semantic expression tree.
 
 use super::types::*;
+use syntax::Constant;
 
 /// A Semantically Decorated Expression
 ///
@@ -25,6 +26,11 @@ pub struct Expression {
 /// enum however some information may have been elided or reordered to
 /// better suit the lowering process.
 pub enum ExpressionKind {
+    /// Literal Value
+    ///
+    /// A constant value. This is just plucked straight from the
+    /// syntax tree.
+    Literal(Constant),
     /// FIXME: Move the different expression kinds in here.
     Fixme(::syntax::Expression)
 }
