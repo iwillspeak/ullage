@@ -4,7 +4,7 @@
 //! them to LLVM.
 
 use syntax::{self, Constant};
-use sem::Expression;
+use sem::{Expression, ExpressionKind};
 use syntax::operators::{InfixOp, PrefixOp};
 use low_loader::prelude::*;
 
@@ -72,9 +72,9 @@ pub fn lower_expression<'a>(
 ) -> Result<()> {
     let mut vars = HashMap::new();
 
-    add_decls(ctx, &expr.expr);
+    add_decls(ctx, &expr);
 
-    lower_internal(ctx, fun, builder, &mut vars, expr.expr)?;
+    lower_internal(ctx, fun, builder, &mut vars, expr)?;
     Ok(())
 }
 
@@ -83,10 +83,18 @@ pub fn lower_expression<'a>(
 /// Loops through the tree of expressions and adds LLVM function
 /// declarations for each defined function. This ensures mutal
 /// recursion is possible.
-fn add_decls(ctx: &mut LowerContext, expr: &syntax::Expression) {
+fn add_decls(ctx: &mut LowerContext, expr: &Expression) {
+    match expr.kind {
+        ExpressionKind::Fixme(ref inner) => add_decls_syntax(ctx, &inner),
+    }
+}
+
+/// FIXME: remove this function
+fn add_decls_syntax(ctx: &mut LowerContext, expr: &syntax::Expression) {
+
     match expr {
         &syntax::Expression::Sequence(ref exprs) => for expr in exprs.iter() {
-            add_decls(ctx, expr)
+            add_decls_syntax(ctx, expr)
         },
         &syntax::Expression::Function(ref name, ref ret, ref params, ref _body) => {
             let ret = ctx.llvm_ctx.named_type(ret.simple_name());
@@ -107,7 +115,27 @@ fn add_decls(ctx: &mut LowerContext, expr: &syntax::Expression) {
 /// Internal Lowering of `Expression`s
 ///
 /// Converts an `Expression` to LLVM IR
-pub fn lower_internal<'a>(
+pub fn lower_internal(
+    ctx: &mut LowerContext,
+    fun: &mut Function,
+    builder: &mut Builder,
+    vars: &mut HashMap<String, Local>,
+    expr: Expression,
+) -> Result<LLVMValueRef> {
+
+    match expr.kind {
+        ExpressionKind::Fixme(inner) => lower_internal_syntax(
+            ctx,
+            fun,
+            builder,
+            vars,
+            inner
+        )
+    }
+}
+
+/// FIXME: remove this function
+pub fn lower_internal_syntax(
     ctx: &mut LowerContext,
     fun: &mut Function,
     builder: &mut Builder,
@@ -125,7 +153,7 @@ pub fn lower_internal<'a>(
             Constant::String(_) => unimplemented!(),
         },
         syntax::Expression::Prefix(op, expr) => {
-            let val = lower_internal(ctx, fun, builder, vars, *expr)?;
+            let val = lower_internal_syntax(ctx, fun, builder, vars, *expr)?;
             let val = match op {
                 PrefixOp::Negate => builder.build_neg(val),
                 PrefixOp::Not => builder.build_not(val),
@@ -133,7 +161,7 @@ pub fn lower_internal<'a>(
             Ok(val)
         }
         syntax::Expression::Infix(lhs, op, rhs) => {
-            let rhs_val = lower_internal(ctx, fun, builder, vars, *rhs)?;
+            let rhs_val = lower_internal_syntax(ctx, fun, builder, vars, *rhs)?;
 
             // TODO: maybe assignment should be a different node in the AST?
             if op == InfixOp::Assign {
@@ -151,7 +179,7 @@ pub fn lower_internal<'a>(
                     )))
                 }
             } else {
-                let lhs_val = lower_internal(ctx, fun, builder, vars, *lhs)?;
+                let lhs_val = lower_internal_syntax(ctx, fun, builder, vars, *lhs)?;
                 let val = match op {
                     InfixOp::Add => builder.build_add(lhs_val, rhs_val),
                     InfixOp::Sub => builder.build_sub(lhs_val, rhs_val),
@@ -168,7 +196,7 @@ pub fn lower_internal<'a>(
             }
         }
         syntax::Expression::Print(inner) => {
-            let val = lower_internal(ctx, fun, builder, vars, *inner)?;
+            let val = lower_internal_syntax(ctx, fun, builder, vars, *inner)?;
             let (to_format, format_name) = match Type::from(ctx.llvm_ctx.get_type(val)) {
                 Type::Int(1) => {
                     let cstr_type = ctx.llvm_ctx.cstr_type();
@@ -214,7 +242,7 @@ pub fn lower_internal<'a>(
             Ok(val)
         }
         syntax::Expression::Declaration(decl, is_mut, expr) => {
-            let initialiser = lower_internal(ctx, fun, builder, vars, *expr)?;
+            let initialiser = lower_internal_syntax(ctx, fun, builder, vars, *expr)?;
             let value = if is_mut {
                 // FIXME: look the type up properly
                 let typ = ctx.llvm_ctx.int_type(64);
@@ -228,7 +256,7 @@ pub fn lower_internal<'a>(
             Ok(initialiser)
         }
         syntax::Expression::IfThenElse(cond, then, elze) => {
-            let cond = lower_internal(ctx, fun, builder, vars, *cond)?;
+            let cond = lower_internal_syntax(ctx, fun, builder, vars, *cond)?;
 
             let typ = ctx.llvm_ctx.int_type(64);
             let ret = builder.build_alloca(typ, "if");
@@ -240,12 +268,12 @@ pub fn lower_internal<'a>(
             builder.build_cond_br(cond, thenblock, elzeblock);
 
             builder.position_at_end(thenblock);
-            let then = lower_internal(ctx, fun, builder, vars, *then)?;
+            let then = lower_internal_syntax(ctx, fun, builder, vars, *then)?;
             builder.build_store(then, ret);
             builder.build_br(joinblock);
 
             builder.position_at_end(elzeblock);
-            let elze = lower_internal(ctx, fun, builder, vars, *elze)?;
+            let elze = lower_internal_syntax(ctx, fun, builder, vars, *elze)?;
             builder.build_store(elze, ret);
             builder.build_br(joinblock);
 
@@ -260,11 +288,11 @@ pub fn lower_internal<'a>(
             builder.build_br(condblock);
             builder.position_at_end(condblock);
 
-            let cond = lower_internal(ctx, fun, builder, vars, *cond)?;
+            let cond = lower_internal_syntax(ctx, fun, builder, vars, *cond)?;
             builder.build_cond_br(cond, bodyblock, joinblock);
 
             builder.position_at_end(bodyblock);
-            lower_internal(ctx, fun, builder, vars, *body)?;
+            lower_internal_syntax(ctx, fun, builder, vars, *body)?;
             builder.build_br(condblock);
 
             builder.position_at_end(joinblock);
@@ -273,7 +301,7 @@ pub fn lower_internal<'a>(
         }
         syntax::Expression::Sequence(exprs) => exprs
             .into_iter()
-            .map(|expr| lower_internal(ctx, fun, builder, vars, expr))
+            .map(|expr| lower_internal_syntax(ctx, fun, builder, vars, expr))
             .last()
             .unwrap(),
         syntax::Expression::Function(name, _typ, params, body) => {
@@ -290,7 +318,7 @@ pub fn lower_internal<'a>(
                 .map(|(i, p)| (p.id, (false, fun.get_param(i as u32))))
                 .collect::<HashMap<String, Local>>();
 
-            let body = lower_internal(ctx, &mut fun, &mut builder, &mut vars, *body)?;
+            let body = lower_internal_syntax(ctx, &mut fun, &mut builder, &mut vars, *body)?;
             builder.build_ret(body);
             fun.verify_or_panic();
             Ok(unsafe { fun.as_raw() })
@@ -300,7 +328,7 @@ pub fn lower_internal<'a>(
                 match ctx.module.find_function(&name) {
                     Some(function) => {
                         let mut args = args.into_iter()
-                            .map(|arg| lower_internal(ctx, fun, builder, vars, arg))
+                            .map(|arg| lower_internal_syntax(ctx, fun, builder, vars, arg))
                             .collect::<::std::result::Result<Vec<_>, Error>>()?;
                         let call_res = builder.build_call(&function, &mut args);
                         Ok(call_res)
