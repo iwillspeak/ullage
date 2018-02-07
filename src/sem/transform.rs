@@ -6,9 +6,9 @@
 //!
 //! [`transform_expression`]: ./function.transform_expression.html
 
-use syntax::{Constant,Expression as SyntaxExpr};
+use syntax::{Constant, Expression as SyntaxExpr};
 
-use super::types::{Typ, BuiltinType};
+use super::types::{BuiltinType, Typ};
 use super::tree::*;
 
 /// Transform Expression
@@ -22,10 +22,8 @@ pub fn transform_expression(expr: SyntaxExpr) -> Expression {
                 &Constant::Number(_) => BuiltinType::Number,
                 &Constant::String(_) => BuiltinType::String,
             });
-            Expression::new(
-                ExpressionKind::Literal(c),
-                Some(typ))
+            Expression::new(ExpressionKind::Literal(c), Some(typ))
         }
-        expr => Expression::new(ExpressionKind::Fixme(expr), None)
+        expr => Expression::new(ExpressionKind::Fixme(expr), None),
     }
 }

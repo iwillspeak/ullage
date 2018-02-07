@@ -92,7 +92,6 @@ fn add_decls(ctx: &mut LowerContext, expr: &Expression) {
 
 /// FIXME: remove this function
 fn add_decls_syntax(ctx: &mut LowerContext, expr: &syntax::Expression) {
-
     match expr {
         &syntax::Expression::Sequence(ref exprs) => for expr in exprs.iter() {
             add_decls_syntax(ctx, expr)
@@ -123,20 +122,13 @@ pub fn lower_internal(
     vars: &mut HashMap<String, Local>,
     expr: Expression,
 ) -> Result<LLVMValueRef> {
-
     match expr.kind {
         ExpressionKind::Literal(constant) => match constant {
             Constant::Number(n) => Ok(ctx.llvm_ctx.const_int(n)),
             Constant::Bool(b) => Ok(ctx.llvm_ctx.const_bool(b)),
             Constant::String(_) => unimplemented!(),
         },
-        ExpressionKind::Fixme(inner) => lower_internal_syntax(
-            ctx,
-            fun,
-            builder,
-            vars,
-            inner
-        )
+        ExpressionKind::Fixme(inner) => lower_internal_syntax(ctx, fun, builder, vars, inner),
     }
 }
 

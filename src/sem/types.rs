@@ -17,5 +17,5 @@ pub enum BuiltinType {
     /// Boolean
     Bool,
     /// String type. This is a pointer-lenght pair
-    String
+    String,
 }

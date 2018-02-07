@@ -32,7 +32,7 @@ pub enum ExpressionKind {
     /// syntax tree.
     Literal(Constant),
     /// FIXME: Move the different expression kinds in here.
-    Fixme(::syntax::Expression)
+    Fixme(::syntax::Expression),
 }
 
 impl Expression {
@@ -43,9 +43,6 @@ impl Expression {
     /// be set to none if no type inference has yet been run for this
     /// expression.
     pub fn new(kind: ExpressionKind, typ: Option<Typ>) -> Self {
-        Expression{
-            kind,
-            typ
-        }
+        Expression { kind, typ }
     }
 }
