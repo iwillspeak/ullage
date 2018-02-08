@@ -24,6 +24,13 @@ pub fn transform_expression(expr: SyntaxExpr) -> Expression {
             });
             Expression::new(ExpressionKind::Literal(c), Some(typ))
         }
+        SyntaxExpr::Sequence(seq) => {
+            let transformed = seq.into_iter()
+                .map(transform_expression)
+                .collect::<Vec<_>>();
+            let typ = transformed.last().and_then(|e| e.typ.clone());
+            Expression::new(ExpressionKind::Sequence(transformed), typ)
+        }
         expr => Expression::new(ExpressionKind::Fixme(expr), None),
     }
 }

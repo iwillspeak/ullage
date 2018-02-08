@@ -31,6 +31,8 @@ pub enum ExpressionKind {
     /// A constant value. This is just plucked straight from the
     /// syntax tree.
     Literal(Constant),
+    /// A Sequence of Expressions
+    Sequence(Vec<Expression>),
     /// FIXME: Move the different expression kinds in here.
     Fixme(::syntax::Expression),
 }

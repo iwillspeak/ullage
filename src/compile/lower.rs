@@ -85,6 +85,9 @@ pub fn lower_expression<'a>(
 /// recursion is possible.
 fn add_decls(ctx: &mut LowerContext, expr: &Expression) {
     match expr.kind {
+        ExpressionKind::Sequence(ref exprs) => for expr in exprs.iter() {
+            add_decls(ctx, expr);
+        },
         ExpressionKind::Fixme(ref inner) => add_decls_syntax(ctx, &inner),
         _ => (),
     }
@@ -128,6 +131,10 @@ pub fn lower_internal(
             Constant::Bool(b) => Ok(ctx.llvm_ctx.const_bool(b)),
             Constant::String(_) => unimplemented!(),
         },
+        ExpressionKind::Sequence(seq) => seq.into_iter()
+            .map(|e| lower_internal(ctx, fun, builder, vars, e))
+            .last()
+            .unwrap(),
         ExpressionKind::Fixme(inner) => lower_internal_syntax(ctx, fun, builder, vars, inner),
     }
 }

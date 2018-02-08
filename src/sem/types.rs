@@ -5,12 +5,18 @@
 //! global type registry which is used during compilation for type
 //! checking and inferrance.
 
+/// Semantic Type
+///
+/// This enum defines the different type values that each node in the
+/// semantic tree could have.
+#[derive(Clone)]
 pub enum Typ {
     /// One of the given basic types in the language.
     Builtin(BuiltinType),
 }
 
 /// The fixed builtin types
+#[derive(Clone)]
 pub enum BuiltinType {
     /// 64 bit numerical value
     Number,
