@@ -30,6 +30,11 @@ pub fn transform_expression(expr: SyntaxExpr) -> Expression {
                 .collect::<Vec<_>>();
             let typ = transformed.last().and_then(|e| e.typ.clone());
             Expression::new(ExpressionKind::Sequence(transformed), typ)
+        },
+        SyntaxExpr::Prefix(op, expr) => {
+            let transformed = transform_expression(*expr);
+            let typ = transformed.typ.clone();
+            Expression::new(ExpressionKind::Prefix(op, Box::new(transformed)), typ)
         }
         expr => Expression::new(ExpressionKind::Fixme(expr), None),
     }

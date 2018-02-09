@@ -135,6 +135,13 @@ pub fn lower_internal(
             .map(|e| lower_internal(ctx, fun, builder, vars, e))
             .last()
             .unwrap(),
+        ExpressionKind::Prefix(op, inner) => {
+            let val = lower_internal(ctx, fun, builder, vars, *inner)?;
+            Ok(match op {
+                PrefixOp::Negate => builder.build_neg(val),
+                PrefixOp::Not => builder.build_not(val),
+            })
+        }
         ExpressionKind::Fixme(inner) => lower_internal_syntax(ctx, fun, builder, vars, inner),
     }
 }

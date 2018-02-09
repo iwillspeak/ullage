@@ -5,6 +5,7 @@
 
 use super::types::*;
 use syntax::Constant;
+use syntax::operators::PrefixOp;
 
 /// A Semantically Decorated Expression
 ///
@@ -33,6 +34,8 @@ pub enum ExpressionKind {
     Literal(Constant),
     /// A Sequence of Expressions
     Sequence(Vec<Expression>),
+    /// A prefix operator
+    Prefix(PrefixOp, Box<Expression>),
     /// FIXME: Move the different expression kinds in here.
     Fixme(::syntax::Expression),
 }
