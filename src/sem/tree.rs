@@ -36,6 +36,12 @@ pub enum ExpressionKind {
     Sequence(Vec<Expression>),
     /// A prefix operator
     Prefix(PrefixOp, Box<Expression>),
+    /// Print Expression
+    ///
+    /// Converts the inner expression to a string and prints it to
+    /// standard output. This underpins the spec tests by allowing
+    /// simple output.
+    Print(Box<Expression>),
     /// FIXME: Move the different expression kinds in here.
     Fixme(::syntax::Expression),
 }
