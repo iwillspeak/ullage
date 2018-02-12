@@ -10,4 +10,4 @@ mod types;
 
 pub use self::tree::{Expression, ExpressionKind};
 pub use self::transform::transform_expression;
-pub use self::types::Typ;
+pub use self::types::{BuiltinType, Typ};

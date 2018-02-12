@@ -4,7 +4,7 @@
 //! them to LLVM.
 
 use syntax::{self, Constant};
-use sem::{Expression, ExpressionKind, Typ};
+use sem::{BuiltinType, Expression, ExpressionKind, Typ};
 use syntax::operators::{InfixOp, PrefixOp};
 use low_loader::prelude::*;
 
@@ -144,9 +144,9 @@ pub fn lower_internal(
         }
         ExpressionKind::Print(inner) => {
             let val = lower_internal(ctx, fun, builder, vars, *inner)?;
-            let (to_format, format) = fmt_from_type(expr.typ).unwrap_or_else(|| {
-                fmt_from_llvm(ctx, fun, builder, val)
-            });
+            let (to_format, format) = expr.typ
+                .and_then(|t| fmt_from_type(t, ctx, fun, builder, val))
+                .unwrap_or_else(|| fmt_from_llvm(ctx, fun, builder, val));
             fmt(ctx, builder, to_format, format);
             Ok(val)
         }
@@ -161,8 +161,7 @@ pub fn lower_internal(
 /// method is intended to be used as part of the `print`
 /// operator/expression. For a list of the supported format string
 /// names check out `add_core_decls`.
-fn fmt(ctx: &mut LowerContext,     builder: &mut Builder,
-to_format: LLVMValueRef, format_name: &str) {
+fn fmt(ctx: &mut LowerContext, builder: &mut Builder, to_format: LLVMValueRef, format_name: &str) {
     let format = ctx.module.find_global(format_name).unwrap();
     let format_ptr = builder.build_gep(
         format,
@@ -173,44 +172,73 @@ to_format: LLVMValueRef, format_name: &str) {
     builder.build_call(&printf, &mut args);
 }
 
+/// Get Format String from Expression Type
+fn fmt_from_type(
+    typ: Typ,
+    ctx: &mut LowerContext,
+    fun: &mut Function,
+    builder: &mut Builder,
+    val: LLVMValueRef,
+) -> Option<(LLVMValueRef, &'static str)> {
+    match typ {
+        Typ::Builtin(BuiltinType::Bool) => {
+            let formatted = fmt_convert_bool(ctx, fun, builder, val);
+            Some((formatted, "printf_cstr_format"))
+        }
+        Typ::Builtin(BuiltinType::Number) => Some((val, "printf_num_format")),
+        _ => None,
+    }
+}
 
-fn fmt_from_type(_typ: Option<Typ>) -> Option<(LLVMValueRef, &'static str)> {
-    None
+/// Format Bool to String
+///
+/// Prepares a bool value to be formatted. This compiles down to a
+/// ternary with two fixed strings `true` and `false`.
+fn fmt_convert_bool(
+    ctx: &mut LowerContext,
+    fun: &mut Function,
+    builder: &mut Builder,
+    val: LLVMValueRef,
+) -> LLVMValueRef {
+    let cstr_type = ctx.llvm_ctx.cstr_type();
+    let temp = builder.build_alloca(cstr_type, "bool_formatted");
+    let true_bb = ctx.llvm_ctx.add_block(fun, "true");
+    let false_bb = ctx.llvm_ctx.add_block(fun, "false");
+    let join_bb = ctx.llvm_ctx.add_block(fun, "join");
+
+    builder.build_cond_br(val, true_bb, false_bb);
+
+    builder.position_at_end(true_bb);
+    let true_s = ctx.module
+        .find_global("print_true")
+        .expect("could't find `print_true`");
+    let true_s = builder.build_bitcast(true_s, cstr_type, "true");
+    builder.build_store(true_s, temp);
+    builder.build_br(join_bb);
+
+    builder.position_at_end(false_bb);
+    let false_s = ctx.module
+        .find_global("print_false")
+        .expect("couldn't find `print_false`");
+    let false_s = builder.build_bitcast(false_s, cstr_type, "false");
+    builder.build_store(false_s, temp);
+    builder.build_br(join_bb);
+
+    builder.position_at_end(join_bb);
+
+    builder.build_load(temp)
 }
 
 /// FIXME: Remove this function
-fn fmt_from_llvm(ctx: &mut LowerContext,    fun: &mut Function,
-     builder: &mut Builder,
-val: LLVMValueRef) -> (LLVMValueRef, &'static str){
+fn fmt_from_llvm(
+    ctx: &mut LowerContext,
+    fun: &mut Function,
+    builder: &mut Builder,
+    val: LLVMValueRef,
+) -> (LLVMValueRef, &'static str) {
     match Type::from(ctx.llvm_ctx.get_type(val)) {
         Type::Int(1) => {
-            let cstr_type = ctx.llvm_ctx.cstr_type();
-            let temp = builder.build_alloca(cstr_type, "bool_formatted");
-            let true_bb = ctx.llvm_ctx.add_block(fun, "true");
-            let false_bb = ctx.llvm_ctx.add_block(fun, "false");
-            let join_bb = ctx.llvm_ctx.add_block(fun, "join");
-
-            builder.build_cond_br(val, true_bb, false_bb);
-
-            builder.position_at_end(true_bb);
-            let true_s = ctx.module
-                .find_global("print_true")
-                .expect("could't find `print_true`");
-            let true_s = builder.build_bitcast(true_s, cstr_type, "true");
-            builder.build_store(true_s, temp);
-            builder.build_br(join_bb);
-
-            builder.position_at_end(false_bb);
-            let false_s = ctx.module
-                .find_global("print_false")
-                .expect("couldn't find `print_false`");
-            let false_s = builder.build_bitcast(false_s, cstr_type, "false");
-            builder.build_store(false_s, temp);
-            builder.build_br(join_bb);
-
-            builder.position_at_end(join_bb);
-
-            let formatted = builder.build_load(temp);
+            let formatted = fmt_convert_bool(ctx, fun, builder, val);
             (formatted, "printf_cstr_format")
         }
         Type::Int(_) => (val, "printf_num_format"),
