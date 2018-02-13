@@ -16,6 +16,12 @@ use super::tree::*;
 /// Convert a syntax expression into a symantic one.
 pub fn transform_expression(expr: SyntaxExpr) -> Expression {
     match expr {
+        SyntaxExpr::Identifier(i) => {
+            // FIXME: need to keep track of types when transforming
+            // expressions so that this can be looked up properly.
+            let typ = None;
+            Expression::new(ExpressionKind::Identifier(i), typ)
+        }
         SyntaxExpr::Literal(c) => {
             let typ = Typ::Builtin(match &c {
                 &Constant::Bool(_) => BuiltinType::Bool,

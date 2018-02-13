@@ -126,6 +126,10 @@ pub fn lower_internal(
     expr: Expression,
 ) -> Result<LLVMValueRef> {
     match expr.kind {
+        ExpressionKind::Identifier(id) => match vars.get(&id) {
+            Some(&(is_mut, val)) => Ok(if is_mut { builder.build_load(val) } else { val }),
+            None => Err(Error::from(format!("Reference to undefined '{}'", id))),
+        },
         ExpressionKind::Literal(constant) => match constant {
             Constant::Number(n) => Ok(ctx.llvm_ctx.const_int(n)),
             Constant::Bool(b) => Ok(ctx.llvm_ctx.const_bool(b)),

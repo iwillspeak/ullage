@@ -27,21 +27,33 @@ pub struct Expression {
 /// enum however some information may have been elided or reordered to
 /// better suit the lowering process.
 pub enum ExpressionKind {
+    /// Identifier
+    ///
+    /// Variable reference. If this is an lvalue then it represents a
+    /// write to the named variable, otherwise a read. Identifier
+    /// expressions appear in other compound expressions such as
+    /// functions when those expressions reference bound values.
+    Identifier(String),
+
     /// Literal Value
     ///
     /// A constant value. This is just plucked straight from the
     /// syntax tree.
     Literal(Constant),
+
     /// A Sequence of Expressions
     Sequence(Vec<Expression>),
+
     /// A prefix operator
     Prefix(PrefixOp, Box<Expression>),
+
     /// Print Expression
     ///
     /// Converts the inner expression to a string and prints it to
     /// standard output. This underpins the spec tests by allowing
     /// simple output.
     Print(Box<Expression>),
+
     /// FIXME: Move the different expression kinds in here.
     Fixme(::syntax::Expression),
 }
