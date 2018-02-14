@@ -42,6 +42,7 @@ pub fn transform_expression(expr: SyntaxExpr) -> Expression {
             let typ = transformed.typ.clone();
             Expression::new(ExpressionKind::Prefix(op, Box::new(transformed)), typ)
         }
+        // TODO: Transform infix expressions...
         SyntaxExpr::Print(inner) => {
             let transformed = transform_expression(*inner);
             let typ = transformed.typ.clone();

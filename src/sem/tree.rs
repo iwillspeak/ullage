@@ -5,7 +5,7 @@
 
 use super::types::*;
 use syntax::Constant;
-use syntax::operators::PrefixOp;
+use syntax::operators::{InfixOp, PrefixOp};
 
 /// A Semantically Decorated Expression
 ///
@@ -41,11 +41,20 @@ pub enum ExpressionKind {
     /// syntax tree.
     Literal(Constant),
 
-    /// A Sequence of Expressions
-    Sequence(Vec<Expression>),
-
     /// A prefix operator
     Prefix(PrefixOp, Box<Expression>),
+
+    /// An infix operator
+    ///
+    /// This only counts comparison and arithmetic operators as infix
+    /// operators. Assignment is handled by the assignment node.
+    Infix(Box<Expression>, InfixOp, Box<Expression>),
+
+    /// Assignment
+    Assignment(String, Box<Expression>),
+
+    /// A Sequence of Expressions
+    Sequence(Vec<Expression>),
 
     /// Print Expression
     ///

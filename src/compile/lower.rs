@@ -135,10 +135,6 @@ pub fn lower_internal(
             Constant::Bool(b) => Ok(ctx.llvm_ctx.const_bool(b)),
             Constant::String(_) => unimplemented!(),
         },
-        ExpressionKind::Sequence(seq) => seq.into_iter()
-            .map(|e| lower_internal(ctx, fun, builder, vars, e))
-            .last()
-            .unwrap(),
         ExpressionKind::Prefix(op, inner) => {
             let val = lower_internal(ctx, fun, builder, vars, *inner)?;
             Ok(match op {
@@ -146,6 +142,37 @@ pub fn lower_internal(
                 PrefixOp::Not => builder.build_not(val),
             })
         }
+        ExpressionKind::Infix(lhs, op, rhs) => {
+            let lhs_val = lower_internal(ctx, fun, builder, vars, *lhs)?;
+            let rhs_val = lower_internal(ctx, fun, builder, vars, *rhs)?;
+            let val = match op {
+                InfixOp::Add => builder.build_add(lhs_val, rhs_val),
+                InfixOp::Sub => builder.build_sub(lhs_val, rhs_val),
+                InfixOp::Mul => builder.build_mul(lhs_val, rhs_val),
+                InfixOp::Div => builder.build_sdiv(lhs_val, rhs_val),
+
+                InfixOp::Eq | InfixOp::NotEq | InfixOp::Lt | InfixOp::Gt => {
+                    builder.build_icmp(Predicate::from(op), lhs_val, rhs_val)
+                }
+
+                InfixOp::Assign => unreachable!(),
+            };
+            Ok(val)
+        }
+        ExpressionKind::Assignment(id, expression) => {
+            let val = lower_internal(ctx, fun, builder, vars, *expression)?;
+            match vars.get(&id) {
+                Some(&(true, var)) => {
+                    builder.build_store(val, var);
+                    Ok(val)
+                }
+                _ => Err(Error::from(format!("can't assign to {}", id))),
+            }
+        }
+        ExpressionKind::Sequence(seq) => seq.into_iter()
+            .map(|e| lower_internal(ctx, fun, builder, vars, e))
+            .last()
+            .unwrap(),
         ExpressionKind::Print(inner) => {
             let val = lower_internal(ctx, fun, builder, vars, *inner)?;
             let (to_format, format) = expr.typ
