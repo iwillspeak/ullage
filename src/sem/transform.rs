@@ -42,7 +42,10 @@ pub fn transform_expression(expr: SyntaxExpr) -> Result<Expression> {
         SyntaxExpr::Prefix(op, expr) => {
             let transformed = transform_expression(*expr)?;
             let typ = transformed.typ.clone();
-            Ok(Expression::new(ExpressionKind::Prefix(op, Box::new(transformed)), typ))
+            Ok(Expression::new(
+                ExpressionKind::Prefix(op, Box::new(transformed)),
+                typ,
+            ))
         }
         SyntaxExpr::Infix(lhs, op, rhs) => {
             let rhs = transform_expression(*rhs)?;
@@ -50,8 +53,10 @@ pub fn transform_expression(expr: SyntaxExpr) -> Result<Expression> {
                 InfixOp::Assign => {
                     if let SyntaxExpr::Identifier(id) = *lhs {
                         // TODO: look up the type of the identifier
-                        Ok(Expression::new(ExpressionKind::Assignment(id, Box::new(rhs)), None))
-                        
+                        Ok(Expression::new(
+                            ExpressionKind::Assignment(id, Box::new(rhs)),
+                            None,
+                        ))
                     } else {
                         Err(Error::Generic(String::from(
                             "left hand side of an assignment must be an identifier",
@@ -63,20 +68,33 @@ pub fn transform_expression(expr: SyntaxExpr) -> Result<Expression> {
                     // TODO: Promote the types somehow?
                     let subexpr_typ = lhs.typ.clone().or(rhs.typ.clone());
                     let typ = match op {
-                        InfixOp::Eq | InfixOp::NotEq |
-                        InfixOp::Gt | InfixOp::Lt => {
+                        InfixOp::Eq | InfixOp::NotEq | InfixOp::Gt | InfixOp::Lt => {
                             Some(Typ::Builtin(BuiltinType::Bool))
                         }
-                        _ => subexpr_typ
+                        _ => subexpr_typ,
                     };
-                    Ok(Expression::new(ExpressionKind::Infix(Box::new(lhs), op, Box::new(rhs)), typ))
+                    Ok(Expression::new(
+                        ExpressionKind::Infix(Box::new(lhs), op, Box::new(rhs)),
+                        typ,
+                    ))
                 }
             }
+        }
+        SyntaxExpr::Loop(condition, body) => {
+            let condition = transform_expression(*condition)?;
+            let body = transform_expression(*body)?;
+            Ok(Expression::new(
+                ExpressionKind::Loop(Box::new(condition), Box::new(body)),
+                Some(Typ::Unit),
+            ))
         }
         SyntaxExpr::Print(inner) => {
             let transformed = transform_expression(*inner)?;
             let typ = transformed.typ.clone();
-            Ok(Expression::new(ExpressionKind::Print(Box::new(transformed)), typ))
+            Ok(Expression::new(
+                ExpressionKind::Print(Box::new(transformed)),
+                typ,
+            ))
         }
         expr => Ok(Expression::new(ExpressionKind::Fixme(expr), None)),
     }

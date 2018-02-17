@@ -169,6 +169,25 @@ pub fn lower_internal(
                 _ => Err(Error::from(format!("can't assign to {}", id))),
             }
         }
+        ExpressionKind::Loop(cond, body) => {
+            let condblock = ctx.llvm_ctx.add_block(fun, "condblock");
+            let bodyblock = ctx.llvm_ctx.add_block(fun, "whilebody");
+            let joinblock = ctx.llvm_ctx.add_block(fun, "joinblock");
+
+            builder.build_br(condblock);
+            builder.position_at_end(condblock);
+
+            let cond = lower_internal(ctx, fun, builder, vars, *cond)?;
+            builder.build_cond_br(cond, bodyblock, joinblock);
+
+            builder.position_at_end(bodyblock);
+            lower_internal(ctx, fun, builder, vars, *body)?;
+            builder.build_br(condblock);
+
+            builder.position_at_end(joinblock);
+
+            Ok(cond)
+        }
         ExpressionKind::Sequence(seq) => seq.into_iter()
             .map(|e| lower_internal(ctx, fun, builder, vars, e))
             .last()

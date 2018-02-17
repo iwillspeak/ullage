@@ -11,6 +11,9 @@
 /// semantic tree could have.
 #[derive(Clone)]
 pub enum Typ {
+    /// The unit type
+    Unit,
+
     /// One of the given basic types in the language.
     Builtin(BuiltinType),
 }

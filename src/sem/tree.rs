@@ -53,6 +53,9 @@ pub enum ExpressionKind {
     /// Assignment
     Assignment(String, Box<Expression>),
 
+    /// Loop with Condition
+    Loop(Box<Expression>, Box<Expression>),
+
     /// A Sequence of Expressions
     Sequence(Vec<Expression>),
 
