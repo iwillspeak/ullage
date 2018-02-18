@@ -53,6 +53,9 @@ pub enum ExpressionKind {
     /// Assignment
     Assignment(String, Box<Expression>),
 
+    /// If Then Else
+    IfThenElse(Box<Expression>, Box<Expression>, Box<Expression>),
+
     /// Loop with Condition
     Loop(Box<Expression>, Box<Expression>),
 

@@ -80,6 +80,18 @@ pub fn transform_expression(expr: SyntaxExpr) -> Result<Expression> {
                 }
             }
         }
+        SyntaxExpr::IfThenElse(iff, then, els) => {
+            let iff = transform_expression(*iff)?;
+            let then = transform_expression(*then)?;
+            let els = transform_expression(*els)?;
+            // FIXME: Check that the type of the then and else
+            // branches match up.
+            let typ = then.typ.clone();
+            Ok(Expression::new(
+                ExpressionKind::IfThenElse(Box::new(iff), Box::new(then), Box::new(els)),
+                typ,
+            ))
+        }
         SyntaxExpr::Loop(condition, body) => {
             let condition = transform_expression(*condition)?;
             let body = transform_expression(*body)?;

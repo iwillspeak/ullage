@@ -169,6 +169,31 @@ pub fn lower_internal(
                 _ => Err(Error::from(format!("can't assign to {}", id))),
             }
         }
+        ExpressionKind::IfThenElse(iff, then, els) => {
+            let cond = lower_internal(ctx, fun, builder, vars, *iff)?;
+
+            let typ = ctx.llvm_ctx.int_type(64);
+            let ret = builder.build_alloca(typ, "if");
+
+            let thenblock = ctx.llvm_ctx.add_block(fun, "thenblock");
+            let elsblock = ctx.llvm_ctx.add_block(fun, "elseblock");
+            let joinblock = ctx.llvm_ctx.add_block(fun, "joinblock");
+
+            builder.build_cond_br(cond, thenblock, elsblock);
+
+            builder.position_at_end(thenblock);
+            let then = lower_internal(ctx, fun, builder, vars, *then)?;
+            builder.build_store(then, ret);
+            builder.build_br(joinblock);
+
+            builder.position_at_end(elsblock);
+            let els = lower_internal(ctx, fun, builder, vars, *els)?;
+            builder.build_store(els, ret);
+            builder.build_br(joinblock);
+
+            builder.position_at_end(joinblock);
+            Ok(builder.build_load(ret))
+        }
         ExpressionKind::Loop(cond, body) => {
             let condblock = ctx.llvm_ctx.add_block(fun, "condblock");
             let bodyblock = ctx.llvm_ctx.add_block(fun, "whilebody");
