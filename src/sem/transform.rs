@@ -80,6 +80,15 @@ pub fn transform_expression(expr: SyntaxExpr) -> Result<Expression> {
                 }
             }
         }
+        SyntaxExpr::Index(expr, index) => {
+            let expr = transform_expression(*expr)?;
+            let index = transform_expression(*index)?;
+            // FIXME: Get the type from the thing being indexed into.
+            Ok(Expression::new(
+                ExpressionKind::Index(Box::new(expr), Box::new(index)),
+                None,
+            ))
+        }
         SyntaxExpr::IfThenElse(iff, then, els) => {
             let iff = transform_expression(*iff)?;
             let then = transform_expression(*then)?;

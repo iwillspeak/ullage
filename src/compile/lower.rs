@@ -169,6 +169,7 @@ pub fn lower_internal(
                 _ => Err(Error::from(format!("can't assign to {}", id))),
             }
         }
+        ExpressionKind::Index(_expr, _index) => unimplemented!(),
         ExpressionKind::IfThenElse(iff, then, els) => {
             let cond = lower_internal(ctx, fun, builder, vars, *iff)?;
 
