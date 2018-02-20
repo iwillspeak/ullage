@@ -4,7 +4,7 @@
 //! decorated/semantic expression tree.
 
 use super::types::*;
-use syntax::Constant;
+use syntax::{Constant, TypedId};
 use syntax::operators::{InfixOp, PrefixOp};
 
 /// A Semantically Decorated Expression
@@ -71,6 +71,9 @@ pub enum ExpressionKind {
     /// standard output. This underpins the spec tests by allowing
     /// simple output.
     Print(Box<Expression>),
+
+    /// Variable Declaration
+    Declaration(TypedId, bool, Box<Expression>),
 
     /// FIXME: Move the different expression kinds in here.
     Fixme(::syntax::Expression),

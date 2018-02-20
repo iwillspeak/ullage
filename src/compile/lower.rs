@@ -226,6 +226,20 @@ pub fn lower_internal(
             fmt(ctx, builder, to_format, format);
             Ok(val)
         }
+        ExpressionKind::Declaration(tid, is_mut, initialiser) => {
+            let initialiser = lower_internal(ctx, fun, builder, vars, *initialiser)?;
+            let value = if is_mut {
+                // FIXME: look the type up properly
+                let typ = ctx.llvm_ctx.int_type(64);
+                let stackloc = builder.build_alloca(typ, &tid.id);
+                builder.build_store(initialiser, stackloc);
+                stackloc
+            } else {
+                initialiser
+            };
+            vars.insert(tid.id, (is_mut, value));
+            Ok(initialiser)
+        }
         ExpressionKind::Fixme(inner) => lower_internal_syntax(ctx, fun, builder, vars, inner),
     }
 }
