@@ -21,3 +21,35 @@ It is now possible to write simple programs. The following program computes 9 fa
 ## License
 
 Ullage is open source, under the [MIT License](LICENSE.md).
+
+## Features and Progress
+
+ * [ ] Custom data structures
+ * [ ] Pattern matching
+ * [ ] First-class functions
+
+### Lexer
+
+ * [x] Recognise words, numbers, comments, operators and whitespace
+ * [ ] Position information on each token
+ * [ ] Interpolated strings
+ * [ ] Expose whitespace to the parser
+
+### Parser
+
+ * [x] Parse base constructs
+ * [ ] For loops and iterators
+ * [ ] Traditional `if` blocks
+ * [ ] Keep track of _all_ underlying tokens
+ * [ ] Expose position & span information
+ * [ ] Round-trippable/pretty-printable
+
+### Code Generation / Lowering
+
+ * [x] Create LLVM module and lower basic constructs
+ * [ ] Array indexing
+ * [ ] Arbitrary types for local variables
+ * [ ] Lowering of `String` type
+ * [ ] Library output typess
+ * [ ] Control of target machine & features
+ * [ ] Stop shelling out for linking on supported platforms (lld or similar)
