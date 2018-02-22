@@ -1,0 +1,8 @@
+fn min(a: Number, b: Number): Number
+   a if a < b else b
+end
+
+print min(1, 100) # => 1
+print min(100, 1) # => 1
+print min(50, 50) # => 50
+print min(7, min(20, 3)) # => 3
