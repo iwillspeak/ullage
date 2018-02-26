@@ -143,3 +143,24 @@ end
 ```
 
 This defines a function named `mod` which takes two `Number` parameters, `n` and `d`, and returns a `Number`.
+
+### Index Expressions
+
+An index expression uses `[]` to access elements from an array. Array indices start at `0` for the first element:
+
+```
+let fuzz = [1, 2, 3, 4]
+print fuzz[2] # => 2
+```
+
+### Call Expression
+
+Functions and function-like types can be invoked with a call expression. A call expression begins with a left-hand side which references an invokeable, such as a function's identifier. This is followed by the parameters to the function enclosed in parenthesis `()`:
+
+```
+fn add(n: Number, m: Number): Number
+    n + m
+end
+
+print add(add(1, 2), 3) # => 6
+```
