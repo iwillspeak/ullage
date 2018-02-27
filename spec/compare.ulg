@@ -1,8 +1,25 @@
+# Minimum
+#
+# Returns the smallest of the two arguments.
 fn min(a: Number, b: Number): Number
    a if a < b else b
+end
+
+# Maximum
+#
+# Returns the largest of the two arguments
+fn max(a: Number, b: Number): Number
+   a if a > b else b
 end
 
 print min(1, 100) # => 1
 print min(100, 1) # => 1
 print min(50, 50) # => 50
 print min(7, min(20, 3)) # => 3
+
+print max(1, 2) # => 2
+print max(2, 100) # => 100
+print max(2 * 2, 4 * 4) # => 16
+print max(max(1, 4), 19) # => 19
+
+print min(max(min(1, 100), 23), -1) # => -1
