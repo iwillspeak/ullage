@@ -122,7 +122,7 @@ pub fn transform_expression(expr: SyntaxExpr) -> Result<Expression> {
             let typ = initialiser.typ.clone();
             // FIXME: check the type matches the variable declaration
             Ok(Expression::new(
-                ExpressionKind::Declaration(tid, is_mut, Box::new(initialiser)),
+                ExpressionKind::Declaration(tid.id, is_mut, Box::new(initialiser)),
                 typ,
             ))
         }
