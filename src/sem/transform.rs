@@ -126,6 +126,18 @@ pub fn transform_expression(expr: SyntaxExpr) -> Result<Expression> {
                 typ,
             ))
         }
+        SyntaxExpr::Call(callee, args) => {
+            let callee = transform_expression(*callee)?;
+            let args = args.into_iter()
+                .map(|a| transform_expression(a))
+                .collect::<Result<Vec<_>>>()?;
+            // FIXME: Look up the type of the function
+            let typ = None;
+            Ok(Expression::new(
+                ExpressionKind::Call(Box::new(callee), args),
+                typ
+            ))
+        }
         expr => Ok(Expression::new(ExpressionKind::Fixme(expr), None)),
     }
 }

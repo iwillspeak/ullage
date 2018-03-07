@@ -169,6 +169,22 @@ pub fn lower_internal(
                 _ => Err(Error::from(format!("can't assign to {}", id))),
             }
         }
+        ExpressionKind::Call(callee, args) => {
+            if let ExpressionKind::Identifier(name) = callee.kind {
+                match ctx.module.find_function(&name) {
+                    Some(function) => {
+                        let mut args = args.into_iter()
+                            .map(|arg| lower_internal(ctx, fun, builder, vars, arg))
+                            .collect::<Result<Vec<_>>>()?;
+                        let call_res = builder.build_call(&function, &mut args);
+                        Ok(call_res)
+                    }
+                    None => Err(Error::from(format!("Can't find function '{}", name))),
+                }
+            } else {
+                unimplemented!()
+            }
+        }
         ExpressionKind::Index(_expr, _index) => unimplemented!(),
         ExpressionKind::IfThenElse(iff, then, els) => {
             let cond = lower_internal(ctx, fun, builder, vars, *iff)?;

@@ -50,6 +50,13 @@ pub enum ExpressionKind {
     /// operators. Assignment is handled by the assignment node.
     Infix(Box<Expression>, InfixOp, Box<Expression>),
 
+    /// Call Expression
+    ///
+    /// Represents the applicaiton of arguments to a function. The
+    /// callee is represented as an expression as more than just
+    /// identifiers are callable.
+    Call(Box<Expression>, Vec<Expression>),
+
     /// Assignment
     Assignment(String, Box<Expression>),
 
