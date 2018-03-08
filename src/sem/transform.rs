@@ -135,7 +135,7 @@ pub fn transform_expression(expr: SyntaxExpr) -> Result<Expression> {
             let typ = None;
             Ok(Expression::new(
                 ExpressionKind::Call(Box::new(callee), args),
-                typ
+                typ,
             ))
         }
         expr => Ok(Expression::new(ExpressionKind::Fixme(expr), None)),
