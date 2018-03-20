@@ -33,11 +33,11 @@ const USAGE: &'static str = "
 Ullage Compiler
 
 Usage:
-  ullage --version
+  ullage [--version --help]
   ullage [options] [-o <outfile>] <file>
 
 Options:
-  -h --help           Show this screen.
+  -h, --help          Show this message.
   --version           Show version.
   -o, --output=<out>  Write the output to <out>.
 
@@ -51,8 +51,6 @@ Options:
 /// program. This is filled in for us by Docopt.
 #[derive(Debug, Deserialize)]
 struct Args {
-    flag_help: bool,
-    flag_version: bool,
     flag_dumpast: bool,
     flag_output: Option<String>,
     flag_dumpir: bool,
@@ -65,13 +63,11 @@ struct Args {
 /// selected command.
 fn main() {
     let args: Args = Docopt::new(USAGE)
-        .and_then(|d| d.deserialize())
+        .and_then(|d| d
+                  .help(true)
+                  .version(Some(format!("ullage {}", meta::version())))
+                  .deserialize())
         .unwrap_or_else(|e| e.exit());
-
-    if args.flag_version {
-        println!("ullage ({})", meta::version());
-        exit(0);
-    }
 
     let input_path = Path::new(&args.arg_file);
     let output_path = &args.flag_output.unwrap_or("a.out".to_string());
