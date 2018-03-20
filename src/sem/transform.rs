@@ -117,6 +117,24 @@ pub fn transform_expression(expr: SyntaxExpr) -> Result<Expression> {
                 typ,
             ))
         }
+        SyntaxExpr::Function(ident, _ret_ty, params, body) => {
+            let fn_decl = FnDecl {
+                ident,
+                // FIXME: convert return type
+                ret_ty: Typ::Builtin(BuiltinType::Number),
+                params: params
+                    .into_iter()
+                    .map(|p| VarDecl {
+                        ident: p.id,
+                        ty: None,
+                    })
+                    .collect(),
+                body: Box::new(transform_expression(*body)?),
+            };
+
+            // TOOD: Function types
+            Ok(Expression::new(ExpressionKind::Function(fn_decl), None))
+        }
         SyntaxExpr::Declaration(tid, is_mut, initialiser) => {
             let initialiser = transform_expression(*initialiser)?;
             let typ = initialiser.typ.clone();
@@ -138,6 +156,5 @@ pub fn transform_expression(expr: SyntaxExpr) -> Result<Expression> {
                 typ,
             ))
         }
-        expr => Ok(Expression::new(ExpressionKind::Fixme(expr), None)),
     }
 }

@@ -7,6 +7,39 @@ use super::types::*;
 use syntax::Constant;
 use syntax::operators::{InfixOp, PrefixOp};
 
+/// A Function Decclaration
+///
+/// Represents the context contained in the semantic tree for a
+/// function declaration. Defined as a struct for convenience.
+pub struct FnDecl {
+    /// The declaration's logical name
+    pub ident: String,
+
+    /// The return type of the function
+    pub ret_ty: Typ,
+
+    /// Parameters to the function
+    pub params: Vec<VarDecl>,
+
+    /// The body of the function
+    ///
+    /// The function's return is the value of the expression
+    pub body: Box<Expression>,
+}
+
+/// Variable Declaration
+///
+/// Represents the binding of a given type to an identifier to create
+/// a variable. Used both for local variable declarations as well as
+/// function parameters.
+pub struct VarDecl {
+    /// The logical name of the declataion
+    pub ident: String,
+
+    /// The type of the identifier, if one was specified or inferred.
+    pub ty: Option<Typ>,
+}
+
 /// A Semantically Decorated Expression
 ///
 /// This struct represents the expression tree after semantic
@@ -66,6 +99,12 @@ pub enum ExpressionKind {
     /// If Then Else
     IfThenElse(Box<Expression>, Box<Expression>, Box<Expression>),
 
+    /// Function Declaraiton
+    ///
+    /// A function declaration expression both registers a function in
+    /// the symbol table and represents the callable function itself.
+    Function(FnDecl),
+
     /// Loop with Condition
     Loop(Box<Expression>, Box<Expression>),
 
@@ -81,9 +120,6 @@ pub enum ExpressionKind {
 
     /// Variable Declaration
     Declaration(String, bool, Box<Expression>),
-
-    /// FIXME: Move the different expression kinds in here.
-    Fixme(::syntax::Expression),
 }
 
 impl Expression {

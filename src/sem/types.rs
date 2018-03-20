@@ -5,6 +5,8 @@
 //! global type registry which is used during compilation for type
 //! checking and inferrance.
 
+use std::borrow::Cow;
+
 /// Semantic Type
 ///
 /// This enum defines the different type values that each node in the
@@ -16,6 +18,20 @@ pub enum Typ {
 
     /// One of the given basic types in the language.
     Builtin(BuiltinType),
+}
+
+impl Typ {
+    /// Returns the name of a given type
+    pub fn name(&self) -> Cow<str> {
+        Cow::Borrowed(match self {
+            &Typ::Unit => "()",
+            &Typ::Builtin(ref b) => match b {
+                &BuiltinType::Number => "Number",
+                &BuiltinType::Bool => "Bool",
+                &BuiltinType::String => "String",
+            },
+        })
+    }
 }
 
 /// The fixed builtin types
