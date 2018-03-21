@@ -138,9 +138,13 @@ pub fn transform_expression(expr: SyntaxExpr) -> Result<Expression> {
         SyntaxExpr::Declaration(tid, is_mut, initialiser) => {
             let initialiser = transform_expression(*initialiser)?;
             let typ = initialiser.typ.clone();
+            let decl = VarDecl {
+                ident: tid.id,
+                ty: None, // FIXME: look the type up
+            };
             // FIXME: check the type matches the variable declaration
             Ok(Expression::new(
-                ExpressionKind::Declaration(tid.id, is_mut, Box::new(initialiser)),
+                ExpressionKind::Declaration(decl, is_mut, Box::new(initialiser)),
                 typ,
             ))
         }

@@ -119,7 +119,7 @@ pub enum ExpressionKind {
     Print(Box<Expression>),
 
     /// Variable Declaration
-    Declaration(String, bool, Box<Expression>),
+    Declaration(VarDecl, bool, Box<Expression>),
 }
 
 impl Expression {
