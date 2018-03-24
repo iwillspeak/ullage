@@ -7,6 +7,7 @@
 //! [`transform_expression`]: ./function.transform_expression.html
 
 use syntax::{Constant, Expression as SyntaxExpr};
+use syntax::types::TypeRef;
 use syntax::operators::InfixOp;
 
 use super::super::compile::{Error, Result};
@@ -117,16 +118,15 @@ pub fn transform_expression(expr: SyntaxExpr) -> Result<Expression> {
                 typ,
             ))
         }
-        SyntaxExpr::Function(ident, _ret_ty, params, body) => {
+        SyntaxExpr::Function(ident, ret_ty, params, body) => {
             let fn_decl = FnDecl {
                 ident,
-                // FIXME: convert return type
-                ret_ty: Typ::Builtin(BuiltinType::Number),
+                ret_ty: map_type(ret_ty),
                 params: params
                     .into_iter()
                     .map(|p| VarDecl {
                         ident: p.id,
-                        ty: None,
+                        ty: p.typ.map(map_type),
                     })
                     .collect(),
                 body: Box::new(transform_expression(*body)?),
@@ -140,7 +140,7 @@ pub fn transform_expression(expr: SyntaxExpr) -> Result<Expression> {
             let typ = initialiser.typ.clone();
             let decl = VarDecl {
                 ident: tid.id,
-                ty: None, // FIXME: look the type up
+                ty: tid.typ.map(map_type),
             };
             // FIXME: check the type matches the variable declaration
             Ok(Expression::new(
@@ -160,5 +160,18 @@ pub fn transform_expression(expr: SyntaxExpr) -> Result<Expression> {
                 typ,
             ))
         }
+    }
+}
+
+fn map_type(ast_ty: TypeRef) -> Typ {
+    match ast_ty {
+        TypeRef::Unit => Typ::Unit,
+        TypeRef::Simple(name) => match &name[..] {
+            "String" => Typ::Builtin(BuiltinType::String),
+            "Bool" => Typ::Builtin(BuiltinType::Bool),
+            "Number" => Typ::Builtin(BuiltinType::Number),
+            _ => unimplemented!(),
+        },
+        _ => unimplemented!(),
     }
 }

@@ -1,0 +1,7 @@
+print maybe_invert(100, false) # => 100
+print maybe_invert(100, true) # => -100
+print maybe_invert(-83, true) # => 83
+
+fn maybe_invert(invertee: Number, invert: Bool): Number
+   -invertee if invert else invertee
+end
