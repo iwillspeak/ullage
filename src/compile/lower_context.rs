@@ -21,7 +21,6 @@ pub struct LowerContext<'a> {
 }
 
 impl<'a> LowerContext<'a> {
-
     /// Create a New Lowering Context
     ///
     /// Wraps the given module and LLVM context to create the required

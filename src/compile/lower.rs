@@ -259,8 +259,11 @@ pub fn lower_internal(
         ExpressionKind::Declaration(decl, is_mut, initialiser) => {
             let initialiser = lower_internal(ctx, fun, builder, vars, *initialiser)?;
             let value = if is_mut {
-                // FIXME: look the type up properly
-                let typ = ctx.llvm_ctx.int_type(64);
+                let typ = decl.ty.map_or_else(
+                    || ctx.llvm_ctx.get_type(initialiser),
+                    |ty| ctx.llvm_type(&ty).expect("Can't find LLVM type for Typ"),
+                );
+
                 let stackloc = builder.build_alloca(typ, &decl.ident);
                 builder.build_store(initialiser, stackloc);
                 stackloc

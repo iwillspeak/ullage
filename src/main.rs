@@ -63,10 +63,11 @@ struct Args {
 /// selected command.
 fn main() {
     let args: Args = Docopt::new(USAGE)
-        .and_then(|d| d
-                  .help(true)
-                  .version(Some(format!("ullage {}", meta::version())))
-                  .deserialize())
+        .and_then(|d| {
+            d.help(true)
+                .version(Some(format!("ullage {}", meta::version())))
+                .deserialize()
+        })
         .unwrap_or_else(|e| e.exit());
 
     let input_path = Path::new(&args.arg_file);
