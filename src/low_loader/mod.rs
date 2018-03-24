@@ -46,4 +46,5 @@ pub mod prelude {
 
     // FIXME: only expose Value in public interface.
     pub use super::llvm_sys::prelude::LLVMValueRef;
+    pub use super::llvm_sys::prelude::LLVMTypeRef;
 }

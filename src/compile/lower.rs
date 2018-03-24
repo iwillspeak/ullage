@@ -89,17 +89,16 @@ fn add_decls(ctx: &mut LowerContext, expr: &Expression) {
             add_decls(ctx, expr);
         },
         ExpressionKind::Function(ref fn_decl) => {
-            let ret = ctx.llvm_ctx.named_type(&fn_decl.ret_ty.name());
+            let ret = ctx.llvm_type(&fn_decl.ret_ty).unwrap();
             let mut params = fn_decl
                 .params
                 .iter()
                 .map(|p| {
-                    ctx.llvm_ctx.named_type(
+                    ctx.llvm_type(
                         &(p.ty
                             .clone() // FIXME: UGH
-                            .unwrap_or(Typ::Builtin(BuiltinType::Number))
-                            .name()),
-                    )
+                            .unwrap_or(Typ::Builtin(BuiltinType::Number))),
+                    ).unwrap()
                 })
                 .collect::<Vec<_>>();
             ctx.llvm_ctx

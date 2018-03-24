@@ -260,17 +260,6 @@ impl Context {
     pub fn get_type(&self, value: LLVMValueRef) -> LLVMTypeRef {
         unsafe { core::LLVMTypeOf(value) }
     }
-
-    /// Lookup Named Type
-    ///
-    /// Retrieves a given named type from this context.
-    pub fn named_type(&self, type_name: &str) -> LLVMTypeRef {
-        match type_name {
-            "Bool" => self.bool_type(),
-            "Number" => self.int_type(64),
-            _ => unimplemented!(),
-        }
-    }
 }
 
 impl Drop for Context {
