@@ -49,9 +49,9 @@ pub struct Compilation {
 
 impl Compilation {
     /// Create a new compilation
-    pub fn new(expr: syntax::Expression) -> Self {
-        let sem_expr = sem::transform_expression(expr).unwrap();
-        Compilation { expr: sem_expr }
+    pub fn new(expr: syntax::Expression) -> Result<Self> {
+        let sem_expr = sem::transform_expression(expr)?;
+        Ok(Compilation { expr: sem_expr })
     }
 
     /// Emit
@@ -59,7 +59,11 @@ impl Compilation {
     /// Performs the compilation, emitting the results to the given file.
     pub fn emit(self, output_path: &Path, dump_ir: bool) -> Result<()> {
         let mut ctx = Context::new();
-        let mut module = ctx.add_module(output_path.file_stem().and_then(|s| s.to_str()).unwrap());
+        let name = output_path
+            .file_stem()
+            .and_then(|s| s.to_str())
+            .unwrap_or("fallback_module_name");
+        let mut module = ctx.add_module(name);
 
         add_core_decls(&mut ctx, &mut module)?;
 
@@ -92,10 +96,10 @@ impl Compilation {
         if status.success() {
             Ok(())
         } else {
-            Err(Error::Generic(format!(
-                "clang failed with exit status: {}",
-                status.code().unwrap()
-            )))
+            Err(Error::Generic(match status.code() {
+                Some(c) => format!("clang failed with exit status: {}", c),
+                None => "clang failed with unknown exit status".into(),
+            }))
         }
     }
 }

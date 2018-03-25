@@ -131,7 +131,6 @@ pub fn transform_expression(expr: SyntaxExpr) -> Result<Expression> {
                     .collect(),
                 body: Box::new(transform_expression(*body)?),
             };
-
             // TOOD: Function types
             Ok(Expression::new(ExpressionKind::Function(fn_decl), None))
         }

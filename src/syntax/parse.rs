@@ -107,26 +107,6 @@ pub enum Token<'a> {
     Unknown(char),
 }
 
-impl InfixOp {
-    /// Get infix operator from token
-    fn for_token(tok: &Token) -> Option<Self> {
-        use super::operators::InfixOp::*;
-        use self::Token::*;
-        match *tok {
-            DoubleEquals => Some(Eq),
-            Equals => Some(Assign),
-            BangEquals => Some(NotEq),
-            LessThan => Some(Lt),
-            MoreThan => Some(Gt),
-            Star => Some(Mul),
-            Slash => Some(Div),
-            Plus => Some(Add),
-            Minus => Some(Sub),
-            _ => None,
-        }
-    }
-}
-
 /// Tokeniser
 ///
 /// An object which can run a regex state machine over an input
@@ -545,19 +525,15 @@ impl<'a> Token<'a> {
     fn led(&self, parser: &mut Parser, lhs: Expression) -> Result<Expression> {
         match *self {
             // Binary infix operator
-            Token::DoubleEquals
-            | Token::BangEquals
-            | Token::LessThan
-            | Token::MoreThan
-            | Token::Equals
-            | Token::Plus
-            | Token::Minus
-            | Token::Star
-            | Token::Slash => {
-                let rhs = parser.expression(self.lbp())?;
-                let op = InfixOp::for_token(self).unwrap();
-                Ok(Expression::infix(lhs, op, rhs))
-            }
+            Token::DoubleEquals => self.infix(parser, lhs, InfixOp::Eq),
+            Token::BangEquals => self.infix(parser, lhs, InfixOp::NotEq),
+            Token::LessThan => self.infix(parser, lhs, InfixOp::Lt),
+            Token::MoreThan => self.infix(parser, lhs, InfixOp::Gt),
+            Token::Equals => self.infix(parser, lhs, InfixOp::Assign),
+            Token::Plus => self.infix(parser, lhs, InfixOp::Add),
+            Token::Minus => self.infix(parser, lhs, InfixOp::Sub),
+            Token::Star => self.infix(parser, lhs, InfixOp::Mul),
+            Token::Slash => self.infix(parser, lhs, InfixOp::Div),
 
             // array indexing
             Token::OpenSqBracket => {
@@ -596,6 +572,12 @@ impl<'a> Token<'a> {
 
             _ => Err(Error::Incomplete),
         }
+    }
+
+    /// Attempt to Parse an Infix Expression
+    fn infix(&self, parser: &mut Parser, lhs: Expression, op: InfixOp) -> Result<Expression> {
+        let rhs = parser.expression(self.lbp())?;
+        Ok(Expression::infix(lhs, op, rhs))
     }
 }
 

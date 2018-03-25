@@ -43,13 +43,14 @@ impl Module {
 
     /// Write the Module to the Given File as LLVM IR
     pub fn write_to_file(&self, path: &Path) -> Result<(), String> {
-        let path = CString::new(path.to_str().unwrap()).unwrap();
+        let path = path.to_str().and_then(|s| CString::new(s).ok()).unwrap();
+
         unsafe {
             let mut message = ptr::null_mut();
             if core::LLVMPrintModuleToFile(self.raw, path.as_ptr(), &mut message) == 0 {
                 Ok(())
             } else {
-                let err_str = CStr::from_ptr(message).to_owned().into_string().unwrap();
+                let err_str = CStr::from_ptr(message).to_string_lossy().into();
                 core::LLVMDisposeMessage(message);
                 Err(err_str)
             }

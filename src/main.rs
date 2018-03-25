@@ -18,7 +18,6 @@ pub mod diag;
 use std::fs::File;
 use std::path::Path;
 use std::io::prelude::*;
-use std::io::stderr;
 use std::process::*;
 use docopt::Docopt;
 use syntax::*;
@@ -93,12 +92,24 @@ fn main() {
         exit(0);
     }
 
+    let comp = match Compilation::new(tree) {
+        Ok(c) => c,
+        Err(e) => handle_comp_err(e),
+    };
+
     // Create a compilation, and emit to the output path
-    let emit_result = Compilation::new(tree).emit(&output_path, args.flag_dumpir);
+    let emit_result = comp.emit(&output_path, args.flag_dumpir);
 
     // Print any failures encountered and return a failure status
     if let Err(e) = emit_result {
-        writeln!(&mut stderr(), "error: compilation error: {}", e).unwrap();
-        exit(1)
+        handle_comp_err(e);
     }
+}
+
+/// Handles a Compilation Error
+///
+/// Prints the error to standard output and exits the process.
+fn handle_comp_err(err: Error) -> ! {
+    eprintln!("error: compilation error: {}", err);
+    exit(1);
 }

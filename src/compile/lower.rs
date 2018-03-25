@@ -89,13 +89,14 @@ fn add_decls(ctx: &mut LowerContext, expr: &Expression) {
             add_decls(ctx, expr);
         },
         ExpressionKind::Function(ref fn_decl) => {
-            let ret = ctx.llvm_type(&fn_decl.ret_ty).unwrap();
+            let ret = ctx.llvm_type(&fn_decl.ret_ty)
+                .expect("no type in context for function return");
             let mut params = fn_decl
                 .params
                 .iter()
                 .map(|p| {
                     ctx.llvm_type(&(p.ty.unwrap_or(Typ::Builtin(BuiltinType::Number))))
-                        .unwrap()
+                        .expect("no type in context for function gparam")
                 })
                 .collect::<Vec<_>>();
             ctx.llvm_ctx
@@ -244,9 +245,18 @@ pub fn lower_internal(
         ExpressionKind::Sequence(seq) => seq.into_iter()
             .map(|e| lower_internal(ctx, fun, builder, vars, e))
             .last()
-            .unwrap(),
+            .unwrap(), // FIXME: What should an empty expression yeild?
         ExpressionKind::Print(inner) => {
             let val = lower_internal(ctx, fun, builder, vars, *inner)?;
+
+            // Get the format string and formatted value to print. We
+            // do this so that some values, such as `bool`s can be
+            // converted before printing.
+            //
+            // There are a few TODOs with this though:
+            // TODO: Once Strings become available we should switch to
+            //       `to_string` here
+            // TODO: Stop falling back to the LLVM type here.
             let (to_format, format) = expr.typ
                 .and_then(|t| fmt_from_type(t, ctx, fun, builder, val))
                 .unwrap_or_else(|| fmt_from_llvm(ctx, fun, builder, val));
@@ -281,13 +291,17 @@ pub fn lower_internal(
 /// operator/expression. For a list of the supported format string
 /// names check out `add_core_decls`.
 fn fmt(ctx: &mut LowerContext, builder: &mut Builder, to_format: LLVMValueRef, format_name: &str) {
-    let format = ctx.module.find_global(format_name).unwrap();
+    let format = ctx.module
+        .find_global(format_name)
+        .expect("could not find printf format in globals");
     let format_ptr = builder.build_gep(
         format,
         &mut [ctx.llvm_ctx.const_int(0), ctx.llvm_ctx.const_int(0)],
     );
     let mut args = vec![format_ptr, to_format];
-    let printf = ctx.module.find_function("printf").unwrap();
+    let printf = ctx.module
+        .find_function("printf")
+        .expect("could not find printf");
     builder.build_call(&printf, &mut args);
 }
 
