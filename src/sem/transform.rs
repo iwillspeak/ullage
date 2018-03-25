@@ -37,12 +37,12 @@ pub fn transform_expression(expr: SyntaxExpr) -> Result<Expression> {
             let transformed = seq.into_iter()
                 .map(transform_expression)
                 .collect::<Result<Vec<_>>>()?;
-            let typ = transformed.last().and_then(|e| e.typ.clone());
+            let typ = transformed.last().and_then(|e| e.typ);
             Ok(Expression::new(ExpressionKind::Sequence(transformed), typ))
         }
         SyntaxExpr::Prefix(op, expr) => {
             let transformed = transform_expression(*expr)?;
-            let typ = transformed.typ.clone();
+            let typ = transformed.typ;
             Ok(Expression::new(
                 ExpressionKind::Prefix(op, Box::new(transformed)),
                 typ,
@@ -67,7 +67,7 @@ pub fn transform_expression(expr: SyntaxExpr) -> Result<Expression> {
                 _ => {
                     let lhs = transform_expression(*lhs)?;
                     // TODO: Promote the types somehow?
-                    let subexpr_typ = lhs.typ.clone().or(rhs.typ.clone());
+                    let subexpr_typ = lhs.typ.or(rhs.typ);
                     let typ = match op {
                         InfixOp::Eq | InfixOp::NotEq | InfixOp::Gt | InfixOp::Lt => {
                             Some(Typ::Builtin(BuiltinType::Bool))
@@ -96,7 +96,7 @@ pub fn transform_expression(expr: SyntaxExpr) -> Result<Expression> {
             let els = transform_expression(*els)?;
             // FIXME: Check that the type of the then and else
             // branches match up.
-            let typ = then.typ.clone();
+            let typ = then.typ;
             Ok(Expression::new(
                 ExpressionKind::IfThenElse(Box::new(iff), Box::new(then), Box::new(els)),
                 typ,
@@ -112,7 +112,7 @@ pub fn transform_expression(expr: SyntaxExpr) -> Result<Expression> {
         }
         SyntaxExpr::Print(inner) => {
             let transformed = transform_expression(*inner)?;
-            let typ = transformed.typ.clone();
+            let typ = transformed.typ;
             Ok(Expression::new(
                 ExpressionKind::Print(Box::new(transformed)),
                 typ,
@@ -137,7 +137,7 @@ pub fn transform_expression(expr: SyntaxExpr) -> Result<Expression> {
         }
         SyntaxExpr::Declaration(tid, is_mut, initialiser) => {
             let initialiser = transform_expression(*initialiser)?;
-            let typ = initialiser.typ.clone();
+            let typ = initialiser.typ;
             let decl = VarDecl {
                 ident: tid.id,
                 ty: tid.typ.map(map_type),

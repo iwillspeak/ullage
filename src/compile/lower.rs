@@ -94,11 +94,8 @@ fn add_decls(ctx: &mut LowerContext, expr: &Expression) {
                 .params
                 .iter()
                 .map(|p| {
-                    ctx.llvm_type(
-                        &(p.ty
-                            .clone() // FIXME: UGH
-                            .unwrap_or(Typ::Builtin(BuiltinType::Number))),
-                    ).unwrap()
+                    ctx.llvm_type(&(p.ty.unwrap_or(Typ::Builtin(BuiltinType::Number))))
+                        .unwrap()
                 })
                 .collect::<Vec<_>>();
             ctx.llvm_ctx
@@ -351,7 +348,12 @@ fn fmt_convert_bool(
     builder.build_load(temp)
 }
 
-/// FIXME: Remove this function
+/// Format from LLVM Type
+///
+/// Gets a format string specifier from the LLVM type. This is only
+/// used as a fallback.
+///
+/// FIXME: Stop falling back to this function for printing.
 fn fmt_from_llvm(
     ctx: &mut LowerContext,
     fun: &mut Function,
