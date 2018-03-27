@@ -80,7 +80,7 @@ impl Compilation {
         fun.verify_or_panic();
 
         // Create a tempdir to write the LLVM IR to
-        let tmp_dir = TempDir::new("ullage").expect("create temp dir");
+        let tmp_dir = TempDir::new("ullage")?;
         let temp_path = tmp_dir.path().join("temp.ll");
 
         module.write_to_file(&temp_path)?;
