@@ -13,7 +13,6 @@ pub mod sem;
 pub mod meta;
 pub mod compile;
 pub mod low_loader;
-pub mod diag;
 
 use std::fs::File;
 use std::path::Path;
