@@ -87,7 +87,7 @@ fn main() {
 
     // Are we just dumping the AST or compiling the whole thing?
     if args.flag_dumpast {
-        println!("parsed AST: {:?}", tree);
+        println!("parsed AST: {:#?}", tree);
         exit(0);
     }
 
