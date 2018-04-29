@@ -2,7 +2,7 @@
 
 import os
 import sys
-import glob
+import fnmatch
 import subprocess
 import re
 import collections
@@ -24,7 +24,7 @@ class ExitCodeMismatchError(Error):
 class OutputMissingError(Error):
     def __init__(self, expected):
         msg = 'Expected "{}" but found nothing'.format(expected)
-        supser(OutputMissingError, self).__init__(msg)
+        super(OutputMissingError, self).__init__(msg)
 
 class OutputMismatchError(Error):
     def __init__(self, expected, actual):
@@ -98,6 +98,19 @@ def run_spec(path):
         raise ExitCodeMismatchError("Expected successfull exit code")
     check_output(output[0], expectations.expects)
 
+
+def glob_for(path, extension):
+    """Glob For Files
+
+    Recursively walks a directory tree and finds files matching a
+    given extension. Used to find the files to test.
+    """
+
+    ext_glob = '*.{}'.format(extension)
+    for root, dirnames, filenames in os.walk(path):
+        for filename in fnmatch.filter(filenames, ext_glob):
+            yield os.path.join(root, filename)
+
 def main(argv):
     try:
         os.mkdir("specbin/")
@@ -105,7 +118,7 @@ def main(argv):
         pass
 
     failures = 0
-    for spec in glob.iglob('spec/**.ulg'):
+    for spec in glob_for('spec/', 'ulg'):
         try:
             run_spec(spec)
             sys.stdout.write('.')

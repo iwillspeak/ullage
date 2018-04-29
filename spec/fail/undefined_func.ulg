@@ -1,0 +1,3 @@
+fn foo(): Number
+   compute_number() # !> Can't find function 'compute_number'
+end

@@ -157,7 +157,7 @@ pub fn lower_internal(
                     builder.build_store(val, var);
                     Ok(val)
                 }
-                _ => Err(Error::from(format!("can't assign to {}", id))),
+                _ => Err(Error::from(format!("Can't assign to '{}'", id))),
             }
         }
         ExpressionKind::Call(callee, args) => {
@@ -170,7 +170,7 @@ pub fn lower_internal(
                         let call_res = builder.build_call(&function, &mut args);
                         Ok(call_res)
                     }
-                    None => Err(Error::from(format!("Can't find function '{}", name))),
+                    None => Err(Error::from(format!("Can't find function '{}'", name))),
                 }
             } else {
                 unimplemented!()
