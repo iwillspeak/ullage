@@ -5,7 +5,7 @@ use syntax;
 use sem;
 use low_loader::prelude::*;
 use std::path::Path;
-use tempdir::TempDir;
+use tempfile::Builder;
 use std::process::Command;
 
 pub use self::error::{Error, Result};
@@ -80,14 +80,16 @@ impl Compilation {
         fun.verify_or_panic();
 
         // Create a tempdir to write the LLVM IR to
-        let tmp_dir = TempDir::new("ullage")?;
-        let temp_path = tmp_dir.path().join("temp.ll");
+        let temp_file = Builder::new()
+            .prefix("ullage")
+            .suffix(".ll")
+            .tempfile()?;
 
-        module.write_to_file(&temp_path)?;
+        module.write_to_file(temp_file.path())?;
 
         // Shell out to Clang to link the final assembly
         let output = Command::new("clang")
-            .arg(temp_path)
+            .arg(temp_file.path())
             .arg("-o")
             .arg(output_path)
             .output()?;

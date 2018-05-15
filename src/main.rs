@@ -6,7 +6,7 @@
 extern crate docopt;
 #[macro_use]
 extern crate serde_derive;
-extern crate tempdir;
+extern crate tempfile;
 
 pub mod syntax;
 pub mod sem;
