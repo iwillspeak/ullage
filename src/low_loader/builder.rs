@@ -5,8 +5,8 @@
 //! creating instructions and adding them to basic blocks. Essentially
 //! they make up the ponity end of the whole thing. Useful!
 
-use super::llvm_sys::prelude::*;
 use super::llvm_sys::core;
+use super::llvm_sys::prelude::*;
 use super::llvm_sys::*;
 
 use std::ffi::{CStr, CString};

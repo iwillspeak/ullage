@@ -4,8 +4,8 @@
 //! decorated/semantic expression tree.
 
 use super::types::*;
-use syntax::Constant;
 use syntax::operators::{InfixOp, PrefixOp};
+use syntax::Constant;
 
 /// A Function Decclaration
 ///

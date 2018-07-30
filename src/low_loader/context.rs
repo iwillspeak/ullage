@@ -2,11 +2,11 @@
 //!
 //! Contains a Rust wrapper for dealing with LLVM Context objects.
 
-use std::ffi::CString;
-use std::os::raw::c_uint;
 use super::llvm_sys::prelude::*;
 use super::llvm_sys::{core, target};
 use super::prelude::*;
+use std::ffi::CString;
+use std::os::raw::c_uint;
 
 /// Ensure Initialised
 ///

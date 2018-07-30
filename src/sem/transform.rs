@@ -6,13 +6,13 @@
 //!
 //! [`transform_expression`]: ./function.transform_expression.html
 
-use syntax::{Constant, Expression as SyntaxExpr};
-use syntax::types::TypeRef;
 use syntax::operators::InfixOp;
+use syntax::types::TypeRef;
+use syntax::{Constant, Expression as SyntaxExpr};
 
 use super::super::compile::{Error, Result};
-use super::types::{BuiltinType, Typ};
 use super::tree::*;
+use super::types::{BuiltinType, Typ};
 
 /// Transform Expression
 ///
@@ -34,7 +34,8 @@ pub fn transform_expression(expr: SyntaxExpr) -> Result<Expression> {
             Ok(Expression::new(ExpressionKind::Literal(c), Some(typ)))
         }
         SyntaxExpr::Sequence(seq) => {
-            let transformed = seq.into_iter()
+            let transformed = seq
+                .into_iter()
                 .map(transform_expression)
                 .collect::<Result<Vec<_>>>()?;
             let typ = transformed.last().and_then(|e| e.typ);
@@ -149,7 +150,8 @@ pub fn transform_expression(expr: SyntaxExpr) -> Result<Expression> {
         }
         SyntaxExpr::Call(callee, args) => {
             let callee = transform_expression(*callee)?;
-            let args = args.into_iter()
+            let args = args
+                .into_iter()
                 .map(|a| transform_expression(a))
                 .collect::<Result<Vec<_>>>()?;
             // FIXME: Look up the type of the function

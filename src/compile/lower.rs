@@ -3,13 +3,13 @@
 //! This module is responsible for taking Expressions and lowering
 //! them to LLVM.
 
-use syntax::Constant;
+use low_loader::prelude::*;
 use sem::{BuiltinType, Expression, ExpressionKind, Typ};
 use syntax::operators::{InfixOp, PrefixOp};
-use low_loader::prelude::*;
+use syntax::Constant;
 
-use super::lower_context::LowerContext;
 use super::error::*;
+use super::lower_context::LowerContext;
 
 use std::collections::HashMap;
 
@@ -34,7 +34,8 @@ impl From<InfixOp> for Predicate {
 /// the expression and return `0`.
 pub fn lower_as_main(ctx: &mut LowerContext, expr: Expression) -> Result<Function> {
     let int_type = ctx.llvm_ctx.int_type(64);
-    let mut fun = ctx.llvm_ctx
+    let mut fun = ctx
+        .llvm_ctx
         .add_function(ctx.module, "main", int_type, &mut []);
     let bb = ctx.llvm_ctx.add_block(&mut fun, "entry");
 
@@ -89,7 +90,8 @@ fn add_decls(ctx: &mut LowerContext, expr: &Expression) {
             add_decls(ctx, expr);
         },
         ExpressionKind::Function(ref fn_decl) => {
-            let ret = ctx.llvm_type(&fn_decl.ret_ty)
+            let ret = ctx
+                .llvm_type(&fn_decl.ret_ty)
                 .expect("no type in context for function return");
             let mut params = fn_decl
                 .params
@@ -124,7 +126,13 @@ pub fn lower_internal(
         ExpressionKind::Literal(constant) => match constant {
             Constant::Number(n) => Ok(ctx.llvm_ctx.const_int(n)),
             Constant::Bool(b) => Ok(ctx.llvm_ctx.const_bool(b)),
-            Constant::String(_) => unimplemented!(),
+            Constant::String(s) => {
+                let global = ctx.module.add_global(ctx.llvm_ctx.const_str(&s), "s_const");
+                Ok(builder.build_gep(
+                    global,
+                    &mut [ctx.llvm_ctx.const_int(0), ctx.llvm_ctx.const_int(0)],
+                ))
+            }
         },
         ExpressionKind::Prefix(op, inner) => {
             let val = lower_internal(ctx, fun, builder, vars, *inner)?;
@@ -164,7 +172,8 @@ pub fn lower_internal(
             if let ExpressionKind::Identifier(name) = callee.kind {
                 match ctx.module.find_function(&name) {
                     Some(function) => {
-                        let mut args = args.into_iter()
+                        let mut args = args
+                            .into_iter()
                             .map(|arg| lower_internal(ctx, fun, builder, vars, arg))
                             .collect::<Result<Vec<_>>>()?;
                         let call_res = builder.build_call(&function, &mut args);
@@ -242,7 +251,8 @@ pub fn lower_internal(
 
             Ok(cond)
         }
-        ExpressionKind::Sequence(seq) => seq.into_iter()
+        ExpressionKind::Sequence(seq) => seq
+            .into_iter()
             .map(|e| lower_internal(ctx, fun, builder, vars, e))
             .last()
             .unwrap(), // FIXME: What should an empty expression yeild?
@@ -257,7 +267,8 @@ pub fn lower_internal(
             // TODO: Once Strings become available we should switch to
             //       `to_string` here
             // TODO: Stop falling back to the LLVM type here.
-            let (to_format, format) = expr.typ
+            let (to_format, format) = expr
+                .typ
                 .and_then(|t| fmt_from_type(t, ctx, fun, builder, val))
                 .unwrap_or_else(|| fmt_from_llvm(ctx, fun, builder, val));
             fmt(ctx, builder, to_format, format);
@@ -291,7 +302,8 @@ pub fn lower_internal(
 /// operator/expression. For a list of the supported format string
 /// names check out `add_core_decls`.
 fn fmt(ctx: &mut LowerContext, builder: &mut Builder, to_format: LLVMValueRef, format_name: &str) {
-    let format = ctx.module
+    let format = ctx
+        .module
         .find_global(format_name)
         .expect("could not find printf format in globals");
     let format_ptr = builder.build_gep(
@@ -299,7 +311,8 @@ fn fmt(ctx: &mut LowerContext, builder: &mut Builder, to_format: LLVMValueRef, f
         &mut [ctx.llvm_ctx.const_int(0), ctx.llvm_ctx.const_int(0)],
     );
     let mut args = vec![format_ptr, to_format];
-    let printf = ctx.module
+    let printf = ctx
+        .module
         .find_function("printf")
         .expect("could not find printf");
     builder.build_call(&printf, &mut args);
@@ -319,6 +332,7 @@ fn fmt_from_type(
             Some((formatted, "printf_cstr_format"))
         }
         Typ::Builtin(BuiltinType::Number) => Some((val, "printf_num_format")),
+        Typ::Builtin(BuiltinType::String) => Some((val, "printf_cstr_format")),
         _ => None,
     }
 }
@@ -342,7 +356,8 @@ fn fmt_convert_bool(
     builder.build_cond_br(val, true_bb, false_bb);
 
     builder.position_at_end(true_bb);
-    let true_s = ctx.module
+    let true_s = ctx
+        .module
         .find_global("print_true")
         .expect("could't find `print_true`");
     let true_s = builder.build_bitcast(true_s, cstr_type, "true");
@@ -350,7 +365,8 @@ fn fmt_convert_bool(
     builder.build_br(join_bb);
 
     builder.position_at_end(false_bb);
-    let false_s = ctx.module
+    let false_s = ctx
+        .module
         .find_global("print_false")
         .expect("couldn't find `print_false`");
     let false_s = builder.build_bitcast(false_s, cstr_type, "false");

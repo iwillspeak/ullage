@@ -2,9 +2,9 @@
 //!
 //! A wrapper around an LLVM function.
 
-use super::llvm_sys::prelude::*;
-use super::llvm_sys::core;
 use super::llvm_sys::analysis;
+use super::llvm_sys::core;
+use super::llvm_sys::prelude::*;
 
 /// Function
 ///

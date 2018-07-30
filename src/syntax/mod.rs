@@ -4,14 +4,14 @@
 //! implementation which recognises a simple lanugage using
 //! Pratt-style operator precedence parsing.
 
-pub mod parse;
+pub mod fn_builder;
 pub mod operators;
+pub mod parse;
 pub mod position;
 pub mod types;
-pub mod fn_builder;
 
-use self::operators::*;
 use self::fn_builder::FunctionDeclarationBuilder;
+use self::operators::*;
 
 pub use self::types::*;
 

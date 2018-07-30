@@ -1,7 +1,7 @@
 //! LLVM Types
 
-use super::llvm_sys::{core, LLVMTypeKind};
 use super::llvm_sys::prelude::*;
+use super::llvm_sys::{core, LLVMTypeKind};
 
 /// Floating Point Sizes
 ///

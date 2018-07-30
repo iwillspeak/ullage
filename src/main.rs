@@ -8,20 +8,20 @@ extern crate docopt;
 extern crate serde_derive;
 extern crate tempfile;
 
-pub mod syntax;
-pub mod sem;
-pub mod meta;
 pub mod compile;
 pub mod low_loader;
+pub mod meta;
+pub mod sem;
+pub mod syntax;
 
-use std::fs::File;
-use std::path::Path;
-use std::io::prelude::*;
-use std::io;
-use std::process::*;
-use docopt::Docopt;
-use syntax::*;
 use compile::*;
+use docopt::Docopt;
+use std::fs::File;
+use std::io;
+use std::io::prelude::*;
+use std::path::Path;
+use std::process::*;
+use syntax::*;
 
 /// Usage Information
 ///

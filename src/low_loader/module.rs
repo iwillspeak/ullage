@@ -2,9 +2,9 @@
 //!
 //! Contains types and wrappers for dealing with LLVM Modules.
 
-use super::llvm_sys::prelude::*;
-use super::llvm_sys::core;
 use super::function::Function;
+use super::llvm_sys::core;
+use super::llvm_sys::prelude::*;
 
 use std::ffi::{CStr, CString};
 use std::path::Path;

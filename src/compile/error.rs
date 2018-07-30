@@ -1,8 +1,8 @@
 //! Compilation error module. Contains the Result and Error types for
 //! the compile module.
 
-use std::io;
 use std::fmt;
+use std::io;
 
 /// Represents the different types of errors which can be encountered
 /// when compiling.

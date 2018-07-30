@@ -5,9 +5,9 @@ pub mod error;
 
 use std::iter::Peekable;
 
-use super::{Expression, TypeRef, TypedId};
-use super::operators::{InfixOp, PrefixOp};
 pub use self::error::{Error, Result};
+use super::operators::{InfixOp, PrefixOp};
+use super::{Expression, TypeRef, TypedId};
 
 /// Parse an Expression Tree from the Source
 ///
@@ -480,7 +480,8 @@ impl<'a> Token<'a> {
                     res = res.with_arg(parser.typed_id()?);
                 }
                 parser.expect(Token::CloseBracket)?;
-                res = res.with_return_type(parser.type_ref()?)
+                res = res
+                    .with_return_type(parser.type_ref()?)
                     .with_body(parser.block()?);
                 parser.expect(Token::Word("end"))?;
                 Ok(Expression::from(res))
@@ -586,17 +587,17 @@ impl<'a> Token<'a> {
 #[cfg(test)]
 mod test {
 
-    use super::{parse_single, Tokeniser};
-    use super::super::*;
     use super::super::operators::*;
     use super::super::Expression::*;
+    use super::super::*;
+    use super::{parse_single, Tokeniser};
 
     macro_rules! check_parse {
         ($src:expr, $expected:expr) => {
-            let src:&str = $src;
+            let src: &str = $src;
             let actual = parse_single(src);
             assert_eq!(Ok($expected), actual);
-        }
+        };
     }
 
     #[test]
@@ -868,13 +869,11 @@ mod test {
              end",
             Expression::function("ünécød3".to_string())
                 .with_return_type(TypeRef::simple("Num"))
-                .with_body(vec![
-                    Expression::if_then_else(
-                        Expression::constant_num(74),
-                        Expression::constant_num(0),
-                        Expression::constant_num(888),
-                    ),
-                ])
+                .with_body(vec![Expression::if_then_else(
+                    Expression::constant_num(74),
+                    Expression::constant_num(0),
+                    Expression::constant_num(888),
+                )])
                 .into()
         );
     }
@@ -901,9 +900,10 @@ mod test {
             Expression::function("neg".to_string())
                 .with_arg(TypedId::new("i".to_string(), TypeRef::simple("Num")))
                 .with_return_type(TypeRef::simple("Num"))
-                .with_body(vec![
-                    Expression::prefix(PrefixOp::Negate, Expression::identifier("i".to_string())),
-                ])
+                .with_body(vec![Expression::prefix(
+                    PrefixOp::Negate,
+                    Expression::identifier("i".to_string()),
+                )])
                 .into()
         );
 
@@ -914,17 +914,15 @@ mod test {
                 .with_arg(TypedId::new_without_type("j".to_string()))
                 .with_arg(TypedId::new("k".to_string(), TypeRef::simple("String")))
                 .with_return_type(TypeRef::simple("String"))
-                .with_body(vec![
+                .with_body(vec![Expression::infix(
                     Expression::infix(
-                        Expression::infix(
-                            Expression::identifier("i".to_string()),
-                            InfixOp::Add,
-                            Expression::identifier("j".to_string()),
-                        ),
+                        Expression::identifier("i".to_string()),
                         InfixOp::Add,
-                        Expression::identifier("k".to_string()),
+                        Expression::identifier("j".to_string()),
                     ),
-                ])
+                    InfixOp::Add,
+                    Expression::identifier("k".to_string()),
+                )])
                 .into()
         );
     }

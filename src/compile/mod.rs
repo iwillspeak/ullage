@@ -1,12 +1,12 @@
 //! This module contians the code required to compile a parsed tree
 //! down to LLVM bytecode.
 
-use syntax;
-use sem;
 use low_loader::prelude::*;
+use sem;
 use std::path::Path;
-use tempfile::Builder;
 use std::process::Command;
+use syntax;
+use tempfile::Builder;
 
 pub use self::error::{Error, Result};
 
@@ -80,10 +80,7 @@ impl Compilation {
         fun.verify_or_panic();
 
         // Create a tempdir to write the LLVM IR to
-        let temp_file = Builder::new()
-            .prefix("ullage")
-            .suffix(".ll")
-            .tempfile()?;
+        let temp_file = Builder::new().prefix("ullage").suffix(".ll").tempfile()?;
 
         module.write_to_file(temp_file.path())?;
 
