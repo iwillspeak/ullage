@@ -1,0 +1,53 @@
+var i = 1
+while i < 20
+    fizzbuzz(i) # => 1
+                # => 2
+                # => fizz
+                # => 4
+                # => buzz
+                # => fizz
+                # => 7
+                # => 8
+                # => fizz
+                # => buzz
+                # => 11
+                # => fizz
+                # => 13
+                # => 14
+                # => fizzbuzz
+				# => 16
+				# => 17
+				# => fizz
+				# => 19
+    i = i + 1
+end
+
+# Modulus Remainder
+#
+# Returns the remainder after modulus division
+fn mod(n: Number, divisor: Number): Number
+   var ret = n
+   until ret < divisor
+       ret = ret - divisor
+   end
+   ret
+end
+
+# Printing Fudge
+#
+# Prints the number, but coerces the type to String so we can use it
+# in the same ternary expression as string print expressions.
+fn fudge(n: Number): String
+   print n
+   ''
+end
+
+# FizzBuzz
+#
+# Implementation of the legendary `FizzBuzz` algorithm.
+fn fizzbuzz(n: Number): String
+   (print 'fizzbuzz') if mod(n, 15) == 0 else
+   (print 'fizz') if mod(n, 3) == 0 else
+   (print 'buzz') if mod(n, 5) == 0 else
+   fudge(n)
+end

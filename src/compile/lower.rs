@@ -189,7 +189,10 @@ pub fn lower_internal(
         ExpressionKind::IfThenElse(iff, then, els) => {
             let cond = lower_internal(ctx, fun, builder, vars, *iff)?;
 
-            let typ = ctx.llvm_ctx.int_type(64);
+            let typ = then
+                .typ
+                .and_then(|t| ctx.llvm_type(&t))
+                .unwrap_or_else(|| { ctx.llvm_ctx.int_type(64)});
             let ret = builder.build_alloca(typ, "if");
 
             let thenblock = ctx.llvm_ctx.add_block(fun, "thenblock");
