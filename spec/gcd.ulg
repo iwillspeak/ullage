@@ -1,0 +1,28 @@
+## Greatest Common Divisor
+#
+# Finds the largest divisor of `a` and `b`
+fn gcd(a: Number, b: Number): Number
+   a if b == 0 else gcd(b, mod(a, b))
+end
+
+## Modulus Remainder
+#
+# Returns the modulus remainder after division. Iteratively compues
+# the result for efficiency.
+fn mod(n: Number, m: Number): Number
+    var ret = n
+    until ret < m
+        ret = ret - m
+    end
+	ret
+end
+
+print gcd(8, 12) # => 4
+
+print gcd(42, 56) # => 14
+print gcd(461952, 116298) # => 18
+print gcd(7966496, 314080416) # => 32
+print gcd(24826148, 45296490) # => 526
+print gcd(12, 0) # => 12
+print gcd(0, 0) # => 0
+print gcd(0, 9) # => 9
