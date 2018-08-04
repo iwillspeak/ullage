@@ -254,11 +254,14 @@ pub fn lower_internal(
 
             Ok(cond)
         }
-        ExpressionKind::Sequence(seq) => seq
-            .into_iter()
-            .map(|e| lower_internal(ctx, fun, builder, vars, e))
-            .last()
-            .unwrap(), // FIXME: What should an empty expression yeild?
+        ExpressionKind::Sequence(seq) => {
+            let mut last = None;
+            for e in seq.into_iter() {
+                last = Some(lower_internal(ctx, fun, builder, vars, e)?);
+            }
+            // FIXME: What should an empty expression yeild?
+            Ok(last.unwrap_or_else(|| ctx.llvm_ctx.const_int(0)))
+        }
         ExpressionKind::Print(inner) => {
             let val = lower_internal(ctx, fun, builder, vars, *inner)?;
 

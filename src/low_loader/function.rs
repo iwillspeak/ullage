@@ -35,6 +35,9 @@ impl Function {
         };
 
         if verified == 1 {
+            unsafe {
+                core::LLVMDumpValue(self.raw);
+            }
             panic!("Function failed verification!")
         }
     }
