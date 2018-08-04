@@ -192,7 +192,7 @@ pub fn lower_internal(
             let typ = then
                 .typ
                 .and_then(|t| ctx.llvm_type(&t))
-                .unwrap_or_else(|| { ctx.llvm_ctx.int_type(64)});
+                .unwrap_or_else(|| ctx.llvm_ctx.int_type(64));
             let ret = builder.build_alloca(typ, "if");
 
             let thenblock = ctx.llvm_ctx.add_block(fun, "thenblock");
@@ -227,7 +227,18 @@ pub fn lower_internal(
                 .params
                 .into_iter()
                 .enumerate()
-                .map(|(i, p)| (p.ident, (false, fun.get_param(i as u32))))
+                .map(|(i, p)| {
+                    // TODO: This is a bit unwrappy. Can we go back to
+                    // immutable parmeters again? It could be up to
+                    // the `sem` phase to translate those that need to
+                    // be mutable.
+                    let typ = ctx
+                        .llvm_type(&p.ty.unwrap_or(Typ::Builtin(BuiltinType::Number)))
+                        .unwrap();
+                    let param = builder.build_alloca(typ, &p.ident);
+                    builder.build_store(fun.get_param(i as u32), param);
+                    (p.ident, (true, param))
+                })
                 .collect::<HashMap<String, Local>>();
 
             let body = lower_internal(ctx, &mut fun, &mut builder, &mut vars, *fn_decl.body)?;

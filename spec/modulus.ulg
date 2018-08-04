@@ -1,0 +1,11 @@
+## Modulus
+#
+# Returns the modulus remainder after division
+fn mod(n: Number, d: Number): Number
+   until n < d
+       n = n - d
+   end
+   n
+end
+
+print mod(5, 3) # => 2
