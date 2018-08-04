@@ -1,0 +1,4 @@
+var a = 100
+let b = a
+a = 100
+b = 100 # !> Can't assign to 'b'
