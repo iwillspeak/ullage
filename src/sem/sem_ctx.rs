@@ -35,5 +35,4 @@ impl SemCtx {
             _ => unimplemented!(),
         })
     }
-
 }

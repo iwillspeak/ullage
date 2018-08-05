@@ -10,8 +10,8 @@ use syntax::operators::InfixOp;
 use syntax::{Constant, Expression as SyntaxExpr};
 
 use super::super::compile::{Error, Result};
-use super::tree::*;
 use super::sem_ctx::SemCtx;
+use super::tree::*;
 use super::types::{BuiltinType, Typ};
 
 /// Transform Expression
@@ -135,23 +135,38 @@ pub fn transform_expression(ctx: &SemCtx, expr: SyntaxExpr) -> Result<Expression
                     .collect(),
                 body: Box::new(transform_expression(ctx, *body)?),
             };
-            // TOOD: Function types
+            // TODO: Function types
             let typ = None;
             Ok(Expression::new(ExpressionKind::Function(fn_decl), typ))
         }
         SyntaxExpr::Declaration(tid, is_mut, initialiser) => {
             let initialiser = transform_expression(ctx, *initialiser)?;
-            let typ = initialiser.typ;
-            let decl = VarDecl {
-                ident: tid.id,
-                // TODO: This will squash errors caused by undefined
-                // types. Need to come up with a way of marking types
-                // for further inference. Some kind of placeholder?
-                ty: tid.typ.and_then(|t| ctx.sem_ty(t)),
+            // TODO: This is a mess. Need to make ensuring type match
+            // between delcaration and expression the responsibility
+            // of something else. Better than not checking it at all
+            // though I suppose.
+            let typ = match tid.typ {
+                Some(ty_ref) => {
+                    let declared_ty = ensure_ty(ctx.sem_ty(ty_ref))?;
+                    if Some(declared_ty) != initialiser.typ {
+                        return Err(Error::from(format!(
+                            "Initialiser doesn't match declaration type for {}",
+                            tid.id
+                        )));
+                    }
+                    Some(declared_ty)
+                }
+                None => initialiser.typ,
             };
-            // FIXME: check the type matches the variable declaration
             Ok(Expression::new(
-                ExpressionKind::Declaration(decl, is_mut, Box::new(initialiser)),
+                ExpressionKind::Declaration(
+                    VarDecl {
+                        ident: tid.id,
+                        ty: typ,
+                    },
+                    is_mut,
+                    Box::new(initialiser),
+                ),
                 typ,
             ))
         }

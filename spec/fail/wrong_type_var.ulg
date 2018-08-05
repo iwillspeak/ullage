@@ -1,0 +1,1 @@
+let nope: String = 100 # !> Initialiser doesn't match declaration type for nope
