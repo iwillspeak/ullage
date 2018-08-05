@@ -7,18 +7,17 @@
 //! [`transform_expression`]: ./function.transform_expression.html
 
 use syntax::operators::InfixOp;
-use syntax::types::TypeRef;
 use syntax::{Constant, Expression as SyntaxExpr};
 
 use super::super::compile::{Error, Result};
 use super::tree::*;
-use super::trans_sess::TransSess;
+use super::sem_ctx::SemCtx;
 use super::types::{BuiltinType, Typ};
 
 /// Transform Expression
 ///
 /// Convert a syntax expression into a symantic one.
-pub fn transform_expression(sess: &TransSess, expr: SyntaxExpr) -> Result<Expression> {
+pub fn transform_expression(ctx: &SemCtx, expr: SyntaxExpr) -> Result<Expression> {
     match expr {
         SyntaxExpr::Identifier(i) => {
             // FIXME: need to keep track of types when transforming
@@ -37,13 +36,13 @@ pub fn transform_expression(sess: &TransSess, expr: SyntaxExpr) -> Result<Expres
         SyntaxExpr::Sequence(seq) => {
             let transformed = seq
                 .into_iter()
-                .map(|e| transform_expression(sess, e))
+                .map(|e| transform_expression(ctx, e))
                 .collect::<Result<Vec<_>>>()?;
             let typ = transformed.last().and_then(|e| e.typ);
             Ok(Expression::new(ExpressionKind::Sequence(transformed), typ))
         }
         SyntaxExpr::Prefix(op, expr) => {
-            let transformed = transform_expression(sess, *expr)?;
+            let transformed = transform_expression(ctx, *expr)?;
             let typ = transformed.typ;
             Ok(Expression::new(
                 ExpressionKind::Prefix(op, Box::new(transformed)),
@@ -51,7 +50,7 @@ pub fn transform_expression(sess: &TransSess, expr: SyntaxExpr) -> Result<Expres
             ))
         }
         SyntaxExpr::Infix(lhs, op, rhs) => {
-            let rhs = transform_expression(sess, *rhs)?;
+            let rhs = transform_expression(ctx, *rhs)?;
             match op {
                 InfixOp::Assign => {
                     if let SyntaxExpr::Identifier(id) = *lhs {
@@ -67,7 +66,7 @@ pub fn transform_expression(sess: &TransSess, expr: SyntaxExpr) -> Result<Expres
                     }
                 }
                 _ => {
-                    let lhs = transform_expression(sess, *lhs)?;
+                    let lhs = transform_expression(ctx, *lhs)?;
                     // TODO: Promote the types somehow?
                     let subexpr_typ = lhs.typ.or(rhs.typ);
                     let typ = match op {
@@ -84,8 +83,8 @@ pub fn transform_expression(sess: &TransSess, expr: SyntaxExpr) -> Result<Expres
             }
         }
         SyntaxExpr::Index(expr, index) => {
-            let expr = transform_expression(sess, *expr)?;
-            let index = transform_expression(sess, *index)?;
+            let expr = transform_expression(ctx, *expr)?;
+            let index = transform_expression(ctx, *index)?;
             // FIXME: Get the type from the thing being indexed into.
             Ok(Expression::new(
                 ExpressionKind::Index(Box::new(expr), Box::new(index)),
@@ -93,9 +92,9 @@ pub fn transform_expression(sess: &TransSess, expr: SyntaxExpr) -> Result<Expres
             ))
         }
         SyntaxExpr::IfThenElse(iff, then, els) => {
-            let iff = transform_expression(sess, *iff)?;
-            let then = transform_expression(sess, *then)?;
-            let els = transform_expression(sess, *els)?;
+            let iff = transform_expression(ctx, *iff)?;
+            let then = transform_expression(ctx, *then)?;
+            let els = transform_expression(ctx, *els)?;
             // FIXME: Check that the type of the then and else
             // branches match up.
             let typ = then.typ;
@@ -105,15 +104,15 @@ pub fn transform_expression(sess: &TransSess, expr: SyntaxExpr) -> Result<Expres
             ))
         }
         SyntaxExpr::Loop(condition, body) => {
-            let condition = transform_expression(sess, *condition)?;
-            let body = transform_expression(sess, *body)?;
+            let condition = transform_expression(ctx, *condition)?;
+            let body = transform_expression(ctx, *body)?;
             Ok(Expression::new(
                 ExpressionKind::Loop(Box::new(condition), Box::new(body)),
                 Some(Typ::Unit),
             ))
         }
         SyntaxExpr::Print(inner) => {
-            let transformed = transform_expression(sess, *inner)?;
+            let transformed = transform_expression(ctx, *inner)?;
             let typ = transformed.typ;
             Ok(Expression::new(
                 ExpressionKind::Print(Box::new(transformed)),
@@ -123,26 +122,32 @@ pub fn transform_expression(sess: &TransSess, expr: SyntaxExpr) -> Result<Expres
         SyntaxExpr::Function(ident, ret_ty, params, body) => {
             let fn_decl = FnDecl {
                 ident,
-                ret_ty: map_type(ret_ty),
+                ret_ty: ensure_ty(ctx.sem_ty(ret_ty))?,
                 params: params
                     .into_iter()
                     .map(|p| VarDecl {
                         ident: p.id,
-                        ty: p.typ.map(map_type),
+                        // FIXME: this will squash type declaration
+                        // errors in params. All params _must_ have a
+                        // type.
+                        ty: p.typ.and_then(|t| ctx.sem_ty(t)),
                     })
                     .collect(),
-                body: Box::new(transform_expression(sess, *body)?),
+                body: Box::new(transform_expression(ctx, *body)?),
             };
             // TOOD: Function types
             let typ = None;
             Ok(Expression::new(ExpressionKind::Function(fn_decl), typ))
         }
         SyntaxExpr::Declaration(tid, is_mut, initialiser) => {
-            let initialiser = transform_expression(sess, *initialiser)?;
+            let initialiser = transform_expression(ctx, *initialiser)?;
             let typ = initialiser.typ;
             let decl = VarDecl {
                 ident: tid.id,
-                ty: tid.typ.map(map_type),
+                // TODO: This will squash errors caused by undefined
+                // types. Need to come up with a way of marking types
+                // for further inference. Some kind of placeholder?
+                ty: tid.typ.and_then(|t| ctx.sem_ty(t)),
             };
             // FIXME: check the type matches the variable declaration
             Ok(Expression::new(
@@ -151,10 +156,10 @@ pub fn transform_expression(sess: &TransSess, expr: SyntaxExpr) -> Result<Expres
             ))
         }
         SyntaxExpr::Call(callee, args) => {
-            let callee = transform_expression(sess, *callee)?;
+            let callee = transform_expression(ctx, *callee)?;
             let args = args
                 .into_iter()
-                .map(|a| transform_expression(sess, a))
+                .map(|a| transform_expression(ctx, a))
                 .collect::<Result<Vec<_>>>()?;
             // FIXME: Look up the type of the function
             let typ = None;
@@ -166,15 +171,11 @@ pub fn transform_expression(sess: &TransSess, expr: SyntaxExpr) -> Result<Expres
     }
 }
 
-fn map_type(ast_ty: TypeRef) -> Typ {
-    match ast_ty {
-        TypeRef::Unit => Typ::Unit,
-        TypeRef::Simple(name) => match &name[..] {
-            "String" => Typ::Builtin(BuiltinType::String),
-            "Bool" => Typ::Builtin(BuiltinType::Bool),
-            "Number" => Typ::Builtin(BuiltinType::Number),
-            _ => unimplemented!(),
-        },
-        _ => unimplemented!(),
-    }
+/// Ensure Type
+///
+/// Checks that the given type lookup succeeded. Probably should be
+/// part of the `SemCtx`.
+fn ensure_ty(maybe_ty: Option<Typ>) -> Result<Typ> {
+    // TODO: Improve error reporting here.
+    maybe_ty.ok_or(Error::from("Reference to undefined type".to_string()))
 }

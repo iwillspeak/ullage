@@ -50,7 +50,7 @@ pub struct Compilation {
 impl Compilation {
     /// Create a new compilation
     pub fn new(expr: syntax::Expression) -> Result<Self> {
-        let trans_sess = sem::TransSess::new();
+        let trans_sess = sem::SemCtx::new();
         let sem_expr = sem::transform_expression(&trans_sess, expr)?;
         Ok(Compilation { expr: sem_expr })
     }

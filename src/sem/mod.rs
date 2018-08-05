@@ -5,11 +5,11 @@
 //! semantically rich model ready to be lowered for execution.
 
 mod transform;
-mod trans_sess;
+mod sem_ctx;
 mod tree;
 mod types;
 
-pub use self::trans_sess::TransSess;
+pub use self::sem_ctx::SemCtx;
 pub use self::transform::transform_expression;
 pub use self::tree::{Expression, ExpressionKind};
 pub use self::types::{BuiltinType, Typ};
