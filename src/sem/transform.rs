@@ -17,12 +17,10 @@ use super::types::{BuiltinType, Typ};
 /// Transform Expression
 ///
 /// Convert a syntax expression into a symantic one.
-pub fn transform_expression(ctx: &SemCtx, expr: SyntaxExpr) -> Result<Expression> {
+pub fn transform_expression(ctx: &mut SemCtx, expr: SyntaxExpr) -> Result<Expression> {
     match expr {
         SyntaxExpr::Identifier(i) => {
-            // FIXME: need to keep track of types when transforming
-            // expressions so that this can be looked up properly.
-            let typ = None;
+            let typ = ctx.find_local(&i);
             Ok(Expression::new(ExpressionKind::Identifier(i), typ))
         }
         SyntaxExpr::Literal(c) => {
@@ -158,6 +156,7 @@ pub fn transform_expression(ctx: &SemCtx, expr: SyntaxExpr) -> Result<Expression
                 }
                 None => initialiser.typ,
             };
+            ctx.add_local(tid.id.clone(), typ.unwrap_or(Typ::Unknown));
             Ok(Expression::new(
                 ExpressionKind::Declaration(
                     VarDecl {

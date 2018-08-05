@@ -3,6 +3,7 @@
 //! This module defines the state that is passes while transforming
 //! expressions from AST representation to semantic.
 
+use std::collections::HashMap;
 use super::types::{BuiltinType, Typ};
 use syntax::TypeRef;
 
@@ -10,12 +11,17 @@ use syntax::TypeRef;
 ///
 /// Holds the context when trasnforming. This is basically the current
 /// type state information along with symbol table.
-pub struct SemCtx;
+pub struct SemCtx {
+    /// Symbol Table for Local Variables
+    locals: HashMap<String, Typ>,
+}
 
 impl SemCtx {
     /// Create a new Semantic Context
     pub fn new() -> Self {
-        SemCtx
+        SemCtx {
+            locals: HashMap::new()
+        }
     }
 
     /// Find Type in Context
@@ -34,5 +40,19 @@ impl SemCtx {
             },
             _ => unimplemented!(),
         })
+    }
+
+    /// Add Local
+    ///
+    /// Inserts a local declaration into the locals map.
+    pub fn add_local<S>(&mut self, id: S, typ: Typ)
+        where S: Into<String>
+    {
+        self.locals.insert(id.into(), typ);
+    }
+
+    /// Find a Local Declaration
+    pub fn find_local(&self, id: &str) -> Option<Typ> {
+        self.locals.get(id).cloned()
     }
 }

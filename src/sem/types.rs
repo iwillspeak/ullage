@@ -13,6 +13,9 @@ use std::borrow::Cow;
 /// semantic tree could have.
 #[derive(PartialEq, Eq, Copy, Clone, Hash)]
 pub enum Typ {
+    /// Type yet to be inferred.
+    Unknown,
+
     /// The unit type
     Unit,
 
@@ -24,6 +27,7 @@ impl Typ {
     /// Returns the name of a given type
     pub fn name(&self) -> Cow<str> {
         Cow::Borrowed(match self {
+            &Typ::Unknown => "_",
             &Typ::Unit => "()",
             &Typ::Builtin(ref b) => match b {
                 &BuiltinType::Number => "Number",
