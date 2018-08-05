@@ -12,3 +12,10 @@ print 'foo' # => foo
 # Type info is tracked through variable assignments
 let bar = 'bar'
 print bar # => bar
+
+# Type info is tracked through function calls
+fn print_str(s: String): String
+   print s
+end
+
+print_str('hello') # => hello

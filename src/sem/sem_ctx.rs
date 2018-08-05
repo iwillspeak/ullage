@@ -13,14 +13,16 @@ use syntax::TypeRef;
 /// type state information along with symbol table.
 pub struct SemCtx {
     /// Symbol Table for Local Variables
-    locals: HashMap<String, Typ>,
+    locals: Vec<HashMap<String, Typ>>,
 }
 
 impl SemCtx {
     /// Create a new Semantic Context
     pub fn new() -> Self {
         SemCtx {
-            locals: HashMap::new()
+            locals: vec![
+                HashMap::new()
+            ]
         }
     }
 
@@ -48,11 +50,25 @@ impl SemCtx {
     pub fn add_local<S>(&mut self, id: S, typ: Typ)
         where S: Into<String>
     {
-        self.locals.insert(id.into(), typ);
+        self.locals[0].insert(id.into(), typ);
     }
 
     /// Find a Local Declaration
     pub fn find_local(&self, id: &str) -> Option<Typ> {
-        self.locals.get(id).cloned()
+        self.locals[0].get(id).cloned()
+    }
+
+    /// Push Scope
+    ///
+    /// Add a new empty scope to the top of the scope stack
+    pub fn push_scope(&mut self) {
+        self.locals.push(HashMap::new())
+    }
+
+    /// Pop Scope
+    ///
+    /// Remove and discard the top scope from the stack
+    pub fn pop_scope(&mut self) {
+        self.locals.pop();
     }
 }

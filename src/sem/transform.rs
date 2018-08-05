@@ -118,21 +118,32 @@ pub fn transform_expression(ctx: &mut SemCtx, expr: SyntaxExpr) -> Result<Expres
             ))
         }
         SyntaxExpr::Function(ident, ret_ty, params, body) => {
+
+            ctx.push_scope();
+
+            let params = params
+                .into_iter()
+                .map(|p| {
+                    // FIXME: this will squash type declaration
+                    // errors in params. All params _must_ have a
+                    // type.
+                    let typ = p.typ.and_then(|t| ctx.sem_ty(t));
+                    ctx.add_local(p.id.clone(), typ.unwrap());
+                    VarDecl {
+                        ident: p.id,
+                        ty: typ,
+                    }
+                })
+                .collect();
+            
             let fn_decl = FnDecl {
                 ident,
                 ret_ty: ensure_ty(ctx.sem_ty(ret_ty))?,
-                params: params
-                    .into_iter()
-                    .map(|p| VarDecl {
-                        ident: p.id,
-                        // FIXME: this will squash type declaration
-                        // errors in params. All params _must_ have a
-                        // type.
-                        ty: p.typ.and_then(|t| ctx.sem_ty(t)),
-                    })
-                    .collect(),
+                params: params,
                 body: Box::new(transform_expression(ctx, *body)?),
             };
+
+            ctx.pop_scope();
             // TODO: Function types
             let typ = None;
             Ok(Expression::new(ExpressionKind::Function(fn_decl), typ))
