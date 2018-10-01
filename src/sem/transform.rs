@@ -144,7 +144,9 @@ pub fn transform_expression(ctx: &mut SemCtx, expr: SyntaxExpr) -> Result<Expres
             };
 
             ctx.pop_scope();
-            // TODO: Function types
+            // TODO: When we start storing funciton types in the
+            // context then there will need to be two passes for
+            // transformation.
             let typ = None;
             Ok(Expression::new(ExpressionKind::Function(fn_decl), typ))
         }
