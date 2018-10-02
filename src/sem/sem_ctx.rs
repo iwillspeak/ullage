@@ -5,7 +5,7 @@
 
 use std::collections::HashMap;
 use super::types::{BuiltinType, Typ};
-use syntax::TypeRef;
+use crate::syntax::TypeRef;
 
 /// SemCtx Structure
 ///

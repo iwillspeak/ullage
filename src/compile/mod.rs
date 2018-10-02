@@ -1,11 +1,11 @@
 //! This module contians the code required to compile a parsed tree
 //! down to LLVM bytecode.
 
-use low_loader::prelude::*;
-use sem;
+use crate::low_loader::prelude::*;
+use crate::sem;
 use std::path::Path;
 use std::process::Command;
-use syntax;
+use crate::syntax;
 use tempfile::Builder;
 
 pub use self::error::{Error, Result};
