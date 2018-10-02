@@ -6,8 +6,8 @@
 //!
 //! [`transform_expression`]: ./function.transform_expression.html
 
-use syntax::operators::InfixOp;
-use syntax::{Constant, Expression as SyntaxExpr};
+use crate::syntax::operators::InfixOp;
+use crate::syntax::{Constant, Expression as SyntaxExpr};
 
 use super::super::compile::{Error, Result};
 use super::sem_ctx::SemCtx;

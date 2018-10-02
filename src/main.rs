@@ -14,14 +14,14 @@ pub mod meta;
 pub mod sem;
 pub mod syntax;
 
-use compile::*;
+use crate::compile::*;
 use docopt::Docopt;
 use std::fs::File;
 use std::io;
 use std::io::prelude::*;
 use std::path::Path;
 use std::process::*;
-use syntax::*;
+use crate::syntax::*;
 
 /// Usage Information
 ///

@@ -3,10 +3,10 @@
 //! This module is responsible for taking Expressions and lowering
 //! them to LLVM.
 
-use low_loader::prelude::*;
-use sem::{BuiltinType, Expression, ExpressionKind, Typ};
-use syntax::operators::{InfixOp, PrefixOp};
-use syntax::Constant;
+use crate::low_loader::prelude::*;
+use crate::sem::{BuiltinType, Expression, ExpressionKind, Typ};
+use crate::syntax::operators::{InfixOp, PrefixOp};
+use crate::syntax::Constant;
 
 use super::error::*;
 use super::lower_context::LowerContext;

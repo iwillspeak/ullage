@@ -3,8 +3,8 @@
 //! The lower context defines the state which is passed around as an
 //! expresion is lowered to LLVM.
 
-use low_loader::prelude::*;
-use sem::{BuiltinType, Typ};
+use crate::low_loader::prelude::*;
+use crate::sem::{BuiltinType, Typ};
 use std::collections::HashMap;
 
 /// Lower Context
