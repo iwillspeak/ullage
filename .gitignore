@@ -1,5 +1,9 @@
-target
+# Cargo build output
+target/
+# Docket output from docs build
 docs/build/
+# Binaries for spec tests
 specbin/
 a.out
+# Python virtual env for `invoke`
 venv/
