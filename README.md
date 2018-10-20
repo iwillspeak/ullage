@@ -18,6 +18,18 @@ It is now possible to write simple programs. The following program computes 9 fa
     
     print fact(9) # => 362880
 
+You can also mess around with constant strings:
+
+    # FizzBuzz
+    #
+    # Implementation of the legendary `FizzBuzz` algorithm.
+    fn fizzbuzz(n: Number): String
+        (print 'fizzbuzz') if mod(n, 15) == 0 else
+        (print 'fizz') if mod(n, 3) == 0 else
+        (print 'buzz') if mod(n, 5) == 0 else
+        print_num(n)
+    end
+
 ## License
 
 Ullage is open source, under the [MIT License](LICENSE.md).
@@ -49,7 +61,10 @@ Ullage is open source, under the [MIT License](LICENSE.md).
  * [x] Create LLVM module and lower basic constructs
  * [ ] Array indexing
  * [ ] Arbitrary types for local variables
- * [ ] Lowering of `String` type
- * [ ] Library output typess
+ * [ ] Heap allocated types
+    * [ ] Lowering of `String` type
+    * [ ] User-defined heap allocated types
+    * [ ] Garbage collection ??
+ * [ ] Library output types
  * [ ] Control of target machine & features
  * [ ] Stop shelling out for linking on supported platforms (lld or similar)
