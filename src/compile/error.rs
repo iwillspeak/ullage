@@ -11,6 +11,10 @@ pub enum CompError {
     #[fail(display = "compilation error: {}", _0)]
     Generic(String),
 
+    /// Linker Failure
+    #[fail(display = "linker failed: {}", _0)]
+    Linker(#[cause] LinkerError),
+
     /// Wrapped IO Error
     #[fail(display = "IO error: {}", _0)]
     IO(#[cause] ::std::io::Error),
@@ -18,6 +22,20 @@ pub enum CompError {
 
 /// Compilation result. Returned from each compilation stage.
 pub type CompResult<T> = ::std::result::Result<T, CompError>;
+
+/// Link Failure Type
+///
+/// Used to group together the different failure modes for the linker.
+#[derive(Fail, Debug)]
+pub enum LinkerError {
+    /// The linker failed with a known exit status
+    #[fail(display = "linker returned exit status {}", _0)]
+    WithExitStatus(i32),
+
+    /// The linker failed with an unknown exit status
+    #[fail(display = "unknown linker error")]
+    UnknownFailure,
+}
 
 impl From<String> for CompError {
     /// Convert untyped errors to generic compilation errors.
@@ -29,5 +47,17 @@ impl From<String> for CompError {
 impl From<io::Error> for CompError {
     fn from(e: io::Error) -> Self {
         CompError::IO(e)
+    }
+}
+
+impl CompError {
+    /// Compilation Linker Error
+    ///
+    /// When the linker has failed and caused compilation to fail.
+    pub fn link_fail(exit_status: Option<i32>) -> Self {
+        CompError::Linker(match exit_status {
+            Some(status) => LinkerError::WithExitStatus(status),
+            None => LinkerError::UnknownFailure,
+        })
     }
 }

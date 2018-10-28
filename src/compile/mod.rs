@@ -96,10 +96,7 @@ impl Compilation {
         if status.success() {
             Ok(())
         } else {
-            Err(CompError::from(match status.code() {
-                Some(c) => format!("clang failed with exit status: {}", c),
-                None => "clang failed with unknown exit status".into(),
-            }))
+            Err(CompError::link_fail(status.code()))
         }
     }
 }
