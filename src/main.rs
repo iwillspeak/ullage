@@ -4,9 +4,10 @@
 #![warn(missing_docs)]
 
 extern crate docopt;
-#[macro_use]
-extern crate serde_derive;
 extern crate tempfile;
+extern crate failure;
+
+#[macro_use] extern crate serde_derive;
 
 pub mod compile;
 pub mod low_loader;
@@ -22,6 +23,7 @@ use std::io::prelude::*;
 use std::path::Path;
 use std::process::*;
 use crate::syntax::*;
+use failure::Error;
 
 /// Usage Information
 ///
@@ -73,22 +75,10 @@ fn main() {
     let output_path = Path::new(&output_path);
 
     // Load the file into memory, so we can parse it into a syntax tree
-    let source = {
-        let mut s = String::new();
-
-        if let Some(path) = args.arg_file {
-            let input_path = Path::new(&path);
-            File::open(&input_path)
-                .expect("error: could not open input file")
-                .read_to_string(&mut s)
-                .expect("error: could not read from file");
-        } else {
-            io::stdin()
-                .read_to_string(&mut s)
-                .expect("error: could not read from standard input");
-        }
-        s
-    };
+    let source = read_input(args.arg_file).unwrap_or_else(|e| {
+        eprintln!("error: could not read input: {}", e);
+        exit(1)
+    });
 
     // Parse the module
     let tree = parse::parse_tree(&source).unwrap_or_else(|e| {
@@ -116,10 +106,27 @@ fn main() {
     }
 }
 
+/// Read the Compilation Input
+///
+/// If a file path was supplied then read the contents to a
+/// `String`. If no file was provided then the input should be read
+/// from standard input instead.
+fn read_input(path: Option<String>) -> std::result::Result<String, Error> {
+    let mut s = String::new();
+
+    if let Some(path) = path {
+        let input_path = Path::new(&path);
+        File::open(&input_path)?.read_to_string(&mut s)?;
+    } else {
+        io::stdin().read_to_string(&mut s)?;
+    }
+    Ok(s)
+}
+
 /// Handles a Compilation Error
 ///
 /// Prints the error to standard output and exits the process.
-fn handle_comp_err(err: Error) -> ! {
+fn handle_comp_err(err: compile::Error) -> ! {
     eprintln!("error: compilation error: {}", err);
     exit(1);
 }
