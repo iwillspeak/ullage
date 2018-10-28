@@ -7,8 +7,10 @@ extern crate docopt;
 extern crate failure;
 extern crate tempfile;
 
-#[macro_use] extern crate failure_derive;
-#[macro_use] extern crate serde_derive;
+#[macro_use]
+extern crate failure_derive;
+#[macro_use]
+extern crate serde_derive;
 
 pub mod compile;
 pub mod low_loader;
@@ -21,8 +23,8 @@ use crate::syntax::*;
 use docopt::Docopt;
 use failure::Error;
 use std::fs::File;
-use std::io::prelude::*;
 use std::io;
+use std::io::prelude::*;
 use std::path::Path;
 use std::process::*;
 

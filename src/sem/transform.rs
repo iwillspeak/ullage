@@ -118,7 +118,6 @@ pub fn transform_expression(ctx: &mut SemCtx, expr: SyntaxExpr) -> CompResult<Ex
             ))
         }
         SyntaxExpr::Function(ident, ret_ty, params, body) => {
-
             ctx.push_scope();
 
             let params = params
@@ -135,7 +134,7 @@ pub fn transform_expression(ctx: &mut SemCtx, expr: SyntaxExpr) -> CompResult<Ex
                     }
                 })
                 .collect();
-            
+
             let fn_decl = FnDecl {
                 ident,
                 ret_ty: ensure_ty(ctx.sem_ty(ret_ty))?,

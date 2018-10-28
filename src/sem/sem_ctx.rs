@@ -3,9 +3,9 @@
 //! This module defines the state that is passes while transforming
 //! expressions from AST representation to semantic.
 
-use std::collections::HashMap;
 use super::types::{BuiltinType, Typ};
 use crate::syntax::TypeRef;
+use std::collections::HashMap;
 
 /// SemCtx Structure
 ///
@@ -20,9 +20,7 @@ impl SemCtx {
     /// Create a new Semantic Context
     pub fn new() -> Self {
         SemCtx {
-            locals: vec![
-                HashMap::new()
-            ]
+            locals: vec![HashMap::new()],
         }
     }
 
@@ -48,7 +46,8 @@ impl SemCtx {
     ///
     /// Inserts a local declaration into the locals map.
     pub fn add_local<S>(&mut self, id: S, typ: Typ)
-        where S: Into<String>
+    where
+        S: Into<String>,
     {
         self.locals[0].insert(id.into(), typ);
     }

@@ -86,9 +86,11 @@ pub fn lower_expression<'a>(
 /// recursion is possible.
 fn add_decls(ctx: &mut LowerContext, expr: &Expression) {
     match expr.kind {
-        ExpressionKind::Sequence(ref exprs) => for expr in exprs.iter() {
-            add_decls(ctx, expr);
-        },
+        ExpressionKind::Sequence(ref exprs) => {
+            for expr in exprs.iter() {
+                add_decls(ctx, expr);
+            }
+        }
         ExpressionKind::Function(ref fn_decl) => {
             let ret = ctx
                 .llvm_type(&fn_decl.ret_ty)

@@ -3,9 +3,9 @@
 
 use crate::low_loader::prelude::*;
 use crate::sem;
+use crate::syntax;
 use std::path::Path;
 use std::process::Command;
-use crate::syntax;
 use tempfile::Builder;
 
 pub use self::error::{CompError, CompResult};
