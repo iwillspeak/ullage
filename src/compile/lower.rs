@@ -32,7 +32,7 @@ impl From<InfixOp> for Predicate {
 /// Takes a given tree of expressions and adds a new `main` function
 /// to the LLVM Context. When called `main` will compute the value of
 /// the expression and return `0`.
-pub fn lower_as_main(ctx: &mut LowerContext, expr: Expression) -> Result<Function> {
+pub fn lower_as_main(ctx: &mut LowerContext, expr: Expression) -> CompResult<Function> {
     let int_type = ctx.llvm_ctx.int_type(64);
     let mut fun = ctx
         .llvm_ctx
@@ -70,7 +70,7 @@ pub fn lower_expression<'a>(
     fun: &mut Function,
     builder: &mut Builder,
     expr: Expression,
-) -> Result<()> {
+) -> CompResult<()> {
     let mut vars = HashMap::new();
 
     add_decls(ctx, &expr);
@@ -117,11 +117,11 @@ pub fn lower_internal(
     builder: &mut Builder,
     vars: &mut HashMap<String, Local>,
     expr: Expression,
-) -> Result<LLVMValueRef> {
+) -> CompResult<LLVMValueRef> {
     match expr.kind {
         ExpressionKind::Identifier(id) => match vars.get(&id) {
             Some(&(is_mut, val)) => Ok(if is_mut { builder.build_load(val) } else { val }),
-            None => Err(Error::from(format!("Reference to undefined '{}'", id))),
+            None => Err(CompError::from(format!("Reference to undefined '{}'", id))),
         },
         ExpressionKind::Literal(constant) => match constant {
             Constant::Number(n) => Ok(ctx.llvm_ctx.const_int(n)),
@@ -165,7 +165,7 @@ pub fn lower_internal(
                     builder.build_store(val, var);
                     Ok(val)
                 }
-                _ => Err(Error::from(format!("Can't assign to '{}'", id))),
+                _ => Err(CompError::from(format!("Can't assign to '{}'", id))),
             }
         }
         ExpressionKind::Call(callee, args) => {
@@ -175,11 +175,11 @@ pub fn lower_internal(
                         let mut args = args
                             .into_iter()
                             .map(|arg| lower_internal(ctx, fun, builder, vars, arg))
-                            .collect::<Result<Vec<_>>>()?;
+                            .collect::<CompResult<Vec<_>>>()?;
                         let call_res = builder.build_call(&function, &mut args);
                         Ok(call_res)
                     }
-                    None => Err(Error::from(format!("Can't find function '{}'", name))),
+                    None => Err(CompError::from(format!("Can't find function '{}'", name))),
                 }
             } else {
                 unimplemented!()

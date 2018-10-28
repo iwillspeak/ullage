@@ -1,40 +1,33 @@
 //! Compilation error module. Contains the Result and Error types for
 //! the compile module.
 
-use std::fmt;
 use std::io;
 
 /// Represents the different types of errors which can be encountered
 /// when compiling.
-#[derive(Debug)]
-pub enum Error {
+#[derive(Fail, Debug)]
+pub enum CompError {
     /// Generic Error String
+    #[fail(display = "compilation error: {}", _0)]
     Generic(String),
+
     /// Wrapped IO Error
-    IO(::std::io::Error),
+    #[fail(display = "IO error: {}", _0)]
+    IO(#[cause] ::std::io::Error),
 }
 
 /// Compilation result. Returned from each compilation stage.
-pub type Result<T> = ::std::result::Result<T, Error>;
+pub type CompResult<T> = ::std::result::Result<T, CompError>;
 
-impl From<String> for Error {
+impl From<String> for CompError {
     /// Convert untyped errors to generic compilation errors.
-    fn from(s: String) -> Error {
-        Error::Generic(s)
+    fn from(s: String) -> Self {
+        CompError::Generic(s)
     }
 }
 
-impl From<io::Error> for Error {
-    fn from(e: io::Error) -> Error {
-        Error::IO(e)
-    }
-}
-
-impl fmt::Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match *self {
-            Error::Generic(ref err) => write!(f, "{}", err),
-            Error::IO(ref ioerr) => write!(f, "IO Error: {}", ioerr),
-        }
+impl From<io::Error> for CompError {
+    fn from(e: io::Error) -> Self {
+        CompError::IO(e)
     }
 }
