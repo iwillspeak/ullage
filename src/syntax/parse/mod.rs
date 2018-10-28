@@ -5,7 +5,7 @@ pub mod error;
 
 use std::iter::Peekable;
 
-pub use self::error::{Error, Result};
+pub use self::error::{ParseError, ParseResult};
 use super::operators::{InfixOp, PrefixOp};
 use super::{Expression, TypeRef, TypedId};
 
@@ -15,7 +15,7 @@ use super::{Expression, TypeRef, TypedId};
 /// parse was successful then a sequence expression containing all the
 /// expressions in the source is returned. If any error is encountered
 /// then that is surfaced instead.
-pub fn parse_tree<S: AsRef<str>>(s: S) -> Result<Expression> {
+pub fn parse_tree<S: AsRef<str>>(s: S) -> ParseResult<Expression> {
     let t = Tokeniser::new_from_str(s.as_ref());
     let mut p = Parser::new(t);
     Ok(Expression::sequence(p.expressions()?))
@@ -25,7 +25,7 @@ pub fn parse_tree<S: AsRef<str>>(s: S) -> Result<Expression> {
 ///
 /// Runs the tokeniser and parser of the given input string, returning
 /// the first expression parsed.
-pub fn parse_single<S: AsRef<str>>(s: S) -> Result<Expression> {
+pub fn parse_single<S: AsRef<str>>(s: S) -> ParseResult<Expression> {
     let t = Tokeniser::new_from_str(s.as_ref());
     let mut p = Parser::new(t);
     p.single_expression()
@@ -243,23 +243,23 @@ impl<'a> Parser<'a> {
     }
 
     /// Moves the token stream on by a single token
-    pub fn advance(&mut self) -> Result<()> {
+    pub fn advance(&mut self) -> ParseResult<()> {
         match self.lexer.peek() {
             Some(_) => {
                 self.lexer.next();
                 Ok(())
             }
-            _ => Err(Error::Incomplete),
+            _ => Err(ParseError::Incomplete),
         }
     }
 
     /// Moves the token stream on by a single token, if the
     /// token's lexeme is of the given type.
-    pub fn expect(&mut self, expected: Token) -> Result<()> {
+    pub fn expect(&mut self, expected: Token) -> ParseResult<()> {
         match self.lexer.peek() {
             Some(token) if token == &expected => Ok(()),
-            Some(_) => Err(Error::Unexpected),
-            None => Err(Error::Incomplete),
+            Some(_) => Err(ParseError::Unexpected),
+            None => Err(ParseError::Incomplete),
         }.map(|ok| {
             self.lexer.next();
             ok
@@ -272,10 +272,10 @@ impl<'a> Parser<'a> {
     }
 
     /// Attempt to parse an identifier
-    pub fn identifier(&mut self) -> Result<String> {
+    pub fn identifier(&mut self) -> ParseResult<String> {
         match self.expression(100)? {
             Expression::Identifier(string) => Ok(string),
-            _ => Err(Error::Unexpected),
+            _ => Err(ParseError::Unexpected),
         }
     }
 
@@ -283,7 +283,7 @@ impl<'a> Parser<'a> {
     ///
     /// Parses a expresison with the given precedence. To parse a
     /// single expression use `single_expression`.
-    pub fn expression(&mut self, rbp: u32) -> Result<Expression> {
+    pub fn expression(&mut self, rbp: u32) -> ParseResult<Expression> {
         let mut left = self.parse_nud()?;
         while self.next_binds_tighter_than(rbp) {
             left = self.parse_led(left)?;
@@ -292,7 +292,7 @@ impl<'a> Parser<'a> {
     }
 
     /// Atttempt to parse a list of expressions
-    pub fn expressions(&mut self) -> Result<Vec<Expression>> {
+    pub fn expressions(&mut self) -> ParseResult<Vec<Expression>> {
         let mut expressions = Vec::new();
         while self.lexer.peek().is_some() {
             expressions.push(self.single_expression()?);
@@ -303,7 +303,7 @@ impl<'a> Parser<'a> {
     /// Attempt to Parse a Single Expression
     ///
     /// Used to parse 'top-level' expressions.
-    pub fn single_expression(&mut self) -> Result<Expression> {
+    pub fn single_expression(&mut self) -> ParseResult<Expression> {
         self.expression(0)
     }
 
@@ -311,7 +311,7 @@ impl<'a> Parser<'a> {
     ///
     /// Attempt to parse a type reference, this is a single
     /// `:` followed by a type name.
-    pub fn type_ref(&mut self) -> Result<TypeRef> {
+    pub fn type_ref(&mut self) -> ParseResult<TypeRef> {
         self.expect(Token::Colon)?;
         self.ty()
     }
@@ -320,7 +320,7 @@ impl<'a> Parser<'a> {
     ///
     /// Attempt to parse a type. This could be a simple type name, or
     /// it could be a more complex one such as an array type or tuple.
-    pub fn ty(&mut self) -> Result<TypeRef> {
+    pub fn ty(&mut self) -> ParseResult<TypeRef> {
         match self.lexer.peek() {
             Some(&Token::Word(t)) => {
                 self.advance()?;
@@ -345,7 +345,7 @@ impl<'a> Parser<'a> {
                 self.expect(Token::CloseBracket)?;
                 Ok(TypeRef::tuple(types))
             }
-            _ => Err(Error::Unexpected),
+            _ => Err(ParseError::Unexpected),
         }
     }
 
@@ -362,7 +362,7 @@ impl<'a> Parser<'a> {
     }
 
     /// Parse an identifier, with an optional type
-    pub fn typed_id(&mut self) -> Result<TypedId> {
+    pub fn typed_id(&mut self) -> ParseResult<TypedId> {
         let id = self.identifier()?;
         let typ = self.optional_type_ref();
         Ok(TypedId { id: id, typ: typ })
@@ -372,7 +372,7 @@ impl<'a> Parser<'a> {
     ///
     /// Parses the body of a local variable delcaration (`let` or
     /// `var`).
-    pub fn declaration(&mut self, is_mut: bool) -> Result<Expression> {
+    pub fn declaration(&mut self, is_mut: bool) -> ParseResult<Expression> {
         let id = self.identifier()?;
         let typ = self.optional_type_ref();
         self.expect(Token::Equals)?;
@@ -385,7 +385,7 @@ impl<'a> Parser<'a> {
     }
 
     /// Attempt to parse a block of expressions
-    pub fn block(&mut self) -> Result<Vec<Expression>> {
+    pub fn block(&mut self) -> ParseResult<Vec<Expression>> {
         let mut expressions = Vec::new();
         while self.lexer.peek().is_some() && !self.next_is(Token::Word("end")) {
             expressions.push(self.single_expression()?);
@@ -401,7 +401,7 @@ impl<'a> Parser<'a> {
     /// Prefix Operator
     ///
     /// Parses the trailing expression for a prefix operator.
-    fn prefix_op(&mut self, op: PrefixOp) -> Result<Expression> {
+    fn prefix_op(&mut self, op: PrefixOp) -> ParseResult<Expression> {
         let rhs = self.expression(100)?;
         Ok(Expression::prefix(op, rhs))
     }
@@ -409,7 +409,7 @@ impl<'a> Parser<'a> {
     /// Ternay Body
     ///
     /// The condition and fallback part of a ternary expression.
-    fn ternary_body(&mut self) -> Result<(Expression, Expression)> {
+    fn ternary_body(&mut self) -> ParseResult<(Expression, Expression)> {
         let condition = self.single_expression()?;
         self.expect(Token::Word("else"))?;
         let fallback = self.single_expression()?;
@@ -417,17 +417,17 @@ impl<'a> Parser<'a> {
     }
 
     /// Attempt to parse a single left denotation
-    fn parse_led(&mut self, lhs: Expression) -> Result<Expression> {
+    fn parse_led(&mut self, lhs: Expression) -> ParseResult<Expression> {
         self.lexer
             .next()
-            .map_or(Err(Error::Incomplete), |t| t.led(self, lhs))
+            .map_or(Err(ParseError::Incomplete), |t| t.led(self, lhs))
     }
 
     /// Attempt to parse a single null denotation
-    fn parse_nud(&mut self) -> Result<Expression> {
+    fn parse_nud(&mut self) -> ParseResult<Expression> {
         self.lexer
             .next()
-            .map_or(Err(Error::Incomplete), |t| t.nud(self))
+            .map_or(Err(ParseError::Incomplete), |t| t.nud(self))
     }
 }
 
@@ -466,7 +466,7 @@ impl<'a> Token<'a> {
     /// This is responsible for parsing literals and variable
     /// references into expressions, as well as parsing prefix
     /// expressions
-    fn nud(&self, parser: &mut Parser) -> Result<Expression> {
+    fn nud(&self, parser: &mut Parser) -> ParseResult<Expression> {
         match *self {
             Token::Word("fn") => {
                 let identifier = parser.identifier()?;
@@ -516,7 +516,7 @@ impl<'a> Token<'a> {
                 parser.expect(Token::CloseBracket)?;
                 Ok(expr)
             }
-            _ => Err(Error::Unexpected),
+            _ => Err(ParseError::Unexpected),
         }
     }
 
@@ -525,7 +525,7 @@ impl<'a> Token<'a> {
     ///
     /// This is responsible for parsing infix operators and function
     /// calls.
-    fn led(&self, parser: &mut Parser, lhs: Expression) -> Result<Expression> {
+    fn led(&self, parser: &mut Parser, lhs: Expression) -> ParseResult<Expression> {
         match *self {
             // Binary infix operator
             Token::DoubleEquals => self.infix(parser, lhs, InfixOp::Eq),
@@ -573,12 +573,12 @@ impl<'a> Token<'a> {
                 Ok(Expression::if_then_else(condition, fallback, lhs))
             }
 
-            _ => Err(Error::Incomplete),
+            _ => Err(ParseError::Incomplete),
         }
     }
 
     /// Attempt to Parse an Infix Expression
-    fn infix(&self, parser: &mut Parser, lhs: Expression, op: InfixOp) -> Result<Expression> {
+    fn infix(&self, parser: &mut Parser, lhs: Expression, op: InfixOp) -> ParseResult<Expression> {
         let rhs = parser.expression(self.lbp())?;
         Ok(Expression::infix(lhs, op, rhs))
     }
