@@ -9,7 +9,7 @@
 use crate::syntax::operators::InfixOp;
 use crate::syntax::{Constant, Expression as SyntaxExpr};
 
-use super::super::compile::{Error, Result};
+use super::super::compile::{CompError, CompResult};
 use super::sem_ctx::SemCtx;
 use super::tree::*;
 use super::types::{BuiltinType, Typ};
@@ -17,7 +17,7 @@ use super::types::{BuiltinType, Typ};
 /// Transform Expression
 ///
 /// Convert a syntax expression into a symantic one.
-pub fn transform_expression(ctx: &mut SemCtx, expr: SyntaxExpr) -> Result<Expression> {
+pub fn transform_expression(ctx: &mut SemCtx, expr: SyntaxExpr) -> CompResult<Expression> {
     match expr {
         SyntaxExpr::Identifier(i) => {
             let typ = ctx.find_local(&i);
@@ -35,7 +35,7 @@ pub fn transform_expression(ctx: &mut SemCtx, expr: SyntaxExpr) -> Result<Expres
             let transformed = seq
                 .into_iter()
                 .map(|e| transform_expression(ctx, e))
-                .collect::<Result<Vec<_>>>()?;
+                .collect::<CompResult<Vec<_>>>()?;
             let typ = transformed.last().and_then(|e| e.typ);
             Ok(Expression::new(ExpressionKind::Sequence(transformed), typ))
         }
@@ -58,7 +58,7 @@ pub fn transform_expression(ctx: &mut SemCtx, expr: SyntaxExpr) -> Result<Expres
                             None,
                         ))
                     } else {
-                        Err(Error::Generic(String::from(
+                        Err(CompError::from(String::from(
                             "left hand side of an assignment must be an identifier",
                         )))
                     }
@@ -160,7 +160,7 @@ pub fn transform_expression(ctx: &mut SemCtx, expr: SyntaxExpr) -> Result<Expres
                 Some(ty_ref) => {
                     let declared_ty = ensure_ty(ctx.sem_ty(ty_ref))?;
                     if Some(declared_ty) != initialiser.typ {
-                        return Err(Error::from(format!(
+                        return Err(CompError::from(format!(
                             "Initialiser doesn't match declaration type for {}",
                             tid.id
                         )));
@@ -187,7 +187,7 @@ pub fn transform_expression(ctx: &mut SemCtx, expr: SyntaxExpr) -> Result<Expres
             let args = args
                 .into_iter()
                 .map(|a| transform_expression(ctx, a))
-                .collect::<Result<Vec<_>>>()?;
+                .collect::<CompResult<Vec<_>>>()?;
             // FIXME: Look up the type of the function
             let typ = None;
             Ok(Expression::new(
@@ -202,7 +202,7 @@ pub fn transform_expression(ctx: &mut SemCtx, expr: SyntaxExpr) -> Result<Expres
 ///
 /// Checks that the given type lookup succeeded. Probably should be
 /// part of the `SemCtx`.
-fn ensure_ty(maybe_ty: Option<Typ>) -> Result<Typ> {
+fn ensure_ty(maybe_ty: Option<Typ>) -> CompResult<Typ> {
     // TODO: Improve error reporting here.
-    maybe_ty.ok_or(Error::from("Reference to undefined type".to_string()))
+    maybe_ty.ok_or(CompError::from("Reference to undefined type".to_string()))
 }

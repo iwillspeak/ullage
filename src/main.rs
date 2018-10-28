@@ -4,9 +4,10 @@
 #![warn(missing_docs)]
 
 extern crate docopt;
-extern crate tempfile;
 extern crate failure;
+extern crate tempfile;
 
+#[macro_use] extern crate failure_derive;
 #[macro_use] extern crate serde_derive;
 
 pub mod compile;
@@ -16,14 +17,14 @@ pub mod sem;
 pub mod syntax;
 
 use crate::compile::*;
+use crate::syntax::*;
 use docopt::Docopt;
+use failure::Error;
 use std::fs::File;
-use std::io;
 use std::io::prelude::*;
+use std::io;
 use std::path::Path;
 use std::process::*;
-use crate::syntax::*;
-use failure::Error;
 
 /// Usage Information
 ///
@@ -126,7 +127,7 @@ fn read_input(path: Option<String>) -> std::result::Result<String, Error> {
 /// Handles a Compilation Error
 ///
 /// Prints the error to standard output and exits the process.
-fn handle_comp_err(err: compile::Error) -> ! {
+fn handle_comp_err(err: CompError) -> ! {
     eprintln!("error: compilation error: {}", err);
     exit(1);
 }

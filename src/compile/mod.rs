@@ -8,7 +8,7 @@ use std::process::Command;
 use crate::syntax;
 use tempfile::Builder;
 
-pub use self::error::{Error, Result};
+pub use self::error::{CompError, CompResult};
 
 pub mod error;
 
@@ -19,7 +19,7 @@ mod lower_context;
 ///
 /// This method is responsible for making sure that
 /// declarations/definitions of any builtin funtions are emitted.
-fn add_core_decls(ctx: &mut Context, module: &mut Module) -> Result<()> {
+fn add_core_decls(ctx: &mut Context, module: &mut Module) -> CompResult<()> {
     add_printf_decl(ctx, module);
     module.add_global(ctx.const_str("%d\n"), "printf_num_format");
     module.add_global(ctx.const_str("%s\n"), "printf_cstr_format");
@@ -49,7 +49,7 @@ pub struct Compilation {
 
 impl Compilation {
     /// Create a new compilation
-    pub fn new(expr: syntax::Expression) -> Result<Self> {
+    pub fn new(expr: syntax::Expression) -> CompResult<Self> {
         let mut trans_sess = sem::SemCtx::new();
         let sem_expr = sem::transform_expression(&mut trans_sess, expr)?;
         Ok(Compilation { expr: sem_expr })
@@ -58,7 +58,7 @@ impl Compilation {
     /// Emit
     ///
     /// Performs the compilation, emitting the results to the given file.
-    pub fn emit(self, output_path: &Path, dump_ir: bool) -> Result<()> {
+    pub fn emit(self, output_path: &Path, dump_ir: bool) -> CompResult<()> {
         let mut ctx = Context::new();
         let name = output_path
             .file_stem()
@@ -96,7 +96,7 @@ impl Compilation {
         if status.success() {
             Ok(())
         } else {
-            Err(Error::Generic(match status.code() {
+            Err(CompError::from(match status.code() {
                 Some(c) => format!("clang failed with exit status: {}", c),
                 None => "clang failed with unknown exit status".into(),
             }))
