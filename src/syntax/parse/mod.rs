@@ -181,7 +181,8 @@ impl<'a> Tokeniser<'a> {
                 '\'' => {
                     te += chars
                         .take_while(|c| *c != '\'')
-                        .fold(0, |l, c| l + c.len_utf8()) + 1;
+                        .fold(0, |l, c| l + c.len_utf8())
+                        + 1;
                     Some(Token::Literal(Literal::RawString(String::from(
                         &self.buff[ts + 1..te - 1],
                     ))))
@@ -260,7 +261,8 @@ impl<'a> Parser<'a> {
             Some(token) if token == &expected => Ok(()),
             Some(_) => Err(ParseError::Unexpected),
             None => Err(ParseError::Incomplete),
-        }.map(|ok| {
+        }
+        .map(|ok| {
             self.lexer.next();
             ok
         })
