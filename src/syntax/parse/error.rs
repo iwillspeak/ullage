@@ -1,34 +1,29 @@
 //! Parse error module. Contains the Result and Error types for the
 //! `parse` module.
 
-use std::{error, fmt};
+/// Parser result type
+///
+/// Returned from parsing functions when success can't be guaranteed.
+pub type ParseResult<T> = ::std::result::Result<T, ParseError>;
 
-/// Parser result type. Returned from parsing functions when
-/// success can't be guaranteed.
-pub type Result<T> = ::std::result::Result<T, Error>;
-
-/// Parser error type. This distinguishes between the different
+/// Parser error type
+///
+/// This distinguishes between the different
 /// kinds of errors that the `Parser` can encounter.
-#[derive(Debug, PartialEq)]
-pub enum Error {
+///
+/// TODO: Both variants of this type should have more data
+/// attached. It would be nice to know _what_ token was unexpected or
+/// what the incomplete expression could have continued with (for
+/// error recovery). It probably makes sense to roll this in with
+/// adding position information to the parser tokens and errors
+/// though.
+#[derive(Fail, Debug, PartialEq)]
+pub enum ParseError {
     /// Unexpected token.
+    #[fail(display = "unexpected token")]
     Unexpected,
 
     /// Incomplete data
+    #[fail(display = "incomplete expression")]
     Incomplete,
-}
-
-impl fmt::Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", (self as &error::Error).description())
-    }
-}
-
-impl error::Error for Error {
-    fn description(&self) -> &str {
-        match *self {
-            Error::Unexpected => "Unexpected token",
-            Error::Incomplete => "Incomplete expression",
-        }
-    }
 }

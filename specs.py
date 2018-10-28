@@ -22,8 +22,10 @@ class ExitCodeMismatchError(Error):
         super(ExitCodeMismatchError, self).__init__(expected)
 
 class OutputMissingError(Error):
-    def __init__(self, expected):
-        msg = 'Expected "{}" but found nothing'.format(expected)
+    def __init__(self, output, expected):
+        output = "\n       >> ".join(output.strip().split('\n'))
+        expected = '", "'.join(expected)
+        msg = 'Expected "{}" in output. \n found >> {}'.format(expected, output)
         super(OutputMissingError, self).__init__(msg)
 
 class OutputMismatchError(Error):
@@ -73,7 +75,7 @@ def check_compilation_failure(output, expectations):
         if line.endswith(fails[0]):
             fails.pop()
     if fails:
-        raise OutputMissingError(fails)
+        raise OutputMissingError(output[1], fails)
 
 def run_spec(path):
     """Compile and Run the Given Spec
