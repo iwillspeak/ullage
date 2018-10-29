@@ -39,6 +39,7 @@ Ullage Compiler
 Usage:
   ullage [--version --help]
   ullage [options] [-o <outfile>] [<file>]
+  ullage --dumptargets
 
 Options:
   -h, --help          Show this message.
@@ -47,6 +48,7 @@ Options:
 
   --dumpir            Dump the LLVM IR for the module.
   --dumpast           Dump the syntax tree to stdout and exit.
+  --dumptargets       Dump the available targets and exit.
 ";
 
 /// Program Arguments
@@ -58,6 +60,7 @@ struct Args {
     flag_dumpast: bool,
     flag_output: Option<String>,
     flag_dumpir: bool,
+    flag_dumptargets: bool,
     arg_file: Option<String>,
 }
 
@@ -73,6 +76,11 @@ fn main() {
                 .deserialize()
         })
         .unwrap_or_else(|e| e.exit());
+
+    if args.flag_dumptargets {
+        low_loader::targets::dump_targets();
+        exit(0)
+    }
 
     let output_path = &args.flag_output.unwrap_or("a.out".to_string());
     let output_path = Path::new(&output_path);

@@ -18,7 +18,7 @@ use std::os::raw::c_uint;
 ///
 /// If any of the LLVM subsystems can't be successfully initialised
 /// then this function will panic.
-fn ensure_initialised() {
+pub(crate) fn ensure_initialised() {
     use std::sync::{Once, ONCE_INIT};
 
     static INIT: Once = ONCE_INIT;
@@ -32,9 +32,8 @@ fn ensure_initialised() {
             // Make sure that the 'native' target is set up and ready
             // to go. The 'native' target is the one on which LLVM is
             // currently running.
-            if target::LLVM_InitializeNativeTarget() != 0 {
-                panic!("Could not initialise target");
-            }
+            target::LLVM_InitializeAllTargets();
+            target::LLVM_InitializeAllTargetInfos();
             if target::LLVM_InitializeNativeAsmPrinter() != 0 {
                 panic!("Could not initialise ASM Printer");
             }
