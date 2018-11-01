@@ -6,6 +6,7 @@
 extern crate docopt;
 extern crate failure;
 extern crate tempfile;
+extern crate libc;
 
 #[macro_use]
 extern crate failure_derive;
@@ -39,16 +40,16 @@ Ullage Compiler
 Usage:
   ullage [--version --help]
   ullage [options] [-o <outfile>] [<file>]
-  ullage --dumptargets
 
 Options:
-  -h, --help          Show this message.
-  --version           Show version.
-  -o, --output=<out>  Write the output to <out>.
-
-  --dumpir            Dump the LLVM IR for the module.
-  --dumpast           Dump the syntax tree to stdout and exit.
-  --dumptargets       Dump the available targets and exit.
+  -h, --help             Show this message.
+  --version              Show version.
+  -o, --output=<out>     Write the output to <out>.
+  --target=<triple>      Set the compilation target triple.
+  --dumpir               Dump the LLVM IR for the module.
+  --dumpast              Dump the syntax tree to stdout and exit.
+  --dumptargets          Dump the available targets and exit.
+  --dumptargetinfo       Dump information about the given triple.
 ";
 
 /// Program Arguments
@@ -61,6 +62,8 @@ struct Args {
     flag_output: Option<String>,
     flag_dumpir: bool,
     flag_dumptargets: bool,
+    flag_dumptargetinfo: bool,
+    flag_target: Option<String>,
     arg_file: Option<String>,
 }
 
@@ -79,7 +82,16 @@ fn main() {
 
     if args.flag_dumptargets {
         low_loader::targets::dump_targets();
-        exit(0)
+        if args.arg_file.is_none() {
+            exit(0);
+        }
+    }
+    if args.flag_dumptargetinfo {
+        let triple = args.flag_target.unwrap_or_else(low_loader::targets::get_default_triple);
+        low_loader::targets::dump_target_info(&triple);
+        if args.arg_file.is_none() {
+            exit(0);
+        }
     }
 
     let output_path = &args.flag_output.unwrap_or("a.out".to_string());
