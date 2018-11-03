@@ -9,8 +9,10 @@ use std::process::Command;
 use tempfile::Builder;
 
 pub use self::error::{CompError, CompResult};
+pub use self::options::CompilationOptions;
 
 pub mod error;
+pub mod options;
 
 mod lower;
 mod lower_context;
@@ -45,20 +47,29 @@ fn add_printf_decl(ctx: &mut Context, module: &mut Module) {
 pub struct Compilation {
     /// The `Expression`s which are being compiled.
     expr: sem::Expression,
+    /// The options for this compilation
+    options: CompilationOptions,
 }
 
 impl Compilation {
     /// Create a new compilation
-    pub fn new(expr: syntax::Expression) -> CompResult<Self> {
+    ///
+    /// # Parameters
+    ///  * `expr` - the expression to compile
+    ///  * `opts` - The compilation options
+    pub fn new(expr: syntax::Expression, opts: CompilationOptions) -> CompResult<Self> {
         let mut trans_sess = sem::SemCtx::new();
         let sem_expr = sem::transform_expression(&mut trans_sess, expr)?;
-        Ok(Compilation { expr: sem_expr })
+        Ok(Compilation {
+            expr: sem_expr,
+            options: opts,
+        })
     }
 
     /// Emit
     ///
     /// Performs the compilation, emitting the results to the given file.
-    pub fn emit(self, output_path: &Path, dump_ir: bool) -> CompResult<()> {
+    pub fn emit(self, output_path: &Path) -> CompResult<()> {
         let mut ctx = Context::new();
         let name = output_path
             .file_stem()
@@ -75,7 +86,7 @@ impl Compilation {
         };
 
         // Check what we have, and dump it to the screen
-        if dump_ir {
+        if self.options.dump_ir {
             module.dump();
         }
         fun.verify_or_panic();
