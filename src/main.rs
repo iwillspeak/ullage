@@ -122,13 +122,15 @@ fn main() {
         exit(0);
     }
 
-    let comp = match Compilation::new(tree) {
+    let options = CompilationOptions::default()
+        .with_dump_ir(args.flag_dumpir);
+    let comp = match Compilation::new(tree, options) {
         Ok(c) => c,
         Err(e) => handle_comp_err(e),
     };
 
     // Create a compilation, and emit to the output path
-    let emit_result = comp.emit(&output_path, args.flag_dumpir);
+    let emit_result = comp.emit(&output_path);
 
     // Print any failures encountered and return a failure status
     if let Err(e) = emit_result {
