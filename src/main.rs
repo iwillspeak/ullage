@@ -5,8 +5,8 @@
 
 extern crate docopt;
 extern crate failure;
-extern crate tempfile;
 extern crate libc;
+extern crate tempfile;
 
 #[macro_use]
 extern crate failure_derive;
@@ -20,6 +20,7 @@ pub mod sem;
 pub mod syntax;
 
 use crate::compile::*;
+use crate::low_loader::targets;
 use crate::syntax::*;
 use docopt::Docopt;
 use failure::Error;
@@ -81,14 +82,20 @@ fn main() {
         .unwrap_or_else(|e| e.exit());
 
     if args.flag_dumptargets {
-        low_loader::targets::dump_targets();
+        targets::dump_targets();
         if args.arg_file.is_none() {
             exit(0);
         }
     }
+
+    let triple = args.flag_target.unwrap_or_else(targets::get_default_triple);
+    let target = targets::Target::from_triple(&triple).unwrap_or_else(|e| {
+        eprintln!("error: could not create target: {}", e);
+        exit(1);
+    });
+
     if args.flag_dumptargetinfo {
-        let triple = args.flag_target.unwrap_or_else(low_loader::targets::get_default_triple);
-        low_loader::targets::dump_target_info(&triple);
+        println!("{}", target);
         if args.arg_file.is_none() {
             exit(0);
         }
