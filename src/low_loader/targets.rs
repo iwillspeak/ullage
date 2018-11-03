@@ -4,6 +4,7 @@ use std::ffi::{CStr, CString};
 use std::ptr;
 use libc;
 use super::llvm_sys::target_machine::*;
+use super::llvm_sys::core::LLVMDisposeMessage;
 
 /// Dump Available LLVM Targets
 ///
@@ -51,6 +52,7 @@ pub fn dump_target_info(triple: &str) {
             &mut error as *mut *mut libc::c_char) != 0 {
             let err = CStr::from_ptr(error);
             eprintln!("error getting target information: {:?}", err);
+            LLVMDisposeMessage(error);
             return;
         }
     }
