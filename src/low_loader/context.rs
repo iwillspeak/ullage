@@ -25,15 +25,14 @@ pub(crate) fn ensure_initialised() {
 
     INIT.call_once(|| {
         unsafe {
-            // // Initialise the machine code JIT compiler. This is what
-            // // the `Context` uses to evaluate expressions.
-            // execution_engine::LLVMLinkInMCJIT();
-
-            // Make sure that the 'native' target is set up and ready
-            // to go. The 'native' target is the one on which LLVM is
-            // currently running.
+            // Initialise all targets. This is required so we can look
+            // targets up from the target registry and use them if
+            // cross compiling.
             target::LLVM_InitializeAllTargets();
             target::LLVM_InitializeAllTargetInfos();
+            // target::LLVM_InitializeAllAsmPrinters();
+            // target::LLVM_InitializeAllAsmParsers();
+            target::LLVM_InitializeAllTargetMCs();
             if target::LLVM_InitializeNativeAsmPrinter() != 0 {
                 panic!("Could not initialise ASM Printer");
             }
