@@ -130,7 +130,7 @@ fn main() {
     };
 
     // Create a compilation, and emit to the output path
-    let emit_result = comp.emit(&output_path);
+    let emit_result = comp.emit(&target, &output_path);
 
     // Print any failures encountered and return a failure status
     if let Err(e) = emit_result {

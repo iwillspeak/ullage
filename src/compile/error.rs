@@ -29,12 +29,12 @@ pub type CompResult<T> = ::std::result::Result<T, CompError>;
 #[derive(Fail, Debug)]
 pub enum LinkerError {
     /// The linker failed with a known exit status
-    #[fail(display = "linker returned exit status {}", _0)]
-    WithExitStatus(i32),
+    #[fail(display = "linker returned exit status {}: {}", _0, _1)]
+    WithExitStatus(i32, String),
 
     /// The linker failed with an unknown exit status
-    #[fail(display = "unknown linker error")]
-    UnknownFailure,
+    #[fail(display = "unknown linker error: {}", _0)]
+    UnknownFailure(String),
 }
 
 impl From<String> for CompError {
@@ -54,10 +54,11 @@ impl CompError {
     /// Compilation Linker Error
     ///
     /// When the linker has failed and caused compilation to fail.
-    pub fn link_fail(exit_status: Option<i32>) -> Self {
+    pub fn link_fail(exit_status: Option<i32>, stderr: Vec<u8>) -> Self {
+        let stderr = String::from_utf8(stderr).unwrap();
         CompError::Linker(match exit_status {
-            Some(status) => LinkerError::WithExitStatus(status),
-            None => LinkerError::UnknownFailure,
+            Some(status) => LinkerError::WithExitStatus(status, stderr),
+            None => LinkerError::UnknownFailure(stderr),
         })
     }
 }
