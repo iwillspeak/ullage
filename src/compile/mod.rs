@@ -69,13 +69,14 @@ impl Compilation {
     /// Emit
     ///
     /// Performs the compilation, emitting the results to the given file.
-    pub fn emit(self, output_path: &Path) -> CompResult<()> {
+    pub fn emit(self, target: &Target, output_path: &Path) -> CompResult<()> {
         let mut ctx = Context::new();
         let name = output_path
             .file_stem()
             .and_then(|s| s.to_str())
             .unwrap_or("fallback_module_name");
         let mut module = ctx.add_module(name);
+        module.set_target(target);
 
         add_core_decls(&mut ctx, &mut module)?;
 
@@ -99,6 +100,7 @@ impl Compilation {
         // Shell out to Clang to link the final assembly
         let output = Command::new("clang")
             .arg(temp_file.path())
+            .arg(format!("--target={}", target.triple()))
             .arg("-o")
             .arg(output_path)
             .output()?;
@@ -107,7 +109,7 @@ impl Compilation {
         if status.success() {
             Ok(())
         } else {
-            Err(CompError::link_fail(status.code()))
+            Err(CompError::link_fail(status.code(), output.stderr))
         }
     }
 }

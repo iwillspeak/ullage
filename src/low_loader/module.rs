@@ -3,6 +3,7 @@
 //! Contains types and wrappers for dealing with LLVM Modules.
 
 use super::function::Function;
+use super::targets::Target;
 use super::llvm_sys::core;
 use super::llvm_sys::prelude::*;
 
@@ -33,6 +34,16 @@ impl Module {
         Module { raw: mod_ref }
     }
 
+    /// Set the Modules's Target
+    ///
+    /// Defines which targe the module is being comiled for. This can
+    /// enable target-specific optimisations in the compilation of
+    /// this module.
+    pub fn set_target(&mut self, target: &Target) {
+        let triple = CString::new(target.norm_triple()).unwrap();
+        unsafe { core::LLVMSetTarget(self.as_raw(), triple.as_ptr()); }
+    }
+
     /// Dump the Module
     ///
     /// Writes a representation of the module to standard output. This
@@ -47,7 +58,8 @@ impl Module {
 
         unsafe {
             let mut message = ptr::null_mut();
-            if core::LLVMPrintModuleToFile(self.raw, path.as_ptr(), &mut message) == 0 {
+            let r = core::LLVMPrintModuleToFile(self.raw, path.as_ptr(), &mut message);
+            if r == 0 {
                 Ok(())
             } else {
                 let err_str = CStr::from_ptr(message).to_string_lossy().into();
