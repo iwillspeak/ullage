@@ -95,6 +95,8 @@ impl Compilation {
         // Create a tempdir to write the LLVM IR to
         let temp_file = Builder::new().prefix("ullage").suffix(".ll").tempfile()?;
 
+        // FIXME: hard coded optimisation level
+        module.run_optimiser(3);
         module.write_to_file(temp_file.path())?;
 
         // Shell out to Clang to link the final assembly
