@@ -5,6 +5,7 @@
 use super::function::Function;
 use super::targets::Target;
 use super::llvm_sys::core;
+use super::llvm_sys::transforms::pass_manager_builder as pm_builder;
 use super::llvm_sys::prelude::*;
 
 use std::ffi::{CStr, CString};
@@ -50,6 +51,27 @@ impl Module {
     /// is intended to be used as an aid to debugging.
     pub fn dump(&self) {
         unsafe { core::LLVMDumpModule(self.raw) }
+    }
+
+    /// Run the Optimisation Passes over the Module
+    ///
+    /// Given a target optimisation level transform the module to
+    /// improve exectuion speed.
+    pub fn run_optimiser(&mut self, level: u32) {
+        // FIXME: None of these are Rustically modelled.
+        unsafe {
+            let pass_manager_builder = pm_builder::LLVMPassManagerBuilderCreate();
+            let pass_manager = core::LLVMCreatePassManager();
+
+            pm_builder::LLVMPassManagerBuilderSetOptLevel(pass_manager_builder, level as libc::c_uint);
+            
+            pm_builder::LLVMPassManagerBuilderPopulateModulePassManager(pass_manager_builder, pass_manager);
+            pm_builder::LLVMPassManagerBuilderDispose(pass_manager_builder);
+
+            core::LLVMRunPassManager(pass_manager, self.as_raw());
+
+            core::LLVMDisposePassManager(pass_manager);
+        }
     }
 
     /// Write the Module to the Given File as LLVM IR
