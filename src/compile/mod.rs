@@ -9,7 +9,7 @@ use std::process::Command;
 use tempfile::Builder;
 
 pub use self::error::{CompError, CompResult};
-pub use self::options::CompilationOptions;
+pub use self::options::{CompilationOptions, OptimisationLevel};
 
 pub mod error;
 pub mod options;
@@ -86,17 +86,21 @@ impl Compilation {
             lower::lower_as_main(&mut lower_ctx, self.expr)?
         };
 
-        // Check what we have, and dump it to the screen
-        if self.options.dump_ir {
-            module.dump();
-        }
         fun.verify_or_panic();
 
         // Create a tempdir to write the LLVM IR to
         let temp_file = Builder::new().prefix("ullage").suffix(".ll").tempfile()?;
 
-        // FIXME: hard coded optimisation level
-        module.run_optimiser(3);
+        // check if we have optimiation enabled and run the
+        // corresponding optimisations if we do.
+        if let Some((level, size)) = self.options.opt_level.unpack() {
+            module.run_optimiser(level, size);
+        }
+
+        // Check what we have, and dump it to the screen
+        if self.options.dump_ir {
+            module.dump();
+        }
         module.write_to_file(temp_file.path())?;
 
         // Shell out to Clang to link the final assembly

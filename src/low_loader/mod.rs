@@ -42,9 +42,9 @@ pub mod prelude {
     pub use super::context::Context;
     pub use super::function::Function;
     pub use super::module::Module;
+    pub use super::targets::{Target, TargetLookupError};
     pub use super::types::Type;
     pub use super::value::Value;
-    pub use super::targets::{Target, TargetLookupError};
 
     // FIXME: only expose Value in public interface.
     pub use super::llvm_sys::prelude::LLVMTypeRef;

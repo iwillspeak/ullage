@@ -45,6 +45,8 @@ Usage:
 Options:
   -h, --help             Show this message.
   --version              Show version.
+  -O, --optimise=<lvl>   Set the compilation optimisation level.
+                         0 = off, 1 = low, 2 = medium, 3 = high, s = size.
   -o, --output=<out>     Write the output to <out>.
   --target=<triple>      Set the compilation target triple.
   --dumpir               Dump the LLVM IR for the module.
@@ -61,6 +63,7 @@ Options:
 struct Args {
     flag_dumpast: bool,
     flag_output: Option<String>,
+    flag_optimise: Option<OptimisationLevel>,
     flag_dumpir: bool,
     flag_dumptargets: bool,
     flag_dumptargetinfo: bool,
@@ -123,7 +126,8 @@ fn main() {
     }
 
     let options = CompilationOptions::default()
-        .with_dump_ir(args.flag_dumpir);
+        .with_dump_ir(args.flag_dumpir)
+        .with_opt_level(args.flag_optimise.unwrap_or_default());
     let comp = match Compilation::new(tree, options) {
         Ok(c) => c,
         Err(e) => handle_comp_err(e),
