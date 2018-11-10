@@ -3,10 +3,10 @@
 //! Contains types and wrappers for dealing with LLVM Modules.
 
 use super::function::Function;
-use super::targets::Target;
 use super::llvm_sys::core;
-use super::llvm_sys::transforms::pass_manager_builder as pm_builder;
 use super::llvm_sys::prelude::*;
+use super::llvm_sys::transforms::pass_manager_builder as pm_builder;
+use super::targets::Target;
 
 use std::ffi::{CStr, CString};
 use std::path::Path;
@@ -42,7 +42,9 @@ impl Module {
     /// this module.
     pub fn set_target(&mut self, target: &Target) {
         let triple = CString::new(target.norm_triple()).unwrap();
-        unsafe { core::LLVMSetTarget(self.as_raw(), triple.as_ptr()); }
+        unsafe {
+            core::LLVMSetTarget(self.as_raw(), triple.as_ptr());
+        }
     }
 
     /// Dump the Module
@@ -57,15 +59,29 @@ impl Module {
     ///
     /// Given a target optimisation level transform the module to
     /// improve exectuion speed.
-    pub fn run_optimiser(&mut self, level: u32) {
+    ///
+    /// # Parameters
+    ///  * `level` - the numeric optimisation level to target. 0, 1, 2 or 3
+    ///  * `size` - boolean to enable size optimisation.
+    pub fn run_optimiser(&mut self, level: u32, size: bool) {
         // FIXME: None of these are Rustically modelled.
         unsafe {
             let pass_manager_builder = pm_builder::LLVMPassManagerBuilderCreate();
             let pass_manager = core::LLVMCreatePassManager();
 
-            pm_builder::LLVMPassManagerBuilderSetOptLevel(pass_manager_builder, level as libc::c_uint);
-            
-            pm_builder::LLVMPassManagerBuilderPopulateModulePassManager(pass_manager_builder, pass_manager);
+            pm_builder::LLVMPassManagerBuilderSetOptLevel(
+                pass_manager_builder,
+                level as libc::c_uint,
+            );
+
+            if size {
+                pm_builder::LLVMPassManagerBuilderSetSizeLevel(pass_manager_builder, 1);
+            }
+            pm_builder::LLVMPassManagerBuilderPopulateModulePassManager(
+                pass_manager_builder,
+                pass_manager,
+            );
+
             pm_builder::LLVMPassManagerBuilderDispose(pass_manager_builder);
 
             core::LLVMRunPassManager(pass_manager, self.as_raw());
