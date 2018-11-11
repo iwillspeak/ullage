@@ -33,11 +33,11 @@ The language itself will be compiled with LLVM. The output should be something w
 
 ## Future
 
-### Jit
+### Jit?
 
 The compilation part of the JIT should be usable to perform AOT
 compilation. That is we should build the JIT on top of the AOT
-compilation support.
+compilation support. Maybe look at CraneLift for this?
 
 ## Types
 
@@ -49,8 +49,17 @@ We want the following built in types:
  * Function
  * Tuples, (including the unit tuple?)
 
-The language could also have a built-in `Any` type, which all types will inherit
-from?
+As far as further user defined types I'd like a full algabraic data type set with sum and product types. Unsure if this should be through asigning names to unknown types or with an explict syntax as in Rust. E.g.:
+
+```ullage
+type Foo = Number | String
+
+# or
+enum Foo {
+	Number(Number),
+	String(String),
+}
+```
 
 The type system should support generics. Given generics the following can be built from those primitives:
 
@@ -58,4 +67,4 @@ The type system should support generics. Given generics the following can be bui
  * Linked list
  * Range
 
-It should also be possible to define 'trait' or 'interface' types which can be implemented by concrete types. Not sure if these should be rust-like or more traditional. Maybe it is even just based on the shape of an object similar to Go.
+It should also be possible to define 'trait' or 'interface' types which can be implemented by concrete types. Not sure if these should be rust-like or more traditional.

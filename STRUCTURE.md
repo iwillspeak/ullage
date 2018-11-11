@@ -6,9 +6,9 @@ This is an outline of the planned structure of the repository. It details the ge
 
 The language parser and compiler are written in Rust. The source lives in the `src/` folder.
 
-Functional tests for the language consist of a set of source files in `spec/`. These files contain specially formatted comments which are interpreted by the Ruby test runner `specs.rb` when run.
+Functional tests for the language consist of a set of source files in `spec/`. These files contain specially formatted comments which are interpreted by the Python test runner `specs.py` when run.
 
-Documentation, written in Markdown, is in the `docs/` folder. It can be compiled into a static side with [`d`](https://github.com/sjl/d).
+Documentation, written in Markdown, is in the `docs/` folder. It can be compiled into a static side with [`docket`](http://willspeak.me/docket/).
 
 ## Rust modules
 
@@ -33,8 +33,8 @@ The semantic expression tree contains metadata about types and has each identifi
 This module is responsible for lowering and evaluating semantic expression trees.
 
 * `Compiler` - An expression visitor which walks `sem::Expression`s and compiles them into native modules.
-* `Lowerer` - The context required when lowering a given expression tree to LLVM IR.
+* `LowerContext` - The context required when lowering a given expression tree to LLVM IR.
 
 ## `low_loader`
 
-This module contains high-level safe wrappers around the LLVM API. It's not intended to expose the whole API. Instead it provides just the modules and abstractions needed to make working with LLVM ergonomic.
+This module contains high-level safe wrappers around the LLVM API. It's not intended to expose the whole API. Instead it provides just the modules and abstractions needed to make working with LLVM ergonomic. I'd like to get this to the point where it provides enough abstraction so that there's no LLVMisms in the interface. It would then be possible to replace the backend with something like [CraneLift](https://github.com/CraneStation/cranelift). Maybe even depending on the target we are compiling for (e.g. cranelif for WASM or JIT or whatever).
