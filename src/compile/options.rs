@@ -3,6 +3,8 @@
 //! This module defines the options structure used to tweak
 //! compilation output.
 
+use crate::low_loader::pass_manager as pm;
+
 /// Compilation Options
 ///
 /// This is used to control how each `Compilation` instance behaves.
@@ -82,14 +84,14 @@ impl OptimisationLevel {
     ///
     /// Retrieves a (level, size) tuple which defines how to configure
     /// the LLVM optimiser for this optimisation level.
-    pub fn unpack(&self) -> Option<(u32, bool)> {
+    pub fn unpack(&self) -> Option<(pm::OptLevel, pm::OptSize)> {
         use OptimisationLevel::*;
         match self {
             Off => None,
-            Low => Some((1, false)),
-            Med => Some((2, false)),
-            High => Some((3, false)),
-            Size => Some((2, true)),
+            Low => Some((pm::OptLevel::Low, pm::OptSize::Off)),
+            Med => Some((pm::OptLevel::Medium, pm::OptSize::Off)),
+            High => Some((pm::OptLevel::High, pm::OptSize::Off)),
+            Size => Some((pm::OptLevel::Medium, pm::OptSize::Size)),
         }
     }
 }

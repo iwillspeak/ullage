@@ -28,6 +28,7 @@ pub mod builder;
 pub mod context;
 pub mod function;
 pub mod module;
+pub mod pass_manager;
 pub mod targets;
 pub mod types;
 pub mod value;
