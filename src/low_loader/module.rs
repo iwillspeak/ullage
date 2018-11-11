@@ -5,7 +5,7 @@
 use super::function::Function;
 use super::llvm_sys::core;
 use super::llvm_sys::prelude::*;
-use super::llvm_sys::transforms::pass_manager_builder as pm_builder;
+use super::pass_manager::{OptLevel, OptSize, PassManagerBuilder};
 use super::targets::Target;
 
 use std::ffi::{CStr, CString};
@@ -61,33 +61,15 @@ impl Module {
     /// improve exectuion speed.
     ///
     /// # Parameters
-    ///  * `level` - the numeric optimisation level to target. 0, 1, 2 or 3
-    ///  * `size` - boolean to enable size optimisation.
-    pub fn run_optimiser(&mut self, level: u32, size: bool) {
-        // FIXME: None of these are Rustically modelled.
-        unsafe {
-            let pass_manager_builder = pm_builder::LLVMPassManagerBuilderCreate();
-            let pass_manager = core::LLVMCreatePassManager();
+    ///  * `level` - the optimisation level to target.
+    ///  * `size` - Enum to control size optimisation.
+    pub fn run_optimiser(&mut self, level: OptLevel, size: OptSize) {
+        let pass_manager = PassManagerBuilder::new()
+            .with_opt_level(level)
+            .with_opt_size(size)
+            .create_module_pass_manager();
 
-            pm_builder::LLVMPassManagerBuilderSetOptLevel(
-                pass_manager_builder,
-                level as libc::c_uint,
-            );
-
-            if size {
-                pm_builder::LLVMPassManagerBuilderSetSizeLevel(pass_manager_builder, 1);
-            }
-            pm_builder::LLVMPassManagerBuilderPopulateModulePassManager(
-                pass_manager_builder,
-                pass_manager,
-            );
-
-            pm_builder::LLVMPassManagerBuilderDispose(pass_manager_builder);
-
-            core::LLVMRunPassManager(pass_manager, self.as_raw());
-
-            core::LLVMDisposePassManager(pass_manager);
-        }
+        pass_manager.run(self);
     }
 
     /// Write the Module to the Given File as LLVM IR
