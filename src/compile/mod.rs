@@ -38,7 +38,8 @@ fn add_core_decls(ctx: &mut Context, module: &mut Module) -> CompResult<()> {
 fn add_printf_decl(ctx: &mut Context, module: &mut Module) {
     let mut params = [ctx.cstr_type()];
     let int_type = ctx.int_type(32);
-    ctx.add_varargs_function(module, "printf", int_type, &mut params);
+    let mut printf = ctx.add_varargs_function(module, "printf", int_type, &mut params);
+    printf.set_calling_convention(CallConvention::CDecl);
 }
 
 /// Compilation State

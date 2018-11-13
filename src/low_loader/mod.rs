@@ -41,7 +41,7 @@ pub mod prelude {
     pub use super::builder::Builder;
     pub use super::builder::Predicate;
     pub use super::context::Context;
-    pub use super::function::Function;
+    pub use super::function::{CallConvention, Function};
     pub use super::module::Module;
     pub use super::targets::{Target, TargetLookupError};
     pub use super::types::Type;

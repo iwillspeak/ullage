@@ -5,6 +5,7 @@
 use super::llvm_sys::analysis;
 use super::llvm_sys::core;
 use super::llvm_sys::prelude::*;
+use super::llvm_sys::LLVMCallConv;
 
 /// Function
 ///
@@ -12,6 +13,26 @@ use super::llvm_sys::prelude::*;
 #[derive(Debug, PartialEq)]
 pub struct Function {
     raw: LLVMValueRef,
+}
+
+/// Calling Contentions
+///
+/// This is a subset of the LLVM calling contentions.
+pub enum CallConvention {
+    /// THe `fastcall` calling contention
+    Fastcall,
+    /// The C Calling Contention
+    CDecl,
+}
+
+impl From<CallConvention> for libc::c_uint {
+    fn from(call_convention: CallConvention) -> Self {
+        let llvm_conv = match call_convention {
+            CallConvention::Fastcall => LLVMCallConv::LLVMFastCallConv,
+            CallConvention::CDecl => LLVMCallConv::LLVMCCallConv,
+        };
+        llvm_conv as libc::c_uint
+    }
 }
 
 impl Function {
@@ -60,5 +81,16 @@ impl Function {
     /// thread safety requirements.
     pub unsafe fn as_raw(&self) -> LLVMValueRef {
         self.raw
+    }
+
+    /// Set the Function's Calling Convention
+    ///
+    /// Updates the calling convention for the function
+    /// delcaration. We use fastcall for our calling convention and
+    /// cdecl for c interop.
+    pub fn set_calling_convention(&mut self, call_convention: CallConvention) {
+        unsafe {
+            core::LLVMSetFunctionCallConv(self.raw, call_convention.into());
+        }
     }
 }

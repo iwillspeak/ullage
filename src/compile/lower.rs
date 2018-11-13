@@ -37,6 +37,7 @@ pub fn lower_as_main(ctx: &mut LowerContext, expr: Expression) -> CompResult<Fun
     let mut fun = ctx
         .llvm_ctx
         .add_function(ctx.module, "main", int_type, &mut []);
+    fun.set_calling_convention(CallConvention::CDecl);
     let bb = ctx.llvm_ctx.add_block(&mut fun, "entry");
 
     let mut builder = ctx.llvm_ctx.add_builder();
@@ -103,8 +104,10 @@ fn add_decls(ctx: &mut LowerContext, expr: &Expression) {
                         .expect("no type in context for function gparam")
                 })
                 .collect::<Vec<_>>();
-            ctx.llvm_ctx
-                .add_function(ctx.module, &fn_decl.ident, ret, &mut params[..]);
+            let mut fun =
+                ctx.llvm_ctx
+                    .add_function(ctx.module, &fn_decl.ident, ret, &mut params[..]);
+            fun.set_calling_convention(CallConvention::Fastcall);
         }
         _ => (),
     }
