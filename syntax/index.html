@@ -10,7 +10,7 @@
     <script>hljs.initHighlightingOnLoad();</script>
   </head>
   <body><header class="page-heading"><h1><a href="#">Syntax &amp; Grammar</h1><a class="home-link" href="../">ullage</a></header><p>Ullage files are plain-old UTF-8. The language itself is built mainly around <em>words</em> rather than fancy sigils; more reminiscent of Ruby than C and friends.</p>
-<p><ol><li><a href="#Tokens">Tokens</a><ol><li><a href="#Words">Words</a></li><li><a href="#Punctuation">Punctuation</a></li><li><a href="#Literals">Literals</a></li><li><a href="#Whitespace">Whitespace</a></li></ol></li><li><a href="#Types">Types</a><ol><li><a href="#Bool"><code>Bool</code></a></li><li><a href="#Number"><code>Number</code></a></li><li><a href="#String"><code>String</code></a></li><li><a href="#Arrays">Arrays</a></li><li><a href="#Tuples">Tuples</a></li></ol></li><li><a href="#Variables">Variables</a><ol></ol></li><li><a href="#Operators">Operators</a><ol></ol></li><li><a href="#Compound-Expressions">Compound Expressions</a><ol><li><a href="#While-loop">While loop</a></li><li><a href="#Print-Expression">Print Expression</a></li><li><a href="#Ternary-Conditional-Expression">Ternary Conditional Expression</a></li><li><a href="#Function-Expression">Function Expression</a></li></ol></li></ol></p>
+<p><ol><li><a href="#Tokens">Tokens</a><ol><li><a href="#Words">Words</a></li><li><a href="#Punctuation">Punctuation</a></li><li><a href="#Literals">Literals</a></li><li><a href="#Whitespace">Whitespace</a></li></ol></li><li><a href="#Types">Types</a><ol><li><a href="#Bool"><code>Bool</code></a></li><li><a href="#Number"><code>Number</code></a></li><li><a href="#String"><code>String</code></a></li><li><a href="#Arrays">Arrays</a></li><li><a href="#Tuples">Tuples</a></li></ol></li><li><a href="#Variables">Variables</a><ol></ol></li><li><a href="#Operators">Operators</a><ol></ol></li><li><a href="#Compound-Expressions">Compound Expressions</a><ol><li><a href="#While-loop">While loop</a></li><li><a href="#Print-Expression">Print Expression</a></li><li><a href="#Ternary-Conditional-Expression">Ternary Conditional Expression</a></li><li><a href="#Function-Expression">Function Expression</a></li><li><a href="#Index-Expressions">Index Expressions</a></li><li><a href="#Call-Expression">Call Expression</a></li></ol></li></ol></p>
 <h2 id="Tokens"><a href="#Tokens">Tokens</a></h2><p>Source text is treated as one of four basic token types: <em>words</em>, <em>punctuation</em>, <em>literals</em> and <em>whitespace</em>. Words and whitespace are unicode-aware.</p>
 <h3 id="Words"><a href="#Words">Words</a></h3><p>Word tokens start with an alphabetic character or an underscore. They may then contain any number of alphanumeric or underscore characters.</p>
 <p>Examples of words are: <code>foo</code>, <code>fn</code>, <code>_1</code> and <code>∂</code>. Some words have special meanings in the grammar:</p>
@@ -78,4 +78,15 @@ end
 end
 </code></pre>
 <p>This defines a function named <code>mod</code> which takes two <code>Number</code> parameters, <code>n</code> and <code>d</code>, and returns a <code>Number</code>.</p>
+<h3 id="Index-Expressions"><a href="#Index-Expressions">Index Expressions</a></h3><p>An index expression uses <code>[]</code> to access elements from an array. Array indices start at <code>0</code> for the first element:</p>
+<pre><code>let fuzz = [1, 2, 3, 4]
+print fuzz[2] # =&gt; 2
+</code></pre>
+<h3 id="Call-Expression"><a href="#Call-Expression">Call Expression</a></h3><p>Functions and function-like types can be invoked with a call expression. A call expression begins with a left-hand side which references an invokeable, such as a function's identifier. This is followed by the parameters to the function enclosed in parenthesis <code>()</code>:</p>
+<pre><code>fn add(n: Number, m: Number): Number
+    n + m
+end
+
+print add(add(1, 2), 3) # =&gt; 6
+</code></pre>
 <footer></footer></body></html>

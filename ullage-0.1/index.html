@@ -25,9 +25,9 @@
 <h2 id="Printing"><a href="#Printing">Printing</a></h2><p>A simple addition to the early language, and not intended to stay the course. <code>print</code> should allow us to develop an array of functional test cases quickly before getting the whole language runtime up on its feet.</p>
 <h2 id="Variables"><a href="#Variables">Variables</a></h2><p>To begin with we just need two kinds of variables: <code>var</code> and <code>let</code>. Both will take a type annotation and an expression of that type. The difference between the two is just mutability. Neither should allow you to define an uninitialised variable at this stage.</p>
 <h2 id="Compilation"><a href="#Compilation">Compilation</a></h2><p>The language itself will be compiled with LLVM. The output should be something which is independently runnable. For initial versions the compiler can just produce LLVM IR. A small language <em>runtime</em> will be needed to support the print statement and manage calling the entry point. This runtime support can initially be a small Rust stub with a c api. In the future it would be nice to have an interactive REPL.</p>
-<h2 id="Future"><a href="#Future">Future</a></h2><h3 id="Jit"><a href="#Jit">Jit</a></h3><p>The compilation part of the JIT should be usable to perform AOT
+<h2 id="Future"><a href="#Future">Future</a></h2><h3 id="Jit-"><a href="#Jit-">Jit?</a></h3><p>The compilation part of the JIT should be usable to perform AOT
 compilation. That is we should build the JIT on top of the AOT
-compilation support.</p>
+compilation support. Maybe look at CraneLift for this?</p>
 <h2 id="Types"><a href="#Types">Types</a></h2><p>We want the following built in types:</p>
 <ul>
 <li>Integer/Number (arbitrary precision?)</li>
@@ -36,13 +36,20 @@ compilation support.</p>
 <li>Function</li>
 <li>Tuples, (including the unit tuple?)</li>
 </ul>
-<p>The language could also have a built-in <code>Any</code> type, which all types will inherit
-from?</p>
+<p>As far as further user defined types I'd like a full algabraic data type set with sum and product types. Unsure if this should be through asigning names to unknown types or with an explict syntax as in Rust. E.g.:</p>
+<pre><code class="language-ullage">type Foo = Number | String
+
+# or
+enum Foo {
+    Number(Number),
+    String(String),
+}
+</code></pre>
 <p>The type system should support generics. Given generics the following can be built from those primitives:</p>
 <ul>
 <li>Map</li>
 <li>Linked list</li>
 <li>Range</li>
 </ul>
-<p>It should also be possible to define 'trait' or 'interface' types which can be implemented by concrete types. Not sure if these should be rust-like or more traditional. Maybe it is even just based on the shape of an object similar to Go.</p>
+<p>It should also be possible to define 'trait' or 'interface' types which can be implemented by concrete types. Not sure if these should be rust-like or more traditional.</p>
 <footer></footer></body></html>
