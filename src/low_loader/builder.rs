@@ -75,13 +75,15 @@ impl Builder {
     pub fn build_call(&mut self, function: &Function, args: &mut [LLVMValueRef]) -> LLVMValueRef {
         unsafe {
             let name = CStr::from_bytes_with_nul_unchecked(b"printed\0");
-            core::LLVMBuildCall(
+            let call = core::LLVMBuildCall(
                 self.raw,
                 function.as_raw(),
                 args.as_mut_ptr(),
                 args.len() as c_uint,
                 name.as_ptr(),
-            )
+            );
+            core::LLVMSetInstructionCallConv(call, function.call_conv().into());
+            call
         }
     }
 

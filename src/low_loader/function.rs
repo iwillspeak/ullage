@@ -13,11 +13,13 @@ use super::llvm_sys::LLVMCallConv;
 #[derive(Debug, PartialEq)]
 pub struct Function {
     raw: LLVMValueRef,
+    call_conv: CallConvention,
 }
 
 /// Calling Contentions
 ///
 /// This is a subset of the LLVM calling contentions.
+#[derive(Debug, Copy, Clone, PartialEq)]
 pub enum CallConvention {
     /// THe `fastcall` calling contention
     Fastcall,
@@ -35,13 +37,26 @@ impl From<CallConvention> for libc::c_uint {
     }
 }
 
+impl From<libc::c_uint> for CallConvention {
+    fn from(llvm_conv: libc::c_uint) -> Self {
+        if llvm_conv == LLVMCallConv::LLVMFastCallConv as libc::c_uint {
+            CallConvention::Fastcall
+        } else {
+            CallConvention::CDecl
+        }
+    }
+}
+
 impl Function {
     /// Wrap an Existing Funciton
     ///
     /// Takes ownership of the given function and provides more
     /// stronlgy typed access to it.
     pub unsafe fn from_raw(raw: LLVMValueRef) -> Self {
-        Function { raw: raw }
+        Function {
+            raw: raw,
+            call_conv: core::LLVMGetFunctionCallConv(raw).into(),
+        }
     }
 
     /// Verify the Function
@@ -83,12 +98,21 @@ impl Function {
         self.raw
     }
 
+    /// Get the Function Calling Convention
+    ///
+    /// Returns the calling convention that is set for the current
+    /// function. This defaults to CDecl if no convention is set.
+    pub fn call_conv(&self) -> CallConvention {
+        self.call_conv
+    }
+
     /// Set the Function's Calling Convention
     ///
     /// Updates the calling convention for the function
     /// delcaration. We use fastcall for our calling convention and
     /// cdecl for c interop.
     pub fn set_calling_convention(&mut self, call_convention: CallConvention) {
+        self.call_conv = call_convention;
         unsafe {
             core::LLVMSetFunctionCallConv(self.raw, call_convention.into());
         }
