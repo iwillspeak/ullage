@@ -88,6 +88,7 @@ impl Compilation {
         };
 
         fun.verify_or_panic();
+        module.verify_or_panic();
 
         // Create a tempdir to write the LLVM IR to
         let temp_file = Builder::new().prefix("ullage").suffix(".ll").tempfile()?;

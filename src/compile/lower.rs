@@ -101,7 +101,7 @@ fn add_decls(ctx: &mut LowerContext, expr: &Expression) {
                 .iter()
                 .map(|p| {
                     ctx.llvm_type(&(p.ty.unwrap_or(Typ::Builtin(BuiltinType::Number))))
-                        .expect("no type in context for function gparam")
+                        .expect("no type in context for function param")
                 })
                 .collect::<Vec<_>>();
             let mut fun =
@@ -194,6 +194,7 @@ pub fn lower_internal(
         ExpressionKind::IfThenElse(iff, then, els) => {
             let cond = lower_internal(ctx, fun, builder, vars, *iff)?;
 
+            // TODO: Get rid of the fallback types here
             let typ = then
                 .typ
                 .and_then(|t| ctx.llvm_type(&t))

@@ -3,8 +3,8 @@
 //! Contains types and wrappers for dealing with LLVM Modules.
 
 use super::function::Function;
-use super::llvm_sys::core;
 use super::llvm_sys::prelude::*;
+use super::llvm_sys::{analysis, core};
 use super::pass_manager::{OptLevel, OptSize, PassManagerBuilder};
 use super::targets::Target;
 
@@ -53,6 +53,22 @@ impl Module {
     /// is intended to be used as an aid to debugging.
     pub fn dump(&self) {
         unsafe { core::LLVMDumpModule(self.raw) }
+    }
+
+    /// Verify the Module
+    ///
+    /// Checks that the whole module is valid before continuing
+    pub fn verify_or_panic(&self) {
+        let verified = unsafe {
+            analysis::LLVMVerifyModule(
+                self.as_raw(),
+                analysis::LLVMVerifierFailureAction::LLVMPrintMessageAction,
+                ptr::null_mut(),
+            )
+        };
+        if verified != 0 {
+            panic!("Module failed validation");
+        }
     }
 
     /// Run the Optimisation Passes over the Module
