@@ -209,6 +209,16 @@ impl Context {
         }
     }
 
+    /// Create a Structure Contstant
+    ///
+    /// Initialses a new structrure based on the given values.
+    pub fn const_struct(&self, mut values: Vec<LLVMValueRef>) -> LLVMValueRef {
+        let len = values.len();
+        unsafe {
+            core::LLVMConstStructInContext(self.as_raw(), values.as_mut_ptr(), len as c_uint, 0)
+        }
+    }
+
     /// Raw Borrow
     ///
     /// # Safety
@@ -248,6 +258,17 @@ impl Context {
         unsafe {
             let int8 = core::LLVMInt8TypeInContext(self.as_raw());
             core::LLVMPointerType(int8, 0)
+        }
+    }
+
+    /// Create a Structure Type
+    ///
+    /// Given a set of fields create a structure type with fields
+    /// layed out in that order.
+    pub fn struct_type(&self, mut fields: Vec<LLVMTypeRef>) -> LLVMTypeRef {
+        let len = fields.len();
+        unsafe {
+            core::LLVMStructTypeInContext(self.as_raw(), fields.as_mut_ptr(), len as c_uint, 0)
         }
     }
 

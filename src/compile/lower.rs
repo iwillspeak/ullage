@@ -133,10 +133,14 @@ pub fn lower_internal(
             Constant::Bool(b) => Ok(ctx.llvm_ctx.const_bool(b)),
             Constant::String(s) => {
                 let global = ctx.module.add_global(ctx.llvm_ctx.const_str(&s), "s_const");
-                Ok(builder.build_gep(
+                let str_ptr = builder.build_gep(
                     global,
                     &mut [ctx.llvm_ctx.const_int(0), ctx.llvm_ctx.const_int(0)],
-                ))
+                );
+                Ok(ctx.llvm_ctx.const_struct(vec![
+                    ctx.llvm_ctx.const_int(s.bytes().len() as i64),
+                    str_ptr,
+                ]))
             }
         },
         ExpressionKind::Prefix(op, inner) => {
@@ -324,7 +328,12 @@ pub fn lower_internal(
 /// method is intended to be used as part of the `print`
 /// operator/expression. For a list of the supported format string
 /// names check out `add_core_decls`.
-fn fmt(ctx: &mut LowerContext, builder: &mut Builder, to_format: LLVMValueRef, format_name: &str) {
+fn fmt(
+    ctx: &mut LowerContext,
+    builder: &mut Builder,
+    mut to_format: Vec<LLVMValueRef>,
+    format_name: &str,
+) {
     let format = ctx
         .module
         .find_global(format_name)
@@ -333,7 +342,8 @@ fn fmt(ctx: &mut LowerContext, builder: &mut Builder, to_format: LLVMValueRef, f
         format,
         &mut [ctx.llvm_ctx.const_int(0), ctx.llvm_ctx.const_int(0)],
     );
-    let mut args = vec![format_ptr, to_format];
+    let mut args = vec![format_ptr];
+    args.append(&mut to_format);
     let printf = ctx
         .module
         .find_function("printf")
@@ -348,14 +358,19 @@ fn fmt_from_type(
     fun: &mut Function,
     builder: &mut Builder,
     val: LLVMValueRef,
-) -> Option<(LLVMValueRef, &'static str)> {
+) -> Option<(Vec<LLVMValueRef>, &'static str)> {
     match typ {
         Typ::Builtin(BuiltinType::Bool) => {
             let formatted = fmt_convert_bool(ctx, fun, builder, val);
-            Some((formatted, "printf_cstr_format"))
+            Some((vec![formatted], "printf_cstr_format"))
         }
-        Typ::Builtin(BuiltinType::Number) => Some((val, "printf_num_format")),
-        Typ::Builtin(BuiltinType::String) => Some((val, "printf_cstr_format")),
+        Typ::Builtin(BuiltinType::Number) => Some((vec![val], "printf_num_format")),
+        Typ::Builtin(BuiltinType::String) => {
+            // fixme: load these from the string structure...
+            let len = ctx.llvm_ctx.const_int(0);
+            let ptr = ctx.llvm_ctx.const_int(0);
+            Some((vec![len, ptr], "printf_ustr_format"))
+        }
         _ => None,
     }
 }
@@ -412,13 +427,13 @@ fn fmt_from_llvm(
     fun: &mut Function,
     builder: &mut Builder,
     val: LLVMValueRef,
-) -> (LLVMValueRef, &'static str) {
+) -> (Vec<LLVMValueRef>, &'static str) {
     match Type::from(ctx.llvm_ctx.get_type(val)) {
         Type::Int(1) => {
             let formatted = fmt_convert_bool(ctx, fun, builder, val);
-            (formatted, "printf_cstr_format")
+            (vec![formatted], "printf_cstr_format")
         }
-        Type::Int(_) => (val, "printf_num_format"),
+        Type::Int(_) => (vec![val], "printf_num_format"),
         _ => unimplemented!(),
     }
 }
