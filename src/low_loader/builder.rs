@@ -103,6 +103,17 @@ impl Builder {
         }
     }
 
+    /// Build a Structure GEP
+    ///
+    /// Loads an element from a given structure pointer.
+    pub fn build_struct_gep(&mut self, struct_val: LLVMValueRef, index: u32) -> LLVMValueRef {
+        unsafe {
+            let name = CStr::from_bytes_with_nul_unchecked(b"sgep\0");
+            core::LLVMBuildStructGEP(self.raw, struct_val, index as c_uint, name.as_ptr())
+        }
+    }
+        
+
     /// Build an Integer Negation
     pub fn build_neg(&mut self, value: LLVMValueRef) -> LLVMValueRef {
         unsafe {
