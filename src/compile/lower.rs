@@ -366,9 +366,15 @@ fn fmt_from_type(
         }
         Typ::Builtin(BuiltinType::Number) => Some((vec![val], "printf_num_format")),
         Typ::Builtin(BuiltinType::String) => {
-            // fixme: load these from the string structure...
-            let len = ctx.llvm_ctx.const_int(0);
-            let ptr = ctx.llvm_ctx.const_int(0);
+            // TODO: This is a faff. Need to change string types to be
+            // a bit more ergonomic...
+            let string_type = ctx.llvm_type(&typ).unwrap();
+            let temp = builder.build_alloca(string_type, "string_gep_temp");
+            builder.build_store(val, temp);
+            let len = builder.build_struct_gep(temp, 0);
+            let len = builder.build_load(len);
+            let ptr = builder.build_struct_gep(temp, 1);
+            let ptr = builder.build_load(ptr);
             Some((vec![len, ptr], "printf_ustr_format"))
         }
         _ => None,
