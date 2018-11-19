@@ -113,6 +113,15 @@ impl Builder {
         }
     }
         
+    /// Extract a Value from an Aggregate
+    ///
+    /// Reads a value from a structure at the given struct offset.
+    pub fn build_extract_value(&mut self, struct_val: LLVMValueRef, index: u32) -> LLVMValueRef {
+        unsafe {
+            let name = CStr::from_bytes_with_nul_unchecked(b"extracted\0");
+            core::LLVMBuildExtractValue(self.raw, struct_val, index as c_uint, name.as_ptr())
+        }
+    }
 
     /// Build an Integer Negation
     pub fn build_neg(&mut self, value: LLVMValueRef) -> LLVMValueRef {
