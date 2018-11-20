@@ -176,6 +176,16 @@ impl Context {
         }
     }
 
+    /// Create a Constant Value with a Given Width
+    ///
+    /// Used when the width shouldn't be 64 bits.
+    pub fn const_int_width(&self, i: i64, width: u32) -> LLVMValueRef {
+        unsafe {
+            let int_ty = core::LLVMIntTypeInContext(self.as_raw(), width);
+            core::LLVMConstInt(int_ty, i as u64, 1)
+        }
+    }
+
     /// Create a Constant Character Value
     pub fn const_char(&self, i: u8) -> LLVMValueRef {
         unsafe {

@@ -138,7 +138,7 @@ pub fn lower_internal(
                     &mut [ctx.llvm_ctx.const_int(0), ctx.llvm_ctx.const_int(0)],
                 );
                 Ok(ctx.llvm_ctx.const_struct(vec![
-                    ctx.llvm_ctx.const_int(s.bytes().len() as i64),
+                    ctx.llvm_ctx.const_int_width(s.bytes().len() as i64, 32),
                     str_ptr,
                 ]))
             }
@@ -199,7 +199,7 @@ pub fn lower_internal(
             let cond = lower_internal(ctx, fun, builder, vars, *iff)?;
 
             // TODO: Get rid of the fallback types here
-            let typ = then
+            let typ = expr
                 .typ
                 .and_then(|t| ctx.llvm_type(&t))
                 .unwrap_or_else(|| ctx.llvm_ctx.int_type(64));
