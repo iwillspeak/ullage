@@ -112,7 +112,7 @@ impl Builder {
             core::LLVMBuildStructGEP(self.raw, struct_val, index as c_uint, name.as_ptr())
         }
     }
-        
+
     /// Extract a Value from an Aggregate
     ///
     /// Reads a value from a structure at the given struct offset.
