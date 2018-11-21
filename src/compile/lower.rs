@@ -132,15 +132,14 @@ pub fn lower_internal(
             Constant::Number(n) => Ok(ctx.llvm_ctx.const_int(n)),
             Constant::Bool(b) => Ok(ctx.llvm_ctx.const_bool(b)),
             Constant::String(s) => {
-                let global = ctx.module.add_global(ctx.llvm_ctx.const_str(&s), "s_const");
-                let str_ptr = builder.build_gep(
-                    global,
-                    &mut [ctx.llvm_ctx.const_int(0), ctx.llvm_ctx.const_int(0)],
-                );
-                Ok(ctx.llvm_ctx.const_struct(vec![
+                let initialiser = ctx.llvm_ctx.const_struct(vec![
                     ctx.llvm_ctx.const_int_width(s.bytes().len() as i64, 32),
-                    str_ptr,
-                ]))
+                    ctx.llvm_ctx.const_str(&s),
+                ]);
+                let global = ctx.module.add_global(initialiser, "s_const");
+
+                let string_ty = ctx.llvm_type(&expr.typ.unwrap()).unwrap();
+                Ok(builder.build_bitcast(global, string_ty, "string_const"))
             }
         },
         ExpressionKind::Prefix(op, inner) => {
@@ -366,10 +365,9 @@ fn fmt_from_type(
         }
         Typ::Builtin(BuiltinType::Number) => Some((vec![val], "printf_num_format")),
         Typ::Builtin(BuiltinType::String) => {
-            // TODO: This is a faff. Need to change string types to be
-            // a bit more ergonomic...
-            let len = builder.build_extract_value(val, 0);
-            let ptr = builder.build_extract_value(val, 1);
+            let len = builder.build_struct_gep(val, 0);
+            let len = builder.build_load(len);
+            let ptr = builder.build_struct_gep(val, 1);
             Some((vec![len, ptr], "printf_ustr_format"))
         }
         _ => None,

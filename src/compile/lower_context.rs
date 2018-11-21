@@ -35,10 +35,10 @@ impl<'a> LowerContext<'a> {
 
     pub fn add_core_types(&mut self) {
         // TODO: Unit -> void
-        let llvm_string = self.llvm_ctx.cstr_type();
-        let lang_string = self
-            .llvm_ctx
-            .struct_type(vec![self.llvm_ctx.int_type(32), llvm_string]);
+        let lang_string = self.llvm_ctx.pointer_type(self.llvm_ctx.struct_type(vec![
+            self.llvm_ctx.int_type(32),
+            self.llvm_ctx.array_type(self.llvm_ctx.int_type(8), 0),
+        ]));
         self.add_type(Typ::Builtin(BuiltinType::String), lang_string);
         let llvm_bool = self.llvm_ctx.bool_type();
         self.add_type(Typ::Builtin(BuiltinType::Bool), llvm_bool);
