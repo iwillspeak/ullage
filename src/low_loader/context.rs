@@ -282,6 +282,21 @@ impl Context {
         }
     }
 
+    /// Create an Array Type
+    ///
+    /// Returns a type which represents a contiguous array of the
+    /// inner type.
+    pub fn array_type(&self, inner: LLVMTypeRef, size: usize) -> LLVMTypeRef {
+        unsafe { core::LLVMArrayType(inner, size as c_uint) }
+    }
+
+    /// Create a Pointer Type
+    ///
+    /// Wraps a given type to creat a poitner to it.
+    pub fn pointer_type(&self, inner: LLVMTypeRef) -> LLVMTypeRef {
+        unsafe { core::LLVMPointerType(inner, 0) }
+    }
+
     /// Get the LLVM Type from a Value
     ///
     /// Inspects a given LLVM Value and returns the type as known by
