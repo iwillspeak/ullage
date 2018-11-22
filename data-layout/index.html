@@ -19,7 +19,7 @@
 </ul>
 <p>String types should be represented as a pair of length, data:</p>
 <ul>
-<li><code>String</code> -&gt; <code>&lt;{u64,[0 x u8]}&gt;</code></li>
+<li><code>String</code> -&gt; <code>&lt;{u32,[0 x u8]}&gt;</code></li>
 </ul>
 <p>This would have the value of the string be encoded directly as part of the pair. Allocation of a string would use a variable length array to contain a sequence of utf-8 characters. There are a few problems with this:</p>
 <ul>
@@ -29,9 +29,10 @@
 </ul>
 <p>Given these concernes we could lay a string out as:</p>
 <ul>
-<li><code>String</code> -&gt; <code>&lt;{u32, &lt;{u32, [0 x u8]}&gt;*}&gt;</code></li>
+<li><code>String</code> -&gt; <code>&lt;{u32, u32, [0 x u8]}&gt;*</code></li>
 </ul>
 <p>In this representation each string has a pointer to a reference counted backing buffer. This should reduce copy-size of each string and means that a string reference would again have a single easily known size. We still need to know when the reference should be deallocated however.</p>
+<p>The other thing to think about here is are 32 bit rc and length too big? Can we get away with 16 bit numbers for string length? For refcount we could always detect the overflow on retain and dupe the value as-needed to maintain correctness.</p>
 <h2 id="Garbage-Collection"><a href="#Garbage-Collection">Garbage Collection</a></h2><p>Rather than aiming to control access to data as Rust does the language should provide a garbage collection mechanism to clean up data once no one references it. There are a few alternatives for this:</p>
 <ul>
 <li>Don't deallocate - Probably useful to get us off the ground</li>
