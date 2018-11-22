@@ -60,11 +60,12 @@ Ullage is open source, under the [MIT License](LICENSE.md).
 
  * [x] Create LLVM module and lower basic constructs
  * [ ] Array indexing
- * [ ] Arbitrary types for local variables
+ * [x] Arbitrary types for local variables
  * [ ] Heap allocated types
-    * [ ] Lowering of `String` type
-    * [ ] User-defined heap allocated types
-    * [ ] Garbage collection ??
- * [ ] Library output types
- * [ ] Control of target machine & features
+    * [x] Lowering of `String` type
+    * [ ] User-defined types
+    * [ ] RC garbage collection
+ * [ ] Library output types (llvm_ir, llvm bc, object, staticlib, dylib, exe)
+ * [x] Control of target machine & features
+ * [x] Optimisation
  * [ ] Stop shelling out for linking on supported platforms (lld or similar)
