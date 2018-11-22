@@ -17,7 +17,7 @@ For the primitive types we have the following type layouts from language type to
 
 String types should be represented as a pair of length, data:
 
- * `String` -> `<{u64,[0 x u8]}>`
+ * `String` -> `<{u32,[0 x u8]}>`
 
 This would have the value of the string be encoded directly as part of the pair. Allocation of a string would use a variable length array to contain a sequence of utf-8 characters. There are a few problems with this:
 
@@ -27,9 +27,11 @@ This would have the value of the string be encoded directly as part of the pair.
  
  Given these concernes we could lay a string out as:
  
-  * `String` -> `<{u32, <{u32, [0 x u8]}>*}>`
+  * `String` -> `<{u32, u32, [0 x u8]}>*`
 
 In this representation each string has a pointer to a reference counted backing buffer. This should reduce copy-size of each string and means that a string reference would again have a single easily known size. We still need to know when the reference should be deallocated however.
+
+The other thing to think about here is are 32 bit rc and length too big? Can we get away with 16 bit numbers for string length? For refcount we could always detect the overflow on retain and dupe the value as-needed to maintain correctness.
 
 ## Garbage Collection
 
