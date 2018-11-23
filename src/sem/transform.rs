@@ -52,10 +52,10 @@ pub fn transform_expression(ctx: &mut SemCtx, expr: SyntaxExpr) -> CompResult<Ex
             match op {
                 InfixOp::Assign => {
                     if let SyntaxExpr::Identifier(id) = *lhs {
-                        // TODO: look up the type of the identifier
+                        let id_typ = ctx.find_local(&id).or(rhs.typ);
                         Ok(Expression::new(
                             ExpressionKind::Assignment(id, Box::new(rhs)),
-                            None,
+                            id_typ,
                         ))
                     } else {
                         Err(CompError::from(String::from(
