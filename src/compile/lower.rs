@@ -197,11 +197,10 @@ pub fn lower_internal(
         ExpressionKind::IfThenElse(iff, then, els) => {
             let cond = lower_internal(ctx, fun, builder, vars, *iff)?;
 
-            // TODO: Get rid of the fallback types here
             let typ = expr
                 .typ
                 .and_then(|t| ctx.llvm_type(&t))
-                .unwrap_or_else(|| ctx.llvm_ctx.int_type(64));
+                .ok_or(CompError::from("No type for if expression".to_string()))?;
             let ret = builder.build_alloca(typ, "if");
 
             let thenblock = ctx.llvm_ctx.add_block(fun, "thenblock");
