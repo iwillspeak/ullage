@@ -150,7 +150,7 @@ An index expression uses `[]` to access elements from an array. Array indices st
 
 ```
 let fuzz = [1, 2, 3, 4]
-print fuzz[2] # => 2
+print fuzz[2] # => 3
 ```
 
 ### Call Expression
