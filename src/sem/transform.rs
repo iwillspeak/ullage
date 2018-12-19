@@ -10,6 +10,7 @@ use crate::syntax::operators::InfixOp;
 use crate::syntax::{Constant, Expression as SyntaxExpr};
 
 use super::super::compile::{CompError, CompResult};
+use super::operators::find_builtin_op;
 use super::sem_ctx::SemCtx;
 use super::tree::*;
 use super::types::{BuiltinType, Typ};
@@ -65,18 +66,22 @@ pub fn transform_expression(ctx: &mut SemCtx, expr: SyntaxExpr) -> CompResult<Ex
                 }
                 _ => {
                     let lhs = transform_expression(ctx, *lhs)?;
-                    // TODO: Promote the types somehow?
-                    let subexpr_typ = lhs.typ.or(rhs.typ);
-                    let typ = match op {
-                        InfixOp::Eq | InfixOp::NotEq | InfixOp::Gt | InfixOp::Lt => {
-                            Some(Typ::Builtin(BuiltinType::Bool))
-                        }
-                        _ => subexpr_typ,
-                    };
-                    Ok(Expression::new(
-                        ExpressionKind::Infix(Box::new(lhs), op, Box::new(rhs)),
-                        typ,
-                    ))
+
+                    let lhs_typ = ensure_ty(lhs.typ)?;
+                    let rhs_typ = ensure_ty(rhs.typ)?;
+                    let found = find_builtin_op(op, lhs_typ, rhs_typ);
+
+                    if let Some(operator) = found {
+                        Ok(Expression::new(
+                            ExpressionKind::Infix(Box::new(lhs), op, Box::new(rhs)),
+                            Some(operator.result_typ),
+                        ))
+                    } else {
+                        Err(CompError::from(format!(
+                            "Use of operator `{:?}` with invalid arguments",
+                            op
+                        )))
+                    }
                 }
             }
         }
@@ -187,6 +192,7 @@ pub fn transform_expression(ctx: &mut SemCtx, expr: SyntaxExpr) -> CompResult<Ex
                 .into_iter()
                 .map(|a| transform_expression(ctx, a))
                 .collect::<CompResult<Vec<_>>>()?;
+
             // FIXME: Look up the type of the function
             let typ = None;
             Ok(Expression::new(

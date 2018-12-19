@@ -4,6 +4,7 @@
 //! representation of a program, as produced by the parser, into a
 //! semantically rich model ready to be lowered for execution.
 
+mod operators;
 mod sem_ctx;
 mod transform;
 mod tree;
