@@ -5,7 +5,7 @@
 //! between these variants.
 
 /// Represents an AST prefix operator.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Copy, Clone)]
 pub enum PrefixOp {
     /// Unary Airthmetic Negation
     ///
@@ -23,7 +23,7 @@ pub enum PrefixOp {
 }
 
 /// Represents an AST infix operator
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Copy, Clone)]
 pub enum InfixOp {
     /// Assignment Operator (`=`)
     Assign,
