@@ -85,7 +85,7 @@ impl OptimisationLevel {
     /// Retrieves a (level, size) tuple which defines how to configure
     /// the LLVM optimiser for this optimisation level.
     pub fn unpack(&self) -> Option<(pm::OptLevel, pm::OptSize)> {
-        use OptimisationLevel::*;
+        use crate::OptimisationLevel::*;
         match self {
             Off => None,
             Low => Some((pm::OptLevel::Low, pm::OptSize::Off)),
