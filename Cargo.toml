@@ -9,7 +9,7 @@ repository = "https://github.com/iwillspeak/ullage"
 readme = "README.md"
 keywords = [ "llvm", "parser", "compiler" ]
 categories = [ "parsing" ]
-edition = "2015"
+edition = "2018"
 
 [dependencies]
 llvm-sys = "70"
