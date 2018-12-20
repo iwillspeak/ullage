@@ -364,7 +364,11 @@ fn build_string_concat(
     );
     string_copy_guts(ctx, builder, res, suf, suf_len, pre_len);
 
-    res
+    builder.build_bitcast(
+        res,
+        ctx.llvm_type(&Typ::Builtin(BuiltinType::String)).unwrap(),
+        "catenated"
+    )
 }
 
 /// Format with Printf

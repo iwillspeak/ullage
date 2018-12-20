@@ -1,3 +1,8 @@
 print 'hello' # => hello
 print 'world' # => world
 print 'hello' + ' world' # => hello world
+
+let space: String = ' '
+let foobar: String = 'foo' + ' ' + 'bar'
+
+print foobar # => foo bar
