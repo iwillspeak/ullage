@@ -16,6 +16,7 @@ pub mod options;
 
 mod lower;
 mod lower_context;
+mod string_builtins;
 
 /// Add the Core Declarations to the Module
 ///
@@ -84,6 +85,7 @@ impl Compilation {
 
         let fun = {
             let mut lower_ctx = lower_context::LowerContext::new(&mut ctx, &mut module);
+            lower_ctx.add_intrinsics();
             lower_ctx.add_core_types();
             lower::lower_as_main(&mut lower_ctx, self.expr)?
         };

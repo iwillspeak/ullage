@@ -16,6 +16,7 @@ pub struct LowerContext<'a> {
     pub llvm_ctx: &'a mut Context,
     /// The LLVM Module this context is building IR into.
     pub module: &'a mut Module,
+
     /// Map of Ty values to LLVM Types
     ty_map: HashMap<Typ, LLVMTypeRef>,
 }
@@ -33,8 +34,27 @@ impl<'a> LowerContext<'a> {
         }
     }
 
+    /// Add LLVM Intrinsic Declarations
+    ///
+    /// Updates the module to add declarations for the LLVM intrinsics
+    /// we care about. Need to find a better way to create these.
+    pub fn add_intrinsics(&mut self) {
+        let i8ptr = self.llvm_ctx.pointer_type(self.llvm_ctx.int_type(8));
+        let i32ty = self.llvm_ctx.int_type(32);
+
+        self.llvm_ctx.add_function(
+            self.module,
+            "llvm.memcpy.p0i8.p0i8.i32",
+            self.llvm_ctx.void_type(),
+            &mut vec![i8ptr, i8ptr, i32ty, self.llvm_ctx.bool_type()],
+        );
+    }
+
+    /// Add Core LLVM Types
+    ///
+    /// Adds entries to the type map for the bulitin types mappign
+    /// them to their underlying LLVM representation.
     pub fn add_core_types(&mut self) {
-        // TODO: Unit -> void
         let lang_string = self.llvm_ctx.pointer_type(self.llvm_ctx.struct_type(vec![
             self.llvm_ctx.int_type(32),
             self.llvm_ctx.array_type(self.llvm_ctx.int_type(8), 0),

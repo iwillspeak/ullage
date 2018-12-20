@@ -69,18 +69,39 @@ impl Builder {
         }
     }
 
+    /// Build a Call to a `void` Function
+    ///
+    /// The built value produces nothing so no value is returned.
+    pub fn build_void_call(&mut self, function: &Function, args: &mut [LLVMValueRef]) {
+        self.build_named_call(function, args, Some("voidcall"));
+    }
+
     /// Build a Call Instruction
     ///
     /// Emits a call to the given function.
     pub fn build_call(&mut self, function: &Function, args: &mut [LLVMValueRef]) -> LLVMValueRef {
+        self.build_named_call(function, args, Some("call"))
+    }
+
+    /// Build a Call with a Name
+    ///
+    /// Emits a call instruction. The name provided to the call
+    /// controls the resulting temporary value. If no name is provided
+    /// then the result isn't bound to any temporary.
+    pub fn build_named_call(
+        &mut self,
+        function: &Function,
+        args: &mut [LLVMValueRef],
+        name: Option<&str>,
+    ) -> LLVMValueRef {
         unsafe {
-            let name = CStr::from_bytes_with_nul_unchecked(b"printed\0");
+            let name = name.map(|n| CString::new(n).unwrap());
             let call = core::LLVMBuildCall(
                 self.raw,
                 function.as_raw(),
                 args.as_mut_ptr(),
                 args.len() as c_uint,
-                name.as_ptr(),
+                name.map_or(std::ptr::null(), |n| n.as_ptr()),
             );
             core::LLVMSetInstructionCallConv(call, function.call_conv().into());
             call
@@ -189,6 +210,15 @@ impl Builder {
     pub fn build_alloca(&mut self, typ: LLVMTypeRef, name: &str) -> LLVMValueRef {
         let name = CString::new(name).unwrap();
         unsafe { core::LLVMBuildAlloca(self.raw, typ, name.as_ptr()) }
+    }
+
+    /// Build a `malloc` Instruction
+    ///
+    /// Creates a new value allocated on the heap. Retusna pointer to
+    /// the new value.
+    pub fn build_malloc(&mut self, typ: LLVMTypeRef, name: &str) -> LLVMValueRef {
+        let name = CString::new(name).unwrap();
+        unsafe { core::LLVMBuildMalloc(self.raw, typ, name.as_ptr()) }
     }
 
     /// Create a Conditional Branch
