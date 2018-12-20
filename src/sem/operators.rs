@@ -40,6 +40,14 @@ fn comp_op(op: InfixOp) -> Option<SemOp> {
 /// Searches for the result type for a given operator.
 pub fn find_builtin_op(op: InfixOp, lhs_typ: Typ, rhs_typ: Typ) -> Option<SemOp> {
     match (op, lhs_typ, rhs_typ) {
+        (InfixOp::Add, Typ::Builtin(BuiltinType::String), Typ::Builtin(BuiltinType::String)) => {
+            Some(SemOp {
+                lhs_typ,
+                rhs_typ,
+                op,
+                result_typ: Typ::Builtin(BuiltinType::String),
+            })
+        }
         (InfixOp::Add, Typ::Builtin(BuiltinType::Number), Typ::Builtin(BuiltinType::Number)) => {
             num_op(op)
         }

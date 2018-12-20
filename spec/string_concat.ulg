@@ -1,0 +1,3 @@
+print 'hello' # => hello
+print 'world' # => world
+print 'hello' + ' world' # => hello world

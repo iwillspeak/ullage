@@ -297,6 +297,11 @@ impl Context {
         unsafe { core::LLVMPointerType(inner, 0) }
     }
 
+    /// Get the Void Type
+    pub fn void_type(&self) -> LLVMTypeRef {
+        unsafe { core::LLVMVoidTypeInContext(self.0) }
+    }
+
     /// Get the LLVM Type from a Value
     ///
     /// Inspects a given LLVM Value and returns the type as known by

@@ -10,6 +10,7 @@ use crate::syntax::Constant;
 
 use super::error::*;
 use super::lower_context::LowerContext;
+use super::string_builtins::*;
 
 use std::collections::HashMap;
 
@@ -153,7 +154,15 @@ pub fn lower_internal(
             let lhs_val = lower_internal(ctx, fun, builder, vars, *lhs)?;
             let rhs_val = lower_internal(ctx, fun, builder, vars, *rhs)?;
             let val = match op {
-                InfixOp::Add => builder.build_add(lhs_val, rhs_val),
+                InfixOp::Add => match expr.typ.unwrap() {
+                    Typ::Builtin(BuiltinType::Number) => builder.build_add(lhs_val, rhs_val),
+                    Typ::Builtin(BuiltinType::String) => {
+                        build_string_concat(ctx, builder, lhs_val, rhs_val)
+                    }
+                    _ => Err(CompError::from(
+                        "invalid operand types for `Add`".to_string(),
+                    ))?,
+                },
                 InfixOp::Sub => builder.build_sub(lhs_val, rhs_val),
                 InfixOp::Mul => builder.build_mul(lhs_val, rhs_val),
                 InfixOp::Div => builder.build_sdiv(lhs_val, rhs_val),
@@ -319,6 +328,45 @@ pub fn lower_internal(
     }
 }
 
+/// Concatenate `String` Values
+///
+/// Takes a pair of strings and concatenates them.
+fn build_string_concat(
+    ctx: &mut LowerContext,
+    builder: &mut Builder,
+    pref: LLVMValueRef,
+    suf: LLVMValueRef,
+) -> LLVMValueRef {
+    let pre_len = string_get_len(builder, pref);
+    let suf_len = string_get_len(builder, suf);
+
+    let buf_size = builder.build_add(pre_len, suf_len);
+
+    // FIXME: This must be kept in line with the backing structure
+    // type. I'd really rather it didn't
+    let string_ty = ctx.llvm_ctx.struct_type(vec![
+        ctx.llvm_ctx.int_type(32),
+        // FIXME: This hardcoded max length for concatenated strings
+        ctx.llvm_ctx.array_type(ctx.llvm_ctx.int_type(8), 100),
+    ]);
+
+    let res = builder.build_malloc(string_ty, "concat");
+
+    string_set_len(builder, res, buf_size);
+
+    string_copy_guts(
+        ctx,
+        builder,
+        res,
+        pref,
+        pre_len,
+        ctx.llvm_ctx.const_int_width(0, 32),
+    );
+    string_copy_guts(ctx, builder, res, suf, suf_len, pre_len);
+
+    res
+}
+
 /// Format with Printf
 ///
 /// Constructs a call to the `printf` function using the given format
@@ -364,9 +412,8 @@ fn fmt_from_type(
         }
         Typ::Builtin(BuiltinType::Number) => Some((vec![val], "printf_num_format")),
         Typ::Builtin(BuiltinType::String) => {
-            let len = builder.build_struct_gep(val, 0);
-            let len = builder.build_load(len);
-            let ptr = builder.build_struct_gep(val, 1);
+            let len = string_get_len(builder, val);
+            let ptr = string_get_buffer(builder, val);
             Some((vec![len, ptr], "printf_ustr_format"))
         }
         _ => None,

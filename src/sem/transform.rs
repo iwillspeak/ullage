@@ -67,8 +67,8 @@ pub fn transform_expression(ctx: &mut SemCtx, expr: SyntaxExpr) -> CompResult<Ex
                 _ => {
                     let lhs = transform_expression(ctx, *lhs)?;
 
-                    let lhs_typ = ensure_ty(lhs.typ)?;
-                    let rhs_typ = ensure_ty(rhs.typ)?;
+                    let lhs_typ = relax_ty(lhs.typ);
+                    let rhs_typ = relax_ty(rhs.typ);
                     let found = find_builtin_op(op, lhs_typ, rhs_typ);
 
                     if let Some(operator) = found {
@@ -201,6 +201,15 @@ pub fn transform_expression(ctx: &mut SemCtx, expr: SyntaxExpr) -> CompResult<Ex
             ))
         }
     }
+}
+
+/// Relax Type
+///
+/// Returns the type if it is present, or assumes `Number`
+/// otherwise. This is a hack to deal with partially-typed trees and
+/// should be removed.
+fn relax_ty(maybe_typ: Option<Typ>) -> Typ {
+    maybe_typ.unwrap_or(Typ::Builtin(BuiltinType::Number))
 }
 
 /// Ensure Type
