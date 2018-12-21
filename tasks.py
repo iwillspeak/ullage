@@ -7,8 +7,11 @@ def clean(ctx):
     ctx.run("cargo clean")
 
 @task(default=True)
-def build(ctx):
-    ctx.run("cargo build")
+def build(ctx, release=False):
+    cargo_args = "build"
+    if release:
+        cargo_args += " --release"
+    ctx.run("cargo " + cargo_args)
 
 @task
 def docs(ctx):

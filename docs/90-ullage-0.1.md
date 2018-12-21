@@ -29,15 +29,17 @@ To begin with we just need two kinds of variables: `var` and `let`. Both will ta
 
 ## Compilation
 
-The language itself will be compiled with LLVM. The output should be something which is independently runnable. For initial versions the compiler can just produce LLVM IR. A small language *runtime* will be needed to support the print statement and manage calling the entry point. This runtime support can initially be a small Rust stub with a c api. In the future it would be nice to have an interactive REPL.
+The language itself will be compiled with LLVM. The output should be something which is independently runnable. For initial versions the compiler can just produce LLVM IR. A small language *runtime* will be needed to support the print statement and manage calling the entry point. This runtime support is currently dynamically built into each binary with the LLVM API. In the future it could be a small Rust stub with a c api.
 
 ## Future
 
-### Jit?
+### Make `low_lader` a Crate
 
-The compilation part of the JIT should be usable to perform AOT
-compilation. That is we should build the JIT on top of the AOT
-compilation support. Maybe look at CraneLift for this?
+It would be nice to push this to <crates.io> and have a proper API. Would need to make sure as little LLVM leaks through the interface though.
+
+### Cranelift
+
+Do we want to use the new *Cranelift* backend in place of LLVM? Could support be added to `low_loader`?
 
 ## Types
 
@@ -49,7 +51,7 @@ We want the following built in types:
  * Function
  * Tuples, (including the unit tuple?)
 
-As far as further user defined types I'd like a full algabraic data type set with sum and product types. Unsure if this should be through asigning names to unknown types or with an explict syntax as in Rust. E.g.:
+As far as further user defined types I'd like a full algebraic data type set with sum and product types. Unsure if this should be through assigning names to unknown types or with an explicit syntax as in Rust. E.g.:
 
 ```ullage
 type Foo = Number | String

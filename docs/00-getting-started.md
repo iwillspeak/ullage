@@ -6,7 +6,7 @@ This is only known to work on my machine at the moment. I'm running macOS and st
  * Python - to run the functional tests
  * Clang - Used to link the output to create the final executables.
 
-The compiler can be built with *Cargo*. Functional tests are defined by a collection of source in `spec/` and run by `specs.py`. It's easier to run them with Python's invoke however. Unit and functional test can be run with `invoke test`.
+The compiler is written in Rust and built with *Cargo*. Functional tests are defined by a collection of source in `spec/` and run by `specs.py`. It's easier to run the tests with a virtual environment. Rather than running `cargo` or python directly use the `build.sh` script. This will set up the required python environment as required.
 
 ## Source
 
@@ -14,4 +14,4 @@ The source is all available [at GitHub](https://github.com/iwillspeak/ullage). P
 
 ## Building & Running the Compiler
 
-The compiler can be built with `cargo build --release` from the root directory. This should create a `target/release/ullage` executable. With this executable in your path you can compile an example program with `$ ullage -o hello specs/hello.ulg`. This will produce an execuable called `hello` in the currrent directory based on the source file `specs/hello.ulg`. Running `$ ./hello` should then print 1337 to the terminal. For full usage instructions on the compiler run `$ ullage --help`.
+The compiler can be built with `./build.sh build --release` from the root directory. This should create a `target/release/ullage` executable. With this executable in your path you can compile an example program with `$ ullage -o hello specs/hello.ulg`. This will produce an executable called `hello` in the current directory based on the source file `specs/hello.ulg`. Running `$ ./hello` should then print 1337 to the terminal. For full usage instructions on the compiler run `$ ullage --help`.

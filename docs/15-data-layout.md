@@ -6,7 +6,7 @@ For the initial version of the language we just need `Bool`, `Number` and `Strin
 
 The plan is that `Bool`, `Number`, and `String` will all have value semantics. That is a modification of a `String` value in one place will not affect its appearence in another. Such behaviour is referred to as "value semantics". This is similar to `Copy` types in rust and `struct` types in C#. I feel that tuple types should also have value semantics. Similar to `ValueTuple` in C#.
 
-Array and structure types instead will have reference semantics. This means that passing a structure to a `fn` will allow the function to modify the structure value. This is similar to refernece types in C# and `&mut` reference in Rust.
+Array and structure types instead will have reference semantics. This means that passing a structure to a `fn` will allow the function to modify the structure value. This is similar to reference types in C# and `&mut` reference in Rust.
 
 ## Type Layouts
 
@@ -15,23 +15,20 @@ For the primitive types we have the following type layouts from language type to
  * `Bool` -> `i1`
  * `Number` -> `i64`
 
-String types should be represented as a pair of length, data:
+String types are represented as a pair of length, data:
 
- * `String` -> `<{u32,[0 x u8]}>`
+ * `String` -> `<{u32,[0 x u8]}>*`
 
-This would have the value of the string be encoded directly as part of the pair. Allocation of a string would use a variable length array to contain a sequence of utf-8 characters. There are a few problems with this:
+The value of the string is encoded directly as part of the pair. Allocation of a string uses a variable length array to contain a sequence of utf-8 characters. There are a few problems with this:
 
- * It sounds like a lot of copies of the string data might be needed. Especially when values are assigned and returned from multiple levels of call heirachy.
- * The expectation is that strings are rarely modified and we could probably share a single buffer between string instances and use reference counting to control mutable acces.
+ * The expectation is that strings are rarely modified and we could probably share a single buffer between string instances and use reference counting to control mutable access.
  * This needs some knowledge of when a value is 'dropped' to free the correct amount of memory.
  
- Given these concernes we could lay a string out as:
+ Given these concerns we could lay a string out as:
  
   * `String` -> `<{u32, u32, [0 x u8]}>*`
 
 In this representation each string has a pointer to a reference counted backing buffer. This should reduce copy-size of each string and means that a string reference would again have a single easily known size. We still need to know when the reference should be deallocated however.
-
-The other thing to think about here is are 32 bit rc and length too big? Can we get away with 16 bit numbers for string length? For refcount we could always detect the overflow on retain and dupe the value as-needed to maintain correctness.
 
 ## Garbage Collection
 
