@@ -340,17 +340,19 @@ fn build_string_concat(
     let pre_len = string_get_len(builder, pref);
     let suf_len = string_get_len(builder, suf);
 
+    // FIXME: This makes the assuption that the `<{i32, [0 x i8]}>`
+    // structure is 4 bytes in size. What happens if it has different
+    // size or alignment requirements?
     let buf_size = builder.build_add(pre_len, suf_len);
+    let size = builder.build_add(buf_size, ctx.llvm_ctx.const_int_width(4, 32));
 
-    // FIXME: This must be kept in line with the backing structure
-    // type. I'd really rather it didn't
-    let string_ty = ctx.llvm_ctx.struct_type(vec![
-        ctx.llvm_ctx.int_type(32),
-        // FIXME: This hardcoded max length for concatenated strings
-        ctx.llvm_ctx.array_type(ctx.llvm_ctx.int_type(8), 100),
-    ]);
-
-    let res = builder.build_malloc(string_ty, "concat");
+    let i8ty = ctx.llvm_ctx.int_type(8);
+    let res = builder.build_malloc(i8ty, Some(size), "concat");
+    let res = builder.build_bitcast(
+        res,
+        ctx.llvm_type(&Typ::Builtin(BuiltinType::String)).unwrap(),
+        "catenated",
+    );
 
     string_set_len(builder, res, buf_size);
 
@@ -364,11 +366,7 @@ fn build_string_concat(
     );
     string_copy_guts(ctx, builder, res, suf, suf_len, pre_len);
 
-    builder.build_bitcast(
-        res,
-        ctx.llvm_type(&Typ::Builtin(BuiltinType::String)).unwrap(),
-        "catenated"
-    )
+    res
 }
 
 /// Format with Printf

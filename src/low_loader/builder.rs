@@ -216,9 +216,19 @@ impl Builder {
     ///
     /// Creates a new value allocated on the heap. Retusna pointer to
     /// the new value.
-    pub fn build_malloc(&mut self, typ: LLVMTypeRef, name: &str) -> LLVMValueRef {
+    pub fn build_malloc(
+        &mut self,
+        typ: LLVMTypeRef,
+        count: Option<LLVMValueRef>,
+        name: &str,
+    ) -> LLVMValueRef {
         let name = CString::new(name).unwrap();
-        unsafe { core::LLVMBuildMalloc(self.raw, typ, name.as_ptr()) }
+        match count {
+            Some(count) => unsafe {
+                core::LLVMBuildArrayMalloc(self.raw, typ, count, name.as_ptr())
+            },
+            None => unsafe { core::LLVMBuildMalloc(self.raw, typ, name.as_ptr()) },
+        }
     }
 
     /// Create a Conditional Branch

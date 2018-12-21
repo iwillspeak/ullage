@@ -62,4 +62,3 @@ pub(crate) fn string_set_len(builder: &mut Builder, val: LLVMValueRef, size: LLV
     let len_field = builder.build_struct_gep(val, 0);
     builder.build_store(size, len_field);
 }
-
