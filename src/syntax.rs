@@ -7,7 +7,6 @@
 mod fn_builder;
 pub mod operators;
 pub mod parse;
-pub mod position;
 pub mod text;
 pub mod types;
 
