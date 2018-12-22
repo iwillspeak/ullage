@@ -15,8 +15,10 @@ pub enum Literal {
     Number(i64),
 }
 
+/// Lexer Token
+///
 /// This structure represents a single token from the input source
-/// buffer.
+/// buffer. Tokens are produced by the `Tokeniser`.
 #[derive(Debug, PartialEq)]
 pub enum Token<'a> {
     /// Represents a string of alphabetic characters. This could be a
@@ -79,4 +81,34 @@ pub enum Token<'a> {
 
     /// An unrecognised token
     Unknown(char),
+}
+
+impl<'a> Token<'a> {
+    /// Left binding power. This controls the precedence of
+    /// the symbol when being parsed as an infix operator.
+    ///
+    /// Returns the associativity, or binding power, for the given
+    /// token. This is used when deciding if to parse the `led()`
+    /// of this token.
+    pub fn lbp(&self) -> u32 {
+        match *self {
+            Token::Equals => 10,
+
+            // ternary if
+            Token::Word("if") | Token::Word("unless") => 20,
+
+            // boolean conditional operators
+            Token::DoubleEquals | Token::BangEquals | Token::LessThan | Token::MoreThan => 40,
+
+            // Arithmetic operators
+            Token::Plus | Token::Minus => 50,
+
+            Token::Star | Token::Slash => 60,
+
+            // Index/Call operators
+            Token::OpenBracket | Token::OpenSqBracket => 80,
+
+            _ => 0,
+        }
+    }
 }

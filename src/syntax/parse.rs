@@ -224,89 +224,109 @@ impl<'a> Parser<'a> {
         Ok((condition, fallback))
     }
 
-    /// Attempt to parse a single left denotation
-    fn parse_led(&mut self, lhs: Expression) -> ParseResult<Expression> {
-        self.lexer
-            .next()
-            .map_or(Err(ParseError::Incomplete), |t| t.led(self, lhs))
-    }
-
-    /// Attempt to parse a single null denotation
-    fn parse_nud(&mut self) -> ParseResult<Expression> {
-        self.lexer
-            .next()
-            .map_or(Err(ParseError::Incomplete), |t| t.nud(self))
-    }
-}
-
-impl<'a> Token<'a> {
-    /// Left binding power. This controls the precedence of
-    /// the symbol when being parsed as an infix operator.
+    /// Parse Left Denonation
     ///
-    /// Returns the associativity, or binding power, for the given
-    /// token. This is used when deciding if to parse the `led()`
-    /// of this token.
-    fn lbp(&self) -> u32 {
-        match *self {
-            Token::Equals => 10,
+    /// This is the parse of the symbol when it has an expression to
+    /// the left hand side of it. This is responsible for parsing
+    /// infix operators and function calls.
+    fn parse_led(&mut self, lhs: Expression) -> ParseResult<Expression> {
+        let token = self.lexer.next().ok_or(ParseError::Incomplete)?;
 
-            // ternary if
-            Token::Word("if") | Token::Word("unless") => 20,
+        match token {
+            // Binary infix operator
+            Token::DoubleEquals => self.infix(lhs, &token, InfixOp::Eq),
+            Token::BangEquals => self.infix(lhs, &token, InfixOp::NotEq),
+            Token::LessThan => self.infix(lhs, &token, InfixOp::Lt),
+            Token::MoreThan => self.infix(lhs, &token, InfixOp::Gt),
+            Token::Equals => self.infix(lhs, &token, InfixOp::Assign),
+            Token::Plus => self.infix(lhs, &token, InfixOp::Add),
+            Token::Minus => self.infix(lhs, &token, InfixOp::Sub),
+            Token::Star => self.infix(lhs, &token, InfixOp::Mul),
+            Token::Slash => self.infix(lhs, &token, InfixOp::Div),
 
-            // boolean conditional operators
-            Token::DoubleEquals | Token::BangEquals | Token::LessThan | Token::MoreThan => 40,
+            // array indexing
+            Token::OpenSqBracket => {
+                let index = self.single_expression()?;
+                self.expect(Token::CloseSqBracket)?;
+                Ok(Expression::index(lhs, index))
+            }
 
-            // Arithmetic operators
-            Token::Plus | Token::Minus => 50,
+            // Function call
+            Token::OpenBracket => {
+                let mut params = Vec::new();
+                while !self.next_is(Token::CloseBracket) {
+                    let param = self.single_expression()?;
+                    params.push(param);
+                    if !self.next_is(Token::CloseBracket) {
+                        self.expect(Token::Comma)?;
+                    }
+                }
+                self.expect(Token::CloseBracket)?;
+                Ok(Expression::call(lhs, params))
+            }
 
-            Token::Star | Token::Slash => 60,
+            // Ternay statement:
+            // <x> if <y> else <z>
+            Token::Word("if") => {
+                let (condition, fallback) = self.ternary_body()?;
+                Ok(Expression::if_then_else(condition, lhs, fallback))
+            }
 
-            // Grouping operators
-            Token::OpenBracket | Token::OpenSqBracket => 80,
+            // Ternay statement:
+            // <x> unless <y> else <z>
+            Token::Word("unless") => {
+                let (condition, fallback) = self.ternary_body()?;
+                Ok(Expression::if_then_else(condition, fallback, lhs))
+            }
 
-            _ => 0,
+            _ => Err(ParseError::Incomplete),
         }
     }
 
-    /// Null denotation. This is the parse of the symbol when it
-    /// doesn't have any expression to the left hand side of it.
+    /// Parse Null Denotation
     ///
-    /// This is responsible for parsing literals and variable
-    /// references into expressions, as well as parsing prefix
-    /// expressions
-    fn nud(&self, parser: &mut Parser<'_>) -> ParseResult<Expression> {
-        match *self {
+    /// This is the parse of the symbol when it doesn't have any
+    /// expression to the left hand side of it. This is responsible
+    /// for parsing literals and variable references into expressions,
+    /// as well as parsing prefix expressions.
+    fn parse_nud(&mut self) -> ParseResult<Expression> {
+        let token = self.lexer.next().ok_or(ParseError::Incomplete)?;
+
+        match token {
             Token::Word("fn") => {
-                let identifier = parser.identifier()?;
+                let identifier = self.identifier()?;
                 let mut res = Expression::function(identifier);
-                parser.expect(Token::OpenBracket)?;
-                if !parser.next_is(Token::CloseBracket) {
-                    res = res.with_arg(parser.typed_id()?);
+                self.expect(Token::OpenBracket)?;
+                if !self.next_is(Token::CloseBracket) {
+                    res = res.with_arg(self.typed_id()?);
                 }
-                while !parser.next_is(Token::CloseBracket) {
-                    parser.expect(Token::Comma)?;
-                    res = res.with_arg(parser.typed_id()?);
+                while !self.next_is(Token::CloseBracket) {
+                    self.expect(Token::Comma)?;
+                    res = res.with_arg(self.typed_id()?);
                 }
-                parser.expect(Token::CloseBracket)?;
+                self.expect(Token::CloseBracket)?;
                 res = res
-                    .with_return_type(parser.type_ref()?)
-                    .with_body(parser.block()?);
-                parser.expect(Token::Word("end"))?;
+                    .with_return_type(self.type_ref()?)
+                    .with_body(self.block()?);
+                self.expect(Token::Word("end"))?;
                 Ok(Expression::from(res))
             }
             Token::Word("until") | Token::Word("while") => {
-                let mut condition = parser.single_expression()?;
-                if *self == Token::Word("until") {
+                let mut condition = self.single_expression()?;
+                // TODO: It would be nice if we could do this in
+                // lowering rather than hacking it up like this in
+                // parsing
+                if token == Token::Word("until") {
                     condition = Expression::Prefix(PrefixOp::Not, Box::new(condition));
                 }
-                let block = parser.block()?;
-                parser.expect(Token::Word("end"))?;
+                let block = self.block()?;
+                self.expect(Token::Word("end"))?;
                 Ok(Expression::loop_while(condition, block))
             }
-            Token::Word("let") => parser.declaration(false),
-            Token::Word("var") => parser.declaration(true),
+            Token::Word("let") => self.declaration(false),
+            Token::Word("var") => self.declaration(true),
             Token::Word("print") => {
-                let to_print = parser.single_expression()?;
+                let to_print = self.single_expression()?;
                 Ok(Expression::print(to_print))
             }
             Token::Word("true") => Ok(Expression::constant_bool(true)),
@@ -316,83 +336,26 @@ impl<'a> Token<'a> {
                 &Literal::Number(i) => Ok(Expression::constant_num(i)),
                 &Literal::RawString(ref s) => Ok(Expression::constant_string(s.clone())),
             },
-            Token::Plus => parser.expression(100),
-            Token::Minus => parser.prefix_op(PrefixOp::Negate),
-            Token::Bang => parser.prefix_op(PrefixOp::Not),
+            Token::Plus => self.expression(100),
+            Token::Minus => self.prefix_op(PrefixOp::Negate),
+            Token::Bang => self.prefix_op(PrefixOp::Not),
             Token::OpenBracket => {
-                let expr = parser.single_expression()?;
-                parser.expect(Token::CloseBracket)?;
+                let expr = self.single_expression()?;
+                self.expect(Token::CloseBracket)?;
                 Ok(expr)
             }
+            // This covers things which can't start expressions, like
+            // whitespace and non-prefix operator tokens
             _ => Err(ParseError::Unexpected),
         }
     }
 
-    /// Left denotation. This is the parse of the symbol when it
-    /// has an expression to the left hand side of it.
-    ///
-    /// This is responsible for parsing infix operators and function
-    /// calls.
-    fn led(&self, parser: &mut Parser<'_>, lhs: Expression) -> ParseResult<Expression> {
-        match *self {
-            // Binary infix operator
-            Token::DoubleEquals => self.infix(parser, lhs, InfixOp::Eq),
-            Token::BangEquals => self.infix(parser, lhs, InfixOp::NotEq),
-            Token::LessThan => self.infix(parser, lhs, InfixOp::Lt),
-            Token::MoreThan => self.infix(parser, lhs, InfixOp::Gt),
-            Token::Equals => self.infix(parser, lhs, InfixOp::Assign),
-            Token::Plus => self.infix(parser, lhs, InfixOp::Add),
-            Token::Minus => self.infix(parser, lhs, InfixOp::Sub),
-            Token::Star => self.infix(parser, lhs, InfixOp::Mul),
-            Token::Slash => self.infix(parser, lhs, InfixOp::Div),
-
-            // array indexing
-            Token::OpenSqBracket => {
-                let index = parser.single_expression()?;
-                parser.expect(Token::CloseSqBracket)?;
-                Ok(Expression::index(lhs, index))
-            }
-
-            // Function call
-            Token::OpenBracket => {
-                let mut params = Vec::new();
-                while !parser.next_is(Token::CloseBracket) {
-                    let param = parser.single_expression()?;
-                    params.push(param);
-                    if !parser.next_is(Token::CloseBracket) {
-                        parser.expect(Token::Comma)?;
-                    }
-                }
-                parser.expect(Token::CloseBracket)?;
-                Ok(Expression::call(lhs, params))
-            }
-
-            // Ternay statement:
-            // <x> if <y> else <z>
-            Token::Word("if") => {
-                let (condition, fallback) = parser.ternary_body()?;
-                Ok(Expression::if_then_else(condition, lhs, fallback))
-            }
-
-            // Ternay statement:
-            // <x> unless <y> else <z>
-            Token::Word("unless") => {
-                let (condition, fallback) = parser.ternary_body()?;
-                Ok(Expression::if_then_else(condition, fallback, lhs))
-            }
-
-            _ => Err(ParseError::Incomplete),
-        }
-    }
-
     /// Attempt to Parse an Infix Expression
-    fn infix(
-        &self,
-        parser: &mut Parser<'_>,
-        lhs: Expression,
-        op: InfixOp,
-    ) -> ParseResult<Expression> {
-        let rhs = parser.expression(self.lbp())?;
+    ///
+    /// Given a parsed left hand expression and infix operator parse
+    /// the
+    fn infix(&mut self, lhs: Expression, token: &Token, op: InfixOp) -> ParseResult<Expression> {
+        let rhs = self.expression(token.lbp())?;
         Ok(Expression::infix(lhs, op, rhs))
     }
 }
