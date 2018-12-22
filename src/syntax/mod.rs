@@ -8,8 +8,8 @@ pub mod fn_builder;
 pub mod operators;
 pub mod parse;
 pub mod position;
-pub mod types;
 pub mod text;
+pub mod types;
 
 use self::fn_builder::FunctionDeclarationBuilder;
 use self::operators::*;

@@ -16,7 +16,6 @@ pub struct SourceText {
 }
 
 impl SourceText {
-
     /// Create a `SourceText`
     ///
     /// Creates a new source text for the given string
@@ -25,7 +24,7 @@ impl SourceText {
         let line_offsets = get_line_offsets(&source[..]);
         SourceText {
             source,
-            line_offsets
+            line_offsets,
         }
     }
 
@@ -33,7 +32,7 @@ impl SourceText {
     ///
     /// Returns the number of lines in the source text.
     pub fn line_count(&self) -> usize {
-        self.line_offsets.len() + 1
+        self.line_offsets.len()
     }
 
     /// Get Line Position
@@ -41,29 +40,19 @@ impl SourceText {
     /// Returns the `(line, col)` position of the given offset into
     /// the source.
     pub fn line_pos(&self, offset: usize) -> (usize, usize) {
-        let mut line = 1;
-        let mut line_start = 0;
-
-        println!("line offsets: {:?}", self.line_offsets);
-
-        for line_offset in self.line_offsets.iter() {
-            if *line_offset <= offset {
-                line += 1;
-                line_start = *line_offset;
-            } else {
-                break;
+        match self.line_offsets.binary_search(&offset) {
+            Ok(index) => (index + 1, 0),
+            Err(index) => {
+                let nearest_line_start = self.line_offsets[index - 1];
+                (index, offset - nearest_line_start)
             }
         }
-
-        let col = offset - line_start;
-        (line, col)
     }
 }
 
 fn get_line_offsets(source: &str) -> Vec<usize> {
-    source
-        .match_indices('\n')
-        .map(|(idx, _)| idx + 1)
+    std::iter::once(0)
+        .chain(source.match_indices('\n').map(|(idx, _)| idx + 1))
         .collect()
 }
 
@@ -86,24 +75,28 @@ mod test {
 
     #[test]
     fn source_with_multiple_lines() {
-        let source = SourceText::new(r#"
+        let source = SourceText::new(
+            r#"
 fn hello(world: String): String
     print 'hello ' + world
 end
-"#);
+"#,
+        );
         assert_eq!(5, source.line_count());
     }
 
     #[test]
     fn source_pos_to_line_col() {
-        let source = SourceText::new(r#"
+        let source = SourceText::new(
+            r#"
 # Modululs remainder
 #
 # Returns the modulus remainder of n/d
 fn mod(n: Number, d: Number): Number
    n if n < d else mod(n - d, d)
 end
-"#);
+"#,
+        );
 
         assert_eq!((1, 0), source.line_pos(0));
         assert_eq!((2, 1), source.line_pos(2));
