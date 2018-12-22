@@ -4,7 +4,7 @@
 //! operators. The main entry point is the
 
 use super::types::{BuiltinType, Typ};
-use crate::syntax::operators::*;
+use crate::syntax::*;
 
 /// The Semantic Operator
 ///

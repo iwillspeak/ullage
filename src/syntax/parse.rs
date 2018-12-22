@@ -6,7 +6,7 @@ pub mod error;
 use std::iter::Peekable;
 
 pub use self::error::{ParseError, ParseResult};
-use super::operators::{InfixOp, PrefixOp};
+use super::{InfixOp, PrefixOp};
 use super::{Expression, TypeRef, TypedId};
 
 /// Parse an Expression Tree from the Source
@@ -594,7 +594,6 @@ impl<'a> Token<'a> {
 #[cfg(test)]
 mod test {
 
-    use super::super::operators::*;
     use super::super::Expression::*;
     use super::super::*;
     use super::{parse_single, Tokeniser};

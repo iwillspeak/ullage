@@ -6,7 +6,7 @@
 //!
 //! [`transform_expression`]: ./function.transform_expression.html
 
-use crate::syntax::operators::InfixOp;
+use crate::syntax::InfixOp;
 use crate::syntax::{Constant, Expression as SyntaxExpr};
 
 use super::super::compile::{CompError, CompResult};

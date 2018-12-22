@@ -3,7 +3,8 @@
 //! Contains the `Functiondeclarationbuilder` which is used by the
 //! parser when creating `Expression::Function`s.
 
-use super::{Expression, TypeRef, TypedId};
+use super::expression::{Expression, TypedId};
+use super::types::TypeRef;
 
 /// Builder Struct for Function Declarations
 ///

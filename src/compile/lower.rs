@@ -5,7 +5,7 @@
 
 use crate::low_loader::prelude::*;
 use crate::sem::{BuiltinType, Expression, ExpressionKind, Typ};
-use crate::syntax::operators::{InfixOp, PrefixOp};
+use crate::syntax::{InfixOp, PrefixOp};
 use crate::syntax::Constant;
 
 use super::error::*;
