@@ -4,8 +4,8 @@
 //! decorated/semantic expression tree.
 
 use super::types::*;
-use crate::syntax::{InfixOp, PrefixOp};
 use crate::syntax::Constant;
+use crate::syntax::{InfixOp, PrefixOp};
 
 /// A Function Decclaration
 ///

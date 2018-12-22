@@ -4,8 +4,8 @@
 //! syntax tree.
 
 use super::fn_builder::FunctionDeclarationBuilder;
-use super::types::TypeRef;
 use super::operators::{InfixOp, PrefixOp};
+use super::types::TypeRef;
 
 /// An identifier, with an optional type attached
 #[derive(Debug, PartialEq)]

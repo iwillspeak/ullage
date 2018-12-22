@@ -4,7 +4,7 @@
 //! tree. This tree defines the full strcuture of a parsed source file
 //! before any semantic transformation is done.
 
-pub mod types;
-pub mod operators;
 pub mod expression;
 mod fn_builder;
+pub mod operators;
+pub mod types;

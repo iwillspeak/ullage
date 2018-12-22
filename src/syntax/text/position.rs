@@ -1,7 +1,7 @@
 //! Syntax Position Information
 //!
 //! This module provides the types needed to represent positions with
-//! a buffer. 
+//! a buffer.
 
 /// Source Buffer Position
 ///
@@ -66,7 +66,6 @@ impl Span {
 }
 
 impl Location {
-
     /// Get the Start of the Location
     ///
     /// Returns the lowest point in this location.
