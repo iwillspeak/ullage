@@ -4,7 +4,7 @@
 //! implementation which recognises a simple lanugage using
 //! Pratt-style operator precedence parsing.
 
-pub mod fn_builder;
+mod fn_builder;
 pub mod operators;
 pub mod parse;
 pub mod position;
