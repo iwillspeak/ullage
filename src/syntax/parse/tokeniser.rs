@@ -3,6 +3,7 @@
 //! The tokeniser runs over an input `SourceText` and converts it into
 //! a series of `Token`s.
 
+use super::super::text::SourceText;
 use super::token::*;
 
 /// Tokeniser
@@ -15,10 +16,13 @@ pub(super) struct Tokeniser<'a> {
 }
 
 impl<'a> Tokeniser<'a> {
-    /// Creates a new tokeniser from the given string slice.
-    pub fn new_from_str(source: &'a str) -> Tokeniser<'_> {
+    /// Create a Tokeniser
+    ///
+    /// Prepares a new token iterator which yields tokens that
+    /// reference the given source text.
+    pub fn new(source: &'a SourceText) -> Tokeniser<'_> {
         Tokeniser {
-            buff: source,
+            buff: &source.text(),
             idx: 0,
         }
     }

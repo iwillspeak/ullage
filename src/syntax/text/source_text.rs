@@ -54,6 +54,11 @@ impl SourceText {
             }
         }
     }
+
+    /// Get the Source Text
+    pub fn text(&self) -> &str {
+        &self.source[..]
+    }
 }
 
 fn get_line_offsets(source: &str) -> Vec<usize> {

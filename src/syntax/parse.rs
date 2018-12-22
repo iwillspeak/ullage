@@ -9,6 +9,7 @@ pub use self::error::{ParseError, ParseResult};
 use self::token::{Literal, Token};
 use self::tokeniser::Tokeniser;
 
+use super::text::SourceText;
 use super::{Expression, TypeRef, TypedId};
 use super::{InfixOp, PrefixOp};
 use std::iter::Peekable;
@@ -19,9 +20,9 @@ use std::iter::Peekable;
 /// parse was successful then a sequence expression containing all the
 /// expressions in the source is returned. If any error is encountered
 /// then that is surfaced instead.
-pub fn parse_tree<S: AsRef<str>>(s: S) -> ParseResult<Expression> {
-    let t = Tokeniser::new_from_str(s.as_ref());
-    let mut p = Parser::new(t);
+pub fn parse_tree<S: Into<String>>(source: S) -> ParseResult<Expression> {
+    let source = SourceText::new(source);
+    let mut p = Parser::new(&source);
     Ok(Expression::sequence(p.expressions()?))
 }
 
@@ -29,9 +30,9 @@ pub fn parse_tree<S: AsRef<str>>(s: S) -> ParseResult<Expression> {
 ///
 /// Runs the tokeniser and parser of the given input string, returning
 /// the first expression parsed.
-pub fn parse_single<S: AsRef<str>>(s: S) -> ParseResult<Expression> {
-    let t = Tokeniser::new_from_str(s.as_ref());
-    let mut p = Parser::new(t);
+pub fn parse_single<S: Into<String>>(source: S) -> ParseResult<Expression> {
+    let source = SourceText::new(source);
+    let mut p = Parser::new(&source);
     p.single_expression()
 }
 
@@ -42,10 +43,11 @@ struct Parser<'a> {
 }
 
 impl<'a> Parser<'a> {
-    /// Create a new Parser from a given token stream.
-    pub fn new(t: Tokeniser<'a>) -> Self {
+    /// Create a new Parser from a given source text.
+    pub fn new(source: &'a SourceText) -> Self {
+        let lexer = Tokeniser::new(source);
         Parser {
-            lexer: t.peekable(),
+            lexer: lexer.peekable(),
         }
     }
 
@@ -363,6 +365,7 @@ impl<'a> Parser<'a> {
 #[cfg(test)]
 mod test {
 
+    use super::super::text::SourceText;
     use super::super::Expression::*;
     use super::super::*;
     use super::{parse_single, Tokeniser};
@@ -378,7 +381,7 @@ mod test {
     #[test]
     fn create_tokeniser_from_str_returns_tokeniser() {
         let src = "hello = world";
-        Tokeniser::new_from_str(src);
+        Tokeniser::new(&SourceText::new(src));
     }
 
     #[test]

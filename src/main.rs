@@ -112,7 +112,7 @@ fn main() {
     });
 
     // Parse the module
-    let tree = parse::parse_tree(&source).unwrap_or_else(|e| {
+    let tree = parse::parse_tree(source).unwrap_or_else(|e| {
         eprintln!("error: could not parse source: {}", e);
         exit(1)
     });
