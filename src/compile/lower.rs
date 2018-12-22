@@ -33,7 +33,7 @@ impl From<InfixOp> for Predicate {
 /// Takes a given tree of expressions and adds a new `main` function
 /// to the LLVM Context. When called `main` will compute the value of
 /// the expression and return `0`.
-pub fn lower_as_main(ctx: &mut LowerContext, expr: Expression) -> CompResult<Function> {
+pub fn lower_as_main(ctx: &mut LowerContext<'_>, expr: Expression) -> CompResult<Function> {
     let int_type = ctx.llvm_ctx.int_type(64);
     let mut fun = ctx
         .llvm_ctx
@@ -68,7 +68,7 @@ pub fn lower_as_main(ctx: &mut LowerContext, expr: Expression) -> CompResult<Fun
 ///
 /// A `Result` indicating if the expression was lowered successfully.
 pub fn lower_expression<'a>(
-    ctx: &mut LowerContext,
+    ctx: &mut LowerContext<'_>,
     fun: &mut Function,
     builder: &mut Builder,
     expr: Expression,
@@ -86,7 +86,7 @@ pub fn lower_expression<'a>(
 /// Loops through the tree of expressions and adds LLVM function
 /// declarations for each defined function. This ensures mutal
 /// recursion is possible.
-fn add_decls(ctx: &mut LowerContext, expr: &Expression) {
+fn add_decls(ctx: &mut LowerContext<'_>, expr: &Expression) {
     match expr.kind {
         ExpressionKind::Sequence(ref exprs) => {
             for expr in exprs.iter() {
@@ -118,7 +118,7 @@ fn add_decls(ctx: &mut LowerContext, expr: &Expression) {
 ///
 /// Converts an `Expression` to LLVM IR
 pub fn lower_internal(
-    ctx: &mut LowerContext,
+    ctx: &mut LowerContext<'_>,
     fun: &mut Function,
     builder: &mut Builder,
     vars: &mut HashMap<String, Local>,
@@ -332,7 +332,7 @@ pub fn lower_internal(
 ///
 /// Takes a pair of strings and concatenates them.
 fn build_string_concat(
-    ctx: &mut LowerContext,
+    ctx: &mut LowerContext<'_>,
     builder: &mut Builder,
     pref: LLVMValueRef,
     suf: LLVMValueRef,
@@ -377,7 +377,7 @@ fn build_string_concat(
 /// operator/expression. For a list of the supported format string
 /// names check out `add_core_decls`.
 fn fmt(
-    ctx: &mut LowerContext,
+    ctx: &mut LowerContext<'_>,
     builder: &mut Builder,
     mut to_format: Vec<LLVMValueRef>,
     format_name: &str,
@@ -402,7 +402,7 @@ fn fmt(
 /// Get Format String from Expression Type
 fn fmt_from_type(
     typ: Typ,
-    ctx: &mut LowerContext,
+    ctx: &mut LowerContext<'_>,
     fun: &mut Function,
     builder: &mut Builder,
     val: LLVMValueRef,
@@ -427,7 +427,7 @@ fn fmt_from_type(
 /// Prepares a bool value to be formatted. This compiles down to a
 /// ternary with two fixed strings `true` and `false`.
 fn fmt_convert_bool(
-    ctx: &mut LowerContext,
+    ctx: &mut LowerContext<'_>,
     fun: &mut Function,
     builder: &mut Builder,
     val: LLVMValueRef,
@@ -470,7 +470,7 @@ fn fmt_convert_bool(
 ///
 /// FIXME: Stop falling back to this function for printing.
 fn fmt_from_llvm(
-    ctx: &mut LowerContext,
+    ctx: &mut LowerContext<'_>,
     fun: &mut Function,
     builder: &mut Builder,
     val: LLVMValueRef,

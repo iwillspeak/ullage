@@ -10,7 +10,7 @@ use crate::low_loader::prelude::*;
 /// Copies the body of a source string into a destiation string's
 /// buffer. This is used by the lowering of stirng concatentation.
 pub(crate) fn string_copy_guts(
-    ctx: &mut LowerContext,
+    ctx: &mut LowerContext<'_>,
     builder: &mut Builder,
     dest: LLVMValueRef,
     src: LLVMValueRef,

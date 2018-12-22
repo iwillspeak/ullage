@@ -25,7 +25,7 @@ pub enum Typ {
 
 impl Typ {
     /// Returns the name of a given type
-    pub fn name(&self) -> Cow<str> {
+    pub fn name(&self) -> Cow<'_, str> {
         Cow::Borrowed(match self {
             &Typ::Unknown => "_",
             &Typ::Unit => "()",

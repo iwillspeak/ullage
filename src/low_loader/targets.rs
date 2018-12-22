@@ -23,7 +23,7 @@ pub struct Target {
 pub struct TargetLookupError(String);
 
 impl fmt::Display for Target {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(f, "Target information for {}:", self.triple)?;
         writeln!(f, " name: {}", self.name())?;
         writeln!(f, " description: {}", self.description())?;

@@ -3,10 +3,8 @@
 
 #![warn(missing_docs)]
 
-extern crate docopt;
-extern crate failure;
-extern crate libc;
-extern crate tempfile;
+use failure;
+use libc;
 
 #[macro_use]
 extern crate failure_derive;

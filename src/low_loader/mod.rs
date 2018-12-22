@@ -22,7 +22,7 @@
 
 #![deny(missing_docs)]
 
-extern crate llvm_sys;
+use llvm_sys;
 
 pub mod builder;
 pub mod context;

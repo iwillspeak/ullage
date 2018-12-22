@@ -120,7 +120,7 @@ struct Tokeniser<'a> {
 
 impl<'a> Tokeniser<'a> {
     /// Creates a new tokeniser from the given string slice.
-    pub fn new_from_str(source: &'a str) -> Tokeniser {
+    pub fn new_from_str(source: &'a str) -> Tokeniser<'_> {
         Tokeniser {
             buff: source,
             idx: 0,
@@ -169,7 +169,7 @@ impl<'a> Tokeniser<'a> {
                         .fold(0, |l, c| l + c.len_utf8());
                     Some(Token::Whitespace(&self.buff[ts..te]))
                 }
-                '0'...'9' => {
+                '0'..='9' => {
                     te += chars.take_while(|c| *c >= '0' && *c <= '9').count();
                     let token_str = &self.buff[ts..te];
                     // we have cheked that it's a valid numeric literal,
@@ -256,7 +256,7 @@ impl<'a> Parser<'a> {
 
     /// Moves the token stream on by a single token, if the
     /// token's lexeme is of the given type.
-    pub fn expect(&mut self, expected: Token) -> ParseResult<()> {
+    pub fn expect(&mut self, expected: Token<'_>) -> ParseResult<()> {
         match self.lexer.peek() {
             Some(token) if token == &expected => Ok(()),
             Some(_) => Err(ParseError::Unexpected),
@@ -269,7 +269,7 @@ impl<'a> Parser<'a> {
     }
 
     /// Checks that the next token is of the given type
-    pub fn next_is(&mut self, expected: Token) -> bool {
+    pub fn next_is(&mut self, expected: Token<'_>) -> bool {
         self.lexer.peek().map_or(false, |token| token == &expected)
     }
 
@@ -468,7 +468,7 @@ impl<'a> Token<'a> {
     /// This is responsible for parsing literals and variable
     /// references into expressions, as well as parsing prefix
     /// expressions
-    fn nud(&self, parser: &mut Parser) -> ParseResult<Expression> {
+    fn nud(&self, parser: &mut Parser<'_>) -> ParseResult<Expression> {
         match *self {
             Token::Word("fn") => {
                 let identifier = parser.identifier()?;
@@ -527,7 +527,7 @@ impl<'a> Token<'a> {
     ///
     /// This is responsible for parsing infix operators and function
     /// calls.
-    fn led(&self, parser: &mut Parser, lhs: Expression) -> ParseResult<Expression> {
+    fn led(&self, parser: &mut Parser<'_>, lhs: Expression) -> ParseResult<Expression> {
         match *self {
             // Binary infix operator
             Token::DoubleEquals => self.infix(parser, lhs, InfixOp::Eq),
@@ -580,7 +580,12 @@ impl<'a> Token<'a> {
     }
 
     /// Attempt to Parse an Infix Expression
-    fn infix(&self, parser: &mut Parser, lhs: Expression, op: InfixOp) -> ParseResult<Expression> {
+    fn infix(
+        &self,
+        parser: &mut Parser<'_>,
+        lhs: Expression,
+        op: InfixOp,
+    ) -> ParseResult<Expression> {
         let rhs = parser.expression(self.lbp())?;
         Ok(Expression::infix(lhs, op, rhs))
     }
