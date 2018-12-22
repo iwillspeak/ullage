@@ -229,8 +229,8 @@ impl<'a> Iterator for Tokeniser<'a> {
     }
 }
 
-/// Expression parser. Given a stream of tokens this will produce
-/// an expression tree, or a parse error.
+/// Expression parser. Given a stream of tokens this will produce an
+/// expression tree, or a parse error.
 struct Parser<'a> {
     lexer: Peekable<Tokeniser<'a>>,
 }

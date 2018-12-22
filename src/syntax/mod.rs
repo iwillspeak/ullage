@@ -9,6 +9,7 @@ pub mod operators;
 pub mod parse;
 pub mod position;
 pub mod types;
+pub mod text;
 
 use self::fn_builder::FunctionDeclarationBuilder;
 use self::operators::*;
