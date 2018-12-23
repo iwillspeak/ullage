@@ -119,12 +119,36 @@ impl<'a> Iterator for Tokeniser<'a> {
     /// Iterator next method. This method returns the next
     /// non-whitespace token in the `Tokeniser`'s stream of `Token`s.
     fn next(&mut self) -> Option<Self::Item> {
-        while let Some(tok) = self.next_raw() {
-            if let Token::Whitespace(_) = tok {
-            } else {
-                return Some(tok);
-            }
-        }
-        None
+        self.next_raw()
+    }
+}
+
+#[cfg(test)]
+mod test {
+    
+    use super::*;
+    use super::super::super::text::SourceText;
+
+    #[test]
+    fn create_tokeniser_from_str_returns_tokeniser() {
+        let src = "hello = world";
+        Tokeniser::new(&SourceText::new(src));
+    }
+
+    #[test]
+    fn tokeniser_collect_tokens() {
+        let src = SourceText::new("var foo = 'hello world'");
+        let tokeniser = Tokeniser::new(&src);
+        let tokens = tokeniser.collect::<Vec<_>>();
+
+        assert_eq!(vec![
+            Token::Word("var"),
+            Token::Whitespace(" "),
+            Token::Word("foo"),
+            Token::Whitespace(" "),
+            Token::Equals,
+            Token::Whitespace(" "),
+            Token::Literal(Literal::RawString("hello world".into()))
+        ], tokens);
     }
 }

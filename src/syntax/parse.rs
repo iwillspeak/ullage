@@ -4,10 +4,12 @@
 pub mod error;
 mod token;
 mod tokeniser;
+mod trivia_filter;
 
 pub use self::error::{ParseError, ParseResult};
 use self::token::{Literal, Token};
 use self::tokeniser::Tokeniser;
+use self::trivia_filter::*;
 
 use super::text::SourceText;
 use super::{Expression, TypeRef, TypedId};
@@ -39,7 +41,7 @@ pub fn parse_single<S: Into<String>>(source: S) -> ParseResult<Expression> {
 /// Expression parser. Given a stream of tokens this will produce an
 /// expression tree, or a parse error.
 struct Parser<'a> {
-    lexer: Peekable<Tokeniser<'a>>,
+    lexer: Peekable<TriviaFilter<Tokeniser<'a>>>,
 }
 
 impl<'a> Parser<'a> {
@@ -47,7 +49,9 @@ impl<'a> Parser<'a> {
     pub fn new(source: &'a SourceText) -> Self {
         let lexer = Tokeniser::new(source);
         Parser {
-            lexer: lexer.peekable(),
+            lexer: lexer
+                .without_trivia()
+                .peekable(),
         }
     }
 
@@ -365,10 +369,9 @@ impl<'a> Parser<'a> {
 #[cfg(test)]
 mod test {
 
-    use super::super::text::SourceText;
     use super::super::Expression::*;
     use super::super::*;
-    use super::{parse_single, Tokeniser};
+    use super::parse_single;
 
     macro_rules! check_parse {
         ($src:expr, $expected:expr) => {
@@ -376,12 +379,6 @@ mod test {
             let actual = parse_single(src);
             assert_eq!(Ok($expected), actual);
         };
-    }
-
-    #[test]
-    fn create_tokeniser_from_str_returns_tokeniser() {
-        let src = "hello = world";
-        Tokeniser::new(&SourceText::new(src));
     }
 
     #[test]

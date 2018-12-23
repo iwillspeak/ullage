@@ -111,4 +111,16 @@ impl<'a> Token<'a> {
             _ => 0,
         }
     }
+
+    /// Check for Trivia Tokens
+    ///
+    /// Trivia tokesn are things like whitespace and comments which
+    /// occur in the token stream but may not be of importance to the
+    /// parser.
+    pub fn is_trivia(&self) -> bool {
+        match *self {
+            Token::Whitespace(_) => true,
+            _ => false,
+        }
+    }
 }
