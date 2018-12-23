@@ -26,6 +26,7 @@ use std::iter::Peekable;
 /// expression tree, or a parse error.
 pub struct Parser<'a> {
     lexer: Peekable<TriviaFilter<Tokeniser<'a>>>,
+    diagnostics: Vec<String>,
 }
 
 impl<'a> Parser<'a> {
@@ -34,32 +35,37 @@ impl<'a> Parser<'a> {
         let lexer = Tokeniser::new(source);
         Parser {
             lexer: lexer.without_trivia().peekable(),
+            diagnostics: Vec::new(),
         }
     }
 
     /// Moves the token stream on by a single token
-    fn advance(&mut self) -> ParseResult<()> {
-        match self.lexer.peek() {
-            Some(_) => {
-                self.lexer.next();
-                Ok(())
-            }
-            _ => Err(ParseError::Incomplete),
-        }
+    fn advance(&mut self) {
+        self.lexer.next();
     }
 
     /// Moves the token stream on by a single token, if the
     /// token's lexeme is of the given type.
     fn expect(&mut self, expected: Token<'_>) -> ParseResult<()> {
-        match self.lexer.peek() {
-            Some(token) if token == &expected => Ok(()),
-            Some(_) => Err(ParseError::Unexpected),
-            None => Err(ParseError::Incomplete),
+        let maybe_token = self.lexer.peek();
+        match maybe_token {
+            Some(token) if token == &expected => {
+                self.advance();
+                Ok(())
+            }
+            Some(other) => {
+                self.diagnostics.push(format!(
+                    "Unexpected token: {:?}, expecting: {:?}",
+                    other, expected
+                ));
+                Err(ParseError::Unexpected)
+            }
+            None => {
+                self.diagnostics
+                    .push(format!("Expected {:?} but found end of file", expected));
+                Err(ParseError::Incomplete)
+            }
         }
-        .map(|ok| {
-            self.lexer.next();
-            ok
-        })
     }
 
     /// Checks that the next token is of the given type
@@ -119,17 +125,17 @@ impl<'a> Parser<'a> {
     fn ty(&mut self) -> ParseResult<TypeRef> {
         match self.lexer.peek() {
             Some(&Token::Word(t)) => {
-                self.advance()?;
+                self.advance();
                 Ok(TypeRef::simple(t))
             }
             Some(&Token::OpenSqBracket) => {
-                self.advance()?;
+                self.advance();
                 let inner = self.ty()?;
                 self.expect(Token::CloseSqBracket)?;
                 Ok(TypeRef::array(inner))
             }
             Some(&Token::OpenBracket) => {
-                self.advance()?;
+                self.advance();
                 let mut types = Vec::new();
                 if !self.next_is(Token::CloseBracket) {
                     types.push(self.ty()?);
