@@ -125,9 +125,9 @@ impl<'a> Iterator for Tokeniser<'a> {
 
 #[cfg(test)]
 mod test {
-    
-    use super::*;
+
     use super::super::super::text::SourceText;
+    use super::*;
 
     #[test]
     fn create_tokeniser_from_str_returns_tokeniser() {
@@ -141,14 +141,17 @@ mod test {
         let tokeniser = Tokeniser::new(&src);
         let tokens = tokeniser.collect::<Vec<_>>();
 
-        assert_eq!(vec![
-            Token::Word("var"),
-            Token::Whitespace(" "),
-            Token::Word("foo"),
-            Token::Whitespace(" "),
-            Token::Equals,
-            Token::Whitespace(" "),
-            Token::Literal(Literal::RawString("hello world".into()))
-        ], tokens);
+        assert_eq!(
+            vec![
+                Token::Word("var"),
+                Token::Whitespace(" "),
+                Token::Word("foo"),
+                Token::Whitespace(" "),
+                Token::Equals,
+                Token::Whitespace(" "),
+                Token::Literal(Literal::RawString("hello world".into()))
+            ],
+            tokens
+        );
     }
 }
