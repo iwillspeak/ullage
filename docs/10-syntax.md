@@ -164,3 +164,79 @@ end
 
 print add(add(1, 2), 3) # => 6
 ```
+
+## Grammar
+
+The following grammar defines the language:
+
+
+```
+def foo(bar):
+	pass
+```
+
+
+    :::python
+
+    identifier = WORD
+               ;
+    
+    expression = nud [led]
+               ;
+    
+    expressions = expression*
+                ;
+    
+    type_ref = ":" ty
+             ;
+    
+    ty = WORD
+        | "[" ty "]"
+    	| "(" [(ty (, ty )*] ")"
+    	;
+    
+    optional_type_ref = [type_ref]
+                      ;
+    
+    typed_id = identifier optional_type_ref
+             ;
+    
+    declaration = identifier optional_type_ref "=" expression
+                 ;
+    
+    block = expression* "end"
+           ;
+    
+    ternary_body = expression "else" expression
+                 ;
+    
+    led = "==" expression
+        | "!=" expression
+        | "<" expression
+        | ">" expression
+        | "+" expression
+        | "-" expression
+        | "*" expression
+        | "/" expression
+        | "[" expression "]"
+        | "(" [expression ("," expression)*] ")"
+        | "if" ternary_body
+        | "unless" ternary_body
+        ;
+    
+    nud = "fn" identifier "(" [typed_id (, typed_id)*] ")" type_ref block "end"
+        | ("until" | "while") expression block "end"
+        | "let" declaration
+        | "var" declaration
+        | "print" expression
+        | "true"
+        | "false"
+        | WORD
+        | LITERAL
+        | "+" expression
+        | "-" expression
+        | "!" expression
+        | "(" expression ")"
+        ;
+
+    
