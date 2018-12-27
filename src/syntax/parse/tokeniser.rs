@@ -34,72 +34,72 @@ impl<'a> Tokeniser<'a> {
         let ts = self.idx;
         let mut te = ts;
         let mut chars = self.buff[ts..].chars();
-        let tok = chars.next().and_then(|c| {
+        let tok = chars.next().map(|c| {
             te += c.len_utf8();
             match c {
                 '=' => match chars.next() {
                     Some('=') => {
                         te += 1;
-                        Some(Token::DoubleEquals)
+                        Token::DoubleEquals
                     }
-                    _ => Some(Token::Equals),
+                    _ => Token::Equals,
                 },
                 '!' => match chars.next() {
                     Some('=') => {
                         te += 1;
-                        Some(Token::BangEquals)
+                        Token::BangEquals
                     }
-                    _ => Some(Token::Bang),
+                    _ => Token::Bang,
                 },
-                '+' => Some(Token::Plus),
-                '-' => Some(Token::Minus),
-                '*' => Some(Token::Star),
-                '/' => Some(Token::Slash),
-                '(' => Some(Token::OpenBracket),
-                ')' => Some(Token::CloseBracket),
-                '[' => Some(Token::OpenSqBracket),
-                ']' => Some(Token::CloseSqBracket),
-                ',' => Some(Token::Comma),
-                ':' => Some(Token::Colon),
-                '<' => Some(Token::LessThan),
-                '>' => Some(Token::MoreThan),
+                '+' => Token::Plus,
+                '-' => Token::Minus,
+                '*' => Token::Star,
+                '/' => Token::Slash,
+                '(' => Token::OpenBracket,
+                ')' => Token::CloseBracket,
+                '[' => Token::OpenSqBracket,
+                ']' => Token::CloseSqBracket,
+                ',' => Token::Comma,
+                ':' => Token::Colon,
+                '<' => Token::LessThan,
+                '>' => Token::MoreThan,
                 '#' => {
                     te += chars
                         .take_while(|c| *c != '\n')
                         .fold(0, |l, c| l + c.len_utf8());
-                    Some(Token::Whitespace(&self.buff[ts..te]))
+                    Token::Whitespace(&self.buff[ts..te])
                 }
                 '0'..='9' => {
                     te += chars.take_while(|c| *c >= '0' && *c <= '9').count();
                     let token_str = &self.buff[ts..te];
                     // we have cheked that it's a valid numeric literal,
                     // so unwrap is fine here.
-                    Some(Token::Literal(Literal::Number(
+                    Token::Literal(Literal::Number(
                         token_str.parse::<i64>().unwrap(),
-                    )))
+                    ))
                 }
                 '\'' => {
                     te += chars
                         .take_while(|c| *c != '\'')
                         .fold(0, |l, c| l + c.len_utf8())
                         + 1;
-                    Some(Token::Literal(Literal::RawString(String::from(
+                    Token::Literal(Literal::RawString(String::from(
                         &self.buff[ts + 1..te - 1],
-                    ))))
+                    )))
                 }
                 c if c.is_alphabetic() || c == '_' => {
                     te += chars
                         .take_while(|c| c.is_alphanumeric() || *c == '_')
                         .fold(0, |l, c| l + c.len_utf8());
-                    Some(Token::Word(&self.buff[ts..te]))
+                    Token::Word(&self.buff[ts..te])
                 }
                 c if c.is_whitespace() => {
                     te += chars
                         .take_while(|c| c.is_whitespace())
                         .fold(0, |l, c| l + c.len_utf8());
-                    Some(Token::Whitespace(&self.buff[ts..te]))
+                    Token::Whitespace(&self.buff[ts..te])
                 }
-                _ => Some(Token::Unknown(c)),
+                _ => Token::Unknown(c),
             }
         });
         self.idx = te;
