@@ -74,18 +74,14 @@ impl<'a> Tokeniser<'a> {
                     let token_str = &self.buff[ts..te];
                     // we have cheked that it's a valid numeric literal,
                     // so unwrap is fine here.
-                    Token::Literal(Literal::Number(
-                        token_str.parse::<i64>().unwrap(),
-                    ))
+                    Token::Literal(Literal::Number(token_str.parse::<i64>().unwrap()))
                 }
                 '\'' => {
                     te += chars
                         .take_while(|c| *c != '\'')
                         .fold(0, |l, c| l + c.len_utf8())
                         + 1;
-                    Token::Literal(Literal::RawString(String::from(
-                        &self.buff[ts + 1..te - 1],
-                    )))
+                    Token::Literal(Literal::RawString(String::from(&self.buff[ts + 1..te - 1])))
                 }
                 c if c.is_alphabetic() || c == '_' => {
                     te += chars

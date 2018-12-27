@@ -35,11 +35,11 @@ pub enum Literal {
 /// some tokens, like `Word` we also store their value. For all token
 /// kinds the underlying source can be retrieved from the `Token`'s
 /// span.
+#[derive(Debug, PartialEq)]
 pub enum TokenKind {
     /// A string of alpahbetic characters. This could be a langauge
     /// keyword or a variable or type identifier.
-    Word(String),     // TODO: This could do with being an interned
-    // stirng.
+    Word(String), // TODO: This could do with being an interned string
 
     /// Literal Value. Represents either a string or numeric literal
     /// in the source text. Booleans are not represented by literals

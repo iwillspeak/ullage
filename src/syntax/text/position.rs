@@ -45,6 +45,14 @@ impl Pos {
     }
 }
 
+impl std::ops::Add for Pos {
+    type Output = Self;
+
+    fn add(self, other: Pos) -> Self {
+        Pos(self.0 + other.0)
+    }
+}
+
 impl From<usize> for Pos {
     fn from(offset: usize) -> Self {
         Pos(offset)

@@ -14,6 +14,7 @@ use super::super::text::Span;
 /// Trivia tokens appear in the leading or trailing trivia of main
 /// tokens. They should be attached to the 'closest' token in the
 /// token stream, for some value of closest.
+#[derive(Debug, PartialEq, Copy, Clone)]
 pub struct TriviaToken {
     kind: TriviaTokenKind,
     span: Span,
@@ -22,6 +23,7 @@ pub struct TriviaToken {
 /// Trivia Token Kind
 ///
 /// The data held by a `TriviaToken`
+#[derive(Debug, PartialEq, Copy, Clone)]
 pub enum TriviaTokenKind {
     /// A whitespace token
     Whitespace,

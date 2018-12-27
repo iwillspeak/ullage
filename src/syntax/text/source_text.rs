@@ -33,6 +33,16 @@ impl SourceText {
         }
     }
 
+    /// Get the Starting Position
+    ///
+    /// Retunrns the index into the buffer which points to the first
+    /// character. As this is a 'cursor' which points 'between' the
+    /// characters even an empty source will have at least one
+    /// distinct position.
+    pub fn start(&self) -> Pos {
+        Pos::from(0)
+    }
+
     /// Get Line Count
     ///
     /// Returns the number of lines in the source text.
@@ -56,8 +66,27 @@ impl SourceText {
     }
 
     /// Get the Source Text
+    ///
+    /// TODO: Do we need to expose the whole buffer? Can we get away
+    /// with `walk_chars` and `slice`?
     pub fn text(&self) -> &str {
         &self.source[..]
+    }
+
+    /// Slice into the Source
+    pub fn slice(&self, start: Pos, end: Pos) -> &str {
+        &self.source[start.offset()..end.offset()]
+    }
+
+    /// Walk the Source Characters
+    pub fn walk_chars(&self, start: Pos) -> impl Iterator<Item = (char, Pos)> + '_ {
+        self.source[start.offset()..]
+            .chars()
+            .scan(start, |pos, ch| {
+                let next = Pos::from(pos.offset() + ch.len_utf8());
+                *pos = next;
+                Some((ch, next))
+            })
     }
 }
 
