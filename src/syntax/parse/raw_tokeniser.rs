@@ -159,9 +159,12 @@ impl<'t> Iterator for RawTokeniser<'t> {
                     // as junk instead.
                     let mut seen_end = false;
                     self.skip_over(&mut chars, |c| {
-                        let last_seen_end = seen_end;
-                        seen_end = c == '\'';
-                        !last_seen_end
+                        if seen_end {
+                            false
+                        } else {
+                            seen_end = c == '\'';
+                            true
+                        }
                     });
                     let lex_val = self.source.slice(next_pos, self.pos);
                     if seen_end {
@@ -326,6 +329,46 @@ mod test {
         check_lex!(
             "'føœ Bå®'",
             RawTokenKind::Plain(TokenKind::Literal(Literal::RawString("føœ Bå®".into())))
+        );
+    }
+
+    #[test]
+    fn newlines_are_not_attached_to_comments() {
+        let src = SourceText::new("# comment\n#another comment\nliteral");
+        let tokeniser = RawTokeniser::new(&src);
+        let tokens = tokeniser.map(|t| t.kind).collect::<Vec<_>>();
+        assert_eq!(
+            vec![
+                RawTokenKind::Trivia(TriviaTokenKind::Comment),
+                RawTokenKind::Trivia(TriviaTokenKind::Newline),
+                RawTokenKind::Trivia(TriviaTokenKind::Comment),
+                RawTokenKind::Trivia(TriviaTokenKind::Newline),
+                RawTokenKind::Plain(TokenKind::Word("literal".into())),
+            ],
+            tokens
+        );
+    }
+
+    #[test]
+    fn raw_tokenier_collect_returns_expected_tokens() {
+        let src = SourceText::new("var foo = 'hello world' + 1");
+        let tokeniser = RawTokeniser::new(&src);
+        let tokens = tokeniser.map(|t| t.kind).collect::<Vec<_>>();
+        assert_eq!(
+            vec![
+                RawTokenKind::Plain(TokenKind::Word("var".into())),
+                RawTokenKind::Trivia(TriviaTokenKind::Whitespace),
+                RawTokenKind::Plain(TokenKind::Word("foo".into())),
+                RawTokenKind::Trivia(TriviaTokenKind::Whitespace),
+                RawTokenKind::Plain(TokenKind::Equals),
+                RawTokenKind::Trivia(TriviaTokenKind::Whitespace),
+                RawTokenKind::Plain(TokenKind::Literal(Literal::RawString("hello world".into()))),
+                RawTokenKind::Trivia(TriviaTokenKind::Whitespace),
+                RawTokenKind::Plain(TokenKind::Plus),
+                RawTokenKind::Trivia(TriviaTokenKind::Whitespace),
+                RawTokenKind::Plain(TokenKind::Literal(Literal::Number(1))),
+            ],
+            tokens
         );
     }
 }
