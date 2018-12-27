@@ -6,5 +6,10 @@
 
 pub mod expression;
 mod fn_builder;
+mod trivia;
+mod token;
 pub mod operators;
 pub mod types;
+
+pub use self::trivia::{TriviaToken, TriviaTokenKind};
+pub use self::token::{Token, TokenKind, Literal};
