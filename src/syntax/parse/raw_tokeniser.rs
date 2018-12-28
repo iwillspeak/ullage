@@ -14,7 +14,7 @@ use super::super::tree::{Literal, TokenKind, TriviaTokenKind};
 
 /// The Raw Token Structure
 #[derive(Debug, PartialEq)]
-struct RawToken {
+pub struct RawToken {
     // The span of this token in the source text
     pub span: Span,
     /// The underlying token kind. This is either palin syntax token
@@ -26,7 +26,7 @@ struct RawToken {
 ///
 /// Used to abstract over palin and trivia tokens.
 #[derive(Debug, PartialEq)]
-enum RawTokenKind {
+pub enum RawTokenKind {
     /// A plain syntax token
     Plain(TokenKind),
     /// A trivia token
@@ -37,7 +37,7 @@ enum RawTokenKind {
 ///
 /// This walks a state machine over the underlying `SourceText` and
 /// returns a sequence of tokens.
-struct RawTokeniser<'t> {
+pub struct RawTokeniser<'t> {
     /// The undering source buffer
     source: &'t SourceText,
     /// The current position in the source text.
@@ -171,6 +171,10 @@ impl<'t> Iterator for RawTokeniser<'t> {
                         TokenKind::Literal(Literal::RawString(lex_val[..lex_val.len() - 1].into()))
                             .into()
                     } else {
+                        // TODO: To check the handlng of unterminated
+                        // strings we could do with a failing
+                        // compilation test. We don't want these junk
+                        // tokens getting ignored.
                         TriviaTokenKind::Junk.into()
                     }
                 }
