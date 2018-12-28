@@ -10,7 +10,7 @@
 //! appropriate syntax token.
 
 use super::super::text::{Pos, SourceText, Span};
-use super::super::tree::{Literal, TokenKind, TriviaTokenKind};
+use super::super::tree::{Literal, Token, TokenKind, TriviaTokenKind};
 
 /// The Raw Token Structure
 #[derive(Debug, PartialEq)]
@@ -61,6 +61,15 @@ impl<'t> RawTokeniser<'t> {
     pub fn new(source: &'t SourceText) -> Self {
         let pos = source.start();
         RawTokeniser { source, pos }
+    }
+
+    /// Group the Trivia Tokens
+    ///
+    /// This method consumes the inner iterator and returns a new
+    /// iterable which transforms the stream of raw tokens by
+    /// attaching the trivia to the 'closest' plain token.
+    pub fn group_trivia(self) -> TokenGrouper<'t> {
+        TokenGrouper::new(self)
     }
 
     /// Skip Over Characters
@@ -194,6 +203,43 @@ impl<'t> Iterator for RawTokeniser<'t> {
             kind: k,
             span: Span::new(start, self.pos),
         })
+    }
+}
+
+/// The Token Group Iterator
+///
+/// This iterator adapter groups trivia to transform a stream of raw
+/// tokens into a stream of plain tokens with the trivia attached to
+/// the 'closest' plain token.
+///
+/// For our case trivia at the start of a line is attached to the
+/// first plain token. Trivia after a token up to the end of line or
+/// next plain token is attached as trailing trivia.
+pub struct TokenGrouper<'t> {
+    inner: RawTokeniser<'t>,
+}
+
+impl<'t> TokenGrouper<'t> {
+    /// Construct a new Token Grouper by wrapping the `inner`
+    /// `RawTokeniser`.
+    pub fn new(inner: RawTokeniser<'t>) -> Self {
+        TokenGrouper { inner }
+    }
+}
+
+impl<'t> Iterator for TokenGrouper<'t> {
+    type Item = Token;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        while let Some(raw) = self.inner.next() {
+            match raw.kind {
+                RawTokenKind::Plain(plain_kind) => {
+                    return Some(Token::with_span(raw.span, plain_kind))
+                }
+                _ => (),
+            }
+        }
+        None
     }
 }
 
@@ -371,6 +417,36 @@ mod test {
                 RawTokenKind::Plain(TokenKind::Plus),
                 RawTokenKind::Trivia(TriviaTokenKind::Whitespace),
                 RawTokenKind::Plain(TokenKind::Literal(Literal::Number(1))),
+            ],
+            tokens
+        );
+    }
+
+    #[test]
+    fn raw_tokeniser_group_trivia_returns_expected_grouping() {
+        let src = SourceText::new("(hello + world)");
+        let tokeniser = RawTokeniser::new(&src);
+        let tokens = tokeniser.group_trivia().collect::<Vec<_>>();
+
+        assert_eq!(
+            vec![
+                Token::with_span(
+                    Span::new(Pos::from(0), Pos::from(1)),
+                    TokenKind::OpenBracket
+                ),
+                Token::with_span(
+                    Span::new(Pos::from(1), Pos::from(6)),
+                    TokenKind::Word("hello".into())
+                ),
+                Token::with_span(Span::new(Pos::from(7), Pos::from(8)), TokenKind::Plus),
+                Token::with_span(
+                    Span::new(Pos::from(9), Pos::from(14)),
+                    TokenKind::Word("world".into())
+                ),
+                Token::with_span(
+                    Span::new(Pos::from(14), Pos::from(15)),
+                    TokenKind::CloseBracket
+                ),
             ],
             tokens
         );

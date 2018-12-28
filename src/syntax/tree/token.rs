@@ -10,6 +10,7 @@ use super::TriviaToken;
 ///
 /// Syntax tokens are produced by the lexer and contain metadata about
 /// their position in the source text.
+#[derive(Debug, PartialEq)]
 pub struct Token {
     kind: TokenKind,
     span: Span,
@@ -97,4 +98,16 @@ pub enum TokenKind {
     /// The end of the token stream. This is retuend indefinitely once
     /// the lexer reaches the end of the source text.
     End,
+}
+
+impl Token {
+    /// Create a token from a position and kind
+    pub fn with_span(span: Span, kind: TokenKind) -> Self {
+        Token {
+            span,
+            leading: Vec::new(),
+            trailing: Vec::new(),
+            kind,
+        }
+    }
 }
