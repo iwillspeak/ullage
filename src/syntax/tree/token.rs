@@ -12,7 +12,9 @@ use super::TriviaToken;
 /// their position in the source text.
 #[derive(Debug, PartialEq)]
 pub struct Token {
-    kind: TokenKind,
+    /// The `TokenKind` for this token. Public to allow matching over
+    /// different token kinds.
+    pub kind: TokenKind,
     span: Span,
     leading: Vec<TriviaToken>,
     trailing: Vec<TriviaToken>,
@@ -108,6 +110,34 @@ impl Token {
             leading: Vec::new(),
             trailing: Vec::new(),
             kind,
+        }
+    }
+
+    /// Left binding power. This controls the precedence of
+    /// the symbol when being parsed as an infix operator.
+    ///
+    /// Returns the associativity, or binding power, for the given
+    /// token. This is used when deciding if to parse the `led()`
+    /// of this token.
+    pub fn lbp(&self) -> u32 {
+        match self.kind {
+            TokenKind::Equals => 10,
+
+            // ternary if
+            TokenKind::Word(ref w) if w == "if" || w == "unless" => 20,
+
+            // boolean conditional operators
+            TokenKind::DoubleEquals | TokenKind::BangEquals | TokenKind::LessThan | TokenKind::MoreThan => 40,
+
+            // Arithmetic operators
+            TokenKind::Plus | TokenKind::Minus => 50,
+
+            TokenKind::Star | TokenKind::Slash => 60,
+
+            // Index/Call operators
+            TokenKind::OpenBracket | TokenKind::OpenSqBracket => 80,
+
+            _ => 0,
         }
     }
 }

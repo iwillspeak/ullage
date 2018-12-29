@@ -24,8 +24,8 @@ impl TypeRef {
     ///
     /// A simple type is a direct reference to a non-generic non-array
     /// type, such as `Num` or `String`.
-    pub fn simple(name: &str) -> Self {
-        TypeRef::Simple(String::from(name))
+    pub fn simple<S: Into<String>>(name: S) -> Self {
+        TypeRef::Simple(name.into())
     }
 
     /// Create a new Unit Type Reference
