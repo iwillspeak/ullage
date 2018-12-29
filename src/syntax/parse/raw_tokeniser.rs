@@ -269,8 +269,8 @@ mod test {
 
     #[test]
     pub fn check_single_token_lext() {
-        // TODO: Do we wnat to introduce a `SyntaxFacts` which tells
-        // us these known literals? Would be useful in testing at least.
+
+        // Punctuation tokens
         check_lex!("=", RawTokenKind::Plain(TokenKind::Equals));
         check_lex!("==", RawTokenKind::Plain(TokenKind::DoubleEquals));
         check_lex!("!", RawTokenKind::Plain(TokenKind::Bang));

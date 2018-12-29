@@ -9,6 +9,8 @@
 
 mod position;
 mod source_text;
+mod intern;
 
+pub use self::intern::{Interner, Ident};
 pub use self::position::{Location, Pos, Span};
 pub use self::source_text::SourceText;

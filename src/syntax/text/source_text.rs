@@ -65,14 +65,6 @@ impl SourceText {
         }
     }
 
-    /// Get the Source Text
-    ///
-    /// TODO: Do we need to expose the whole buffer? Can we get away
-    /// with `walk_chars` and `slice`?
-    pub fn text(&self) -> &str {
-        &self.source[..]
-    }
-
     /// Slice into the Source
     pub fn slice(&self, start: Pos, end: Pos) -> &str {
         &self.source[start.offset()..end.offset()]
