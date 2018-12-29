@@ -13,10 +13,10 @@
 //! to parse with a single-token lookahead. This parser uses the
 //! `Peekable` iterator to acchieve this.
 
-use super::super::text::SourceText;
+use super::super::text::{Ident, SourceText};
+use super::super::tree::{Literal, Token, TokenKind};
 use super::super::{Expression, InfixOp, PrefixOp, TypeRef, TypedId};
 use super::error::*;
-use super::super::tree::{Token, Literal, TokenKind};
 use super::raw_tokeniser::{RawTokeniser, TokenGrouper};
 
 use std::iter::Peekable;
@@ -24,6 +24,7 @@ use std::iter::Peekable;
 /// Expression parser. Given a stream of tokens this will produce an
 /// expression tree, or a parse error.
 pub struct Parser<'a> {
+    source: &'a SourceText,
     lexer: Peekable<TokenGrouper<'a>>,
     diagnostics: Vec<String>,
 }
@@ -33,6 +34,7 @@ impl<'a> Parser<'a> {
     pub fn new(source: &'a SourceText) -> Self {
         let lexer = RawTokeniser::new(source);
         Parser {
+            source,
             lexer: lexer.group_trivia().peekable(),
             diagnostics: Vec::new(),
         }
@@ -69,7 +71,9 @@ impl<'a> Parser<'a> {
 
     /// Checks that the next token is of the given type
     fn next_is(&mut self, expected: TokenKind) -> bool {
-        self.lexer.peek().map_or(false, |token| token.kind == expected)
+        self.lexer
+            .peek()
+            .map_or(false, |token| token.kind == expected)
     }
 
     /// Attempt to parse an identifier
@@ -123,18 +127,26 @@ impl<'a> Parser<'a> {
     /// it could be a more complex one such as an array type or tuple.
     fn ty(&mut self) -> ParseResult<TypeRef> {
         match self.lexer.peek() {
-            Some(&Token{ kind: TokenKind::Word(ref t), ..}) => {
-                let t = t.clone();
+            Some(&Token {
+                kind: TokenKind::Word(t),
+                ..
+            }) => {
                 self.advance();
-                Ok(TypeRef::simple(t))
+                Ok(TypeRef::simple(self.source.interned_value(t)))
             }
-            Some(&Token{ kind: TokenKind::OpenSqBracket, ..}) => {
+            Some(&Token {
+                kind: TokenKind::OpenSqBracket,
+                ..
+            }) => {
                 self.advance();
                 let inner = self.ty()?;
                 self.expect(TokenKind::CloseSqBracket)?;
                 Ok(TypeRef::array(inner))
             }
-            Some(&Token{ kind: TokenKind::OpenBracket, ..}) => {
+            Some(&Token {
+                kind: TokenKind::OpenBracket,
+                ..
+            }) => {
                 self.advance();
                 let mut types = Vec::new();
                 if !self.next_is(TokenKind::CloseBracket) {
@@ -189,7 +201,7 @@ impl<'a> Parser<'a> {
     /// Attempt to parse a block of expressions
     fn block(&mut self) -> ParseResult<Vec<Expression>> {
         let mut expressions = Vec::new();
-        while self.lexer.peek().is_some() && !self.next_is(TokenKind::Word("end".into())) {
+        while self.lexer.peek().is_some() && !self.next_is(TokenKind::Word(Ident::End)) {
             expressions.push(self.single_expression()?);
         }
         Ok(expressions)
@@ -213,7 +225,7 @@ impl<'a> Parser<'a> {
     /// The condition and fallback part of a ternary expression.
     fn ternary_body(&mut self) -> ParseResult<(Expression, Expression)> {
         let condition = self.single_expression()?;
-        self.expect(TokenKind::Word("else".into()))?;
+        self.expect(TokenKind::Word(Ident::Else))?;
         let fallback = self.single_expression()?;
         Ok((condition, fallback))
     }
@@ -261,14 +273,14 @@ impl<'a> Parser<'a> {
 
             // Ternay statement:
             // <x> if <y> else <z>
-            TokenKind::Word(ref w) if w == "if"  => {
+            TokenKind::Word(Ident::If) => {
                 let (condition, fallback) = self.ternary_body()?;
                 Ok(Expression::if_then_else(condition, lhs, fallback))
             }
 
             // Ternay statement:
             // <x> unless <y> else <z>
-            TokenKind::Word(ref w) if w == "unless" => {
+            TokenKind::Word(Ident::Unless) => {
                 let (condition, fallback) = self.ternary_body()?;
                 Ok(Expression::if_then_else(condition, fallback, lhs))
             }
@@ -287,7 +299,7 @@ impl<'a> Parser<'a> {
         let token = self.lexer.next().ok_or(ParseError::Incomplete)?;
 
         match token.kind {
-            TokenKind::Word(ref w) if w == "fn" => {
+            TokenKind::Word(Ident::Fn) => {
                 let identifier = self.identifier()?;
                 let mut res = Expression::function(identifier);
                 self.expect(TokenKind::OpenBracket)?;
@@ -302,30 +314,32 @@ impl<'a> Parser<'a> {
                 res = res
                     .with_return_type(self.type_ref()?)
                     .with_body(self.block()?);
-                self.expect(TokenKind::Word("end".into()))?;
+                self.expect(TokenKind::Word(Ident::End))?;
                 Ok(Expression::from(res))
             }
-            TokenKind::Word(ref w) if w == "while" || w == "until" => {
+            TokenKind::Word(Ident::While) | TokenKind::Word(Ident::Until) => {
                 let mut condition = self.single_expression()?;
                 // TODO: It would be nice if we could do this in
                 // lowering rather than hacking it up like this in
                 // parsing
-                if w == "until" {
+                if token.kind == TokenKind::Word(Ident::Until) {
                     condition = Expression::Prefix(PrefixOp::Not, Box::new(condition));
                 }
                 let block = self.block()?;
-                self.expect(TokenKind::Word("end".into()))?;
+                self.expect(TokenKind::Word(Ident::End))?;
                 Ok(Expression::loop_while(condition, block))
             }
-            TokenKind::Word(ref w) if w == "let" => self.declaration(false),
-            TokenKind::Word(ref w) if w == "var" => self.declaration(true),
-            TokenKind::Word(ref w) if w == "print" => {
+            TokenKind::Word(Ident::Let) => self.declaration(false),
+            TokenKind::Word(Ident::Var) => self.declaration(true),
+            TokenKind::Word(Ident::Print) => {
                 let to_print = self.single_expression()?;
                 Ok(Expression::print(to_print))
             }
-            TokenKind::Word(ref w) if w == "true" => Ok(Expression::constant_bool(true)),
-            TokenKind::Word(ref w) if w == "false" => Ok(Expression::constant_bool(false)),
-            TokenKind::Word(word) => Ok(Expression::identifier(String::from(word))),
+            TokenKind::Word(Ident::True) => Ok(Expression::constant_bool(true)),
+            TokenKind::Word(Ident::False) => Ok(Expression::constant_bool(false)),
+            TokenKind::Word(word) => Ok(Expression::identifier(
+                self.source.interned_value(word).into(),
+            )),
             TokenKind::Literal(ref l) => match l {
                 &Literal::Number(i) => Ok(Expression::constant_num(i)),
                 &Literal::RawString(ref s) => Ok(Expression::constant_string(s.clone())),

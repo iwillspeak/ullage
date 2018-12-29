@@ -6,7 +6,8 @@
 //! using `Location`s, and `Location`s can be turned into `(line,
 //! col)` position pairs for displaying in diagnostics.
 
-use super::Pos;
+use super::{Ident, Interner, Pos};
+use std::cell::RefCell;
 
 /// Source Text Struct
 ///
@@ -18,6 +19,10 @@ pub struct SourceText {
     /// The offsets of the beginning of each line. Can be used to
     /// convert a character offset into the (line, column)
     line_offsets: Vec<usize>,
+    /// String interner to create identifiers
+    ///
+    /// FIXME: Should this live here?
+    interner: RefCell<Interner>,
 }
 
 impl SourceText {
@@ -30,6 +35,7 @@ impl SourceText {
         SourceText {
             source,
             line_offsets,
+            interner: Default::default(),
         }
     }
 
@@ -48,6 +54,16 @@ impl SourceText {
     /// Returns the number of lines in the source text.
     pub fn line_count(&self) -> usize {
         self.line_offsets.len()
+    }
+
+    /// Intern a String Value
+    pub fn intern(&self, value: &str) -> Ident {
+        self.interner.borrow_mut().intern(value)
+    }
+
+    /// Lookup the value of an identifier
+    pub fn interned_value(&self, ident: Ident) -> String {
+        self.interner.borrow().interned_value(ident).into()
     }
 
     /// Get Line Position

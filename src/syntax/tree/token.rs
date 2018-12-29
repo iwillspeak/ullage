@@ -3,7 +3,7 @@
 //! A lexeme in the token stream. Tokens are produced by the
 //! `Tokeniser` when parsing a source text.
 
-use super::super::text::Span;
+use super::super::text::{Ident, Span};
 use super::TriviaToken;
 
 /// A Syntax Token
@@ -42,7 +42,7 @@ pub enum Literal {
 pub enum TokenKind {
     /// A string of alpahbetic characters. This could be a langauge
     /// keyword or a variable or type identifier.
-    Word(String), // TODO: This could do with being an interned string
+    Word(Ident), // TODO: This could do with being an interned string
 
     /// Literal Value. Represents either a string or numeric literal
     /// in the source text. Booleans are not represented by literals
@@ -124,10 +124,13 @@ impl Token {
             TokenKind::Equals => 10,
 
             // ternary if
-            TokenKind::Word(ref w) if w == "if" || w == "unless" => 20,
+            TokenKind::Word(Ident::If) | TokenKind::Word(Ident::Unless) => 20,
 
             // boolean conditional operators
-            TokenKind::DoubleEquals | TokenKind::BangEquals | TokenKind::LessThan | TokenKind::MoreThan => 40,
+            TokenKind::DoubleEquals
+            | TokenKind::BangEquals
+            | TokenKind::LessThan
+            | TokenKind::MoreThan => 40,
 
             // Arithmetic operators
             TokenKind::Plus | TokenKind::Minus => 50,

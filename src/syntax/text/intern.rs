@@ -105,7 +105,10 @@ impl Interner {
             Ident::Until => "until",
             Ident::Var => "var",
             Ident::While => "while",
-            _ => self.lookup.iter().find(|(_, v)| **v == ident)
+            _ => self
+                .lookup
+                .iter()
+                .find(|(_, v)| **v == ident)
                 .map(|(k, _)| &k[..])
                 .unwrap_or(""),
         }

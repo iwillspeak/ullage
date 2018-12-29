@@ -7,10 +7,10 @@
 //! Positions within the source are represnted by the `Pos`, `Span`
 //! and `Location` types.
 
+mod intern;
 mod position;
 mod source_text;
-mod intern;
 
-pub use self::intern::{Interner, Ident};
+pub use self::intern::{Ident, Interner};
 pub use self::position::{Location, Pos, Span};
 pub use self::source_text::SourceText;
