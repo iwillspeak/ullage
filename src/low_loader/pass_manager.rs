@@ -88,6 +88,12 @@ impl Drop for PassManagerBuilder {
     }
 }
 
+impl Default for PassManagerBuilder {
+    fn default() -> Self {
+        PassManagerBuilder::new()
+    }
+}
+
 impl PassManagerBuilder {
     /// Create a Pass Manager Builder
     pub fn new() -> Self {

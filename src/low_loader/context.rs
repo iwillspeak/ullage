@@ -190,7 +190,7 @@ impl Context {
     pub fn const_char(&self, i: u8) -> LLVMValueRef {
         unsafe {
             let int8 = core::LLVMInt8TypeInContext(self.as_raw());
-            core::LLVMConstInt(int8, i as u64, 0)
+            core::LLVMConstInt(int8, u64::from(i), 0)
         }
     }
 
@@ -316,5 +316,11 @@ impl Drop for Context {
         unsafe {
             core::LLVMContextDispose(self.as_raw());
         }
+    }
+}
+
+impl Default for Context {
+    fn default() -> Self {
+        Context::new()
     }
 }

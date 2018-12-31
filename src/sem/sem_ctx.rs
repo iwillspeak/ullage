@@ -11,6 +11,7 @@ use std::collections::HashMap;
 ///
 /// Holds the context when trasnforming. This is basically the current
 /// type state information along with symbol table.
+#[derive(Default)]
 pub struct SemCtx {
     /// Symbol Table for Local Variables
     locals: Vec<HashMap<String, Typ>>,

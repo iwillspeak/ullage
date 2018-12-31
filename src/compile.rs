@@ -60,6 +60,7 @@ impl Compilation {
     /// # Parameters
     ///  * `expr` - the expression to compile
     ///  * `opts` - The compilation options
+    #[allow(clippy::new_ret_no_self)]
     pub fn new(expr: syntax::Expression, opts: CompilationOptions) -> CompResult<Self> {
         let mut trans_sess = sem::SemCtx::new();
         let sem_expr = sem::transform_expression(&mut trans_sess, expr)?;

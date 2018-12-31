@@ -67,7 +67,7 @@ pub fn lower_as_main(ctx: &mut LowerContext<'_>, expr: Expression) -> CompResult
 /// # Returns
 ///
 /// A `Result` indicating if the expression was lowered successfully.
-pub fn lower_expression<'a>(
+pub fn lower_expression(
     ctx: &mut LowerContext<'_>,
     fun: &mut Function,
     builder: &mut Builder,
@@ -95,13 +95,13 @@ fn add_decls(ctx: &mut LowerContext<'_>, expr: &Expression) {
         }
         ExpressionKind::Function(ref fn_decl) => {
             let ret = ctx
-                .llvm_type(&fn_decl.ret_ty)
+                .llvm_type(fn_decl.ret_ty)
                 .expect("no type in context for function return");
             let mut params = fn_decl
                 .params
                 .iter()
                 .map(|p| {
-                    ctx.llvm_type(&(p.ty.unwrap_or(Typ::Builtin(BuiltinType::Number))))
+                    ctx.llvm_type(p.ty.unwrap_or(Typ::Builtin(BuiltinType::Number)))
                         .expect("no type in context for function param")
                 })
                 .collect::<Vec<_>>();
@@ -139,7 +139,7 @@ pub fn lower_internal(
                 ]);
                 let global = ctx.module.add_global(initialiser, "s_const");
 
-                let string_ty = ctx.llvm_type(&expr.typ.unwrap()).unwrap();
+                let string_ty = ctx.llvm_type(expr.typ.unwrap()).unwrap();
                 Ok(builder.build_bitcast(global, string_ty, "string_const"))
             }
         },
@@ -208,8 +208,8 @@ pub fn lower_internal(
 
             let typ = expr
                 .typ
-                .and_then(|t| ctx.llvm_type(&t))
-                .ok_or(CompError::from("No type for if expression".to_string()))?;
+                .and_then(|t| ctx.llvm_type(t))
+                .ok_or_else(|| CompError::from("No type for if expression".to_string()))?;
             let ret = builder.build_alloca(typ, "if");
 
             let thenblock = ctx.llvm_ctx.add_block(fun, "thenblock");
@@ -232,9 +232,9 @@ pub fn lower_internal(
             Ok(builder.build_load(ret))
         }
         ExpressionKind::Function(fn_decl) => {
-            let mut fun = ctx.module.find_function(&fn_decl.ident).expect(&format!(
+            let mut fun = ctx.module.find_function(&fn_decl.ident).unwrap_or_else(|| panic!(
                 "missing function declaration '{}'",
-                &fn_decl.ident
+                fn_decl.ident
             ));
             let bb = ctx.llvm_ctx.add_block(&mut fun, "body");
             let mut builder = ctx.llvm_ctx.add_builder();
@@ -250,7 +250,7 @@ pub fn lower_internal(
                     // the `sem` phase to translate those that need to
                     // be mutable.
                     let typ = ctx
-                        .llvm_type(&p.ty.unwrap_or(Typ::Builtin(BuiltinType::Number)))
+                        .llvm_type(p.ty.unwrap_or(Typ::Builtin(BuiltinType::Number)))
                         .unwrap();
                     let param = builder.build_alloca(typ, &p.ident);
                     builder.build_store(fun.get_param(i as u32), param);
@@ -313,7 +313,7 @@ pub fn lower_internal(
             let value = if is_mut {
                 let typ = decl.ty.map_or_else(
                     || ctx.llvm_ctx.get_type(initialiser),
-                    |ty| ctx.llvm_type(&ty).expect("Can't find LLVM type for Typ"),
+                    |ty| ctx.llvm_type(ty).expect("Can't find LLVM type for Typ"),
                 );
 
                 let stackloc = builder.build_alloca(typ, &decl.ident);
@@ -350,7 +350,7 @@ fn build_string_concat(
     let res = builder.build_malloc(i8ty, Some(size), "concat");
     let res = builder.build_bitcast(
         res,
-        ctx.llvm_type(&Typ::Builtin(BuiltinType::String)).unwrap(),
+        ctx.llvm_type(Typ::Builtin(BuiltinType::String)).unwrap(),
         "catenated",
     );
 

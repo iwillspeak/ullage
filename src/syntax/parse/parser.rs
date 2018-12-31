@@ -25,6 +25,7 @@ pub struct Parser<'a> {
     source: &'a SourceText,
     lexer: Tokeniser<'a>,
     diagnostics: Vec<String>,
+    #[allow(clippy::option_option)]
     current: Option<Option<Token>>,
 }
 
@@ -73,9 +74,9 @@ impl<'a> Parser<'a> {
 
     /// Moves the token stream on by a single token, if the
     /// token's lexeme is of the given type.
-    fn expect(&mut self, expected: TokenKind) -> ParseResult<()> {
+    fn expect(&mut self, expected: &TokenKind) -> ParseResult<()> {
         match self.current() {
-            Some(token) if token.kind == expected => {
+            Some(token) if token.kind == *expected => {
                 self.advance();
                 Ok(())
             }
@@ -94,8 +95,8 @@ impl<'a> Parser<'a> {
     }
 
     /// Checks that the next token is of the given type
-    fn next_is(&mut self, expected: TokenKind) -> bool {
-        self.current().map_or(false, |token| token.kind == expected)
+    fn next_is(&mut self, expected: &TokenKind) -> bool {
+        self.current().map_or(false, |token| token.kind == *expected)
     }
 
     /// Attempt to parse an identifier
@@ -125,7 +126,7 @@ impl<'a> Parser<'a> {
             expressions.push(self.single_expression()?);
         }
         let errors = self.collect_diagnostics();
-        if errors.len() > 0 {
+        if !errors.is_empty() {
             Err(ParseError::Diagnostics(errors.into()))
         } else {
             Ok(expressions)
@@ -144,7 +145,7 @@ impl<'a> Parser<'a> {
     /// Attempt to parse a type reference, this is a single
     /// `:` followed by a type name.
     fn type_ref(&mut self) -> ParseResult<TypeRef> {
-        self.expect(TokenKind::Colon)?;
+        self.expect(&TokenKind::Colon)?;
         self.ty()
     }
 
@@ -167,7 +168,7 @@ impl<'a> Parser<'a> {
             }) => {
                 self.advance();
                 let inner = self.ty()?;
-                self.expect(TokenKind::CloseSqBracket)?;
+                self.expect(&TokenKind::CloseSqBracket)?;
                 Ok(TypeRef::array(inner))
             }
             Some(&Token {
@@ -176,14 +177,14 @@ impl<'a> Parser<'a> {
             }) => {
                 self.advance();
                 let mut types = Vec::new();
-                if !self.next_is(TokenKind::CloseBracket) {
+                if !self.next_is(&TokenKind::CloseBracket) {
                     types.push(self.ty()?);
                 }
-                while !self.next_is(TokenKind::CloseBracket) {
-                    self.expect(TokenKind::Comma)?;
+                while !self.next_is(&TokenKind::CloseBracket) {
+                    self.expect(&TokenKind::Comma)?;
                     types.push(self.ty()?);
                 }
-                self.expect(TokenKind::CloseBracket)?;
+                self.expect(&TokenKind::CloseBracket)?;
                 Ok(TypeRef::tuple(types))
             }
             _ => Err(ParseError::Unexpected),
@@ -195,7 +196,7 @@ impl<'a> Parser<'a> {
     /// If there is a type refernece then parse it and return it. If
     /// there is no type we may have to infer it later.
     fn optional_type_ref(&mut self) -> Option<TypeRef> {
-        if self.next_is(TokenKind::Colon) {
+        if self.next_is(&TokenKind::Colon) {
             self.type_ref().ok()
         } else {
             None
@@ -206,7 +207,7 @@ impl<'a> Parser<'a> {
     fn typed_id(&mut self) -> ParseResult<TypedId> {
         let id = self.identifier()?;
         let typ = self.optional_type_ref();
-        Ok(TypedId { id: id, typ: typ })
+        Ok(TypedId { id, typ })
     }
 
     /// Attempt to parse a local declaration
@@ -216,7 +217,7 @@ impl<'a> Parser<'a> {
     fn declaration(&mut self, is_mut: bool) -> ParseResult<Expression> {
         let id = self.identifier()?;
         let typ = self.optional_type_ref();
-        self.expect(TokenKind::Equals)?;
+        self.expect(&TokenKind::Equals)?;
         let rhs = self.single_expression()?;
         Ok(Expression::declaration(
             TypedId::from_parts(id.clone(), typ),
@@ -228,7 +229,7 @@ impl<'a> Parser<'a> {
     /// Attempt to parse a block of expressions
     fn block(&mut self) -> ParseResult<Vec<Expression>> {
         let mut expressions = Vec::new();
-        while self.current().is_some() && !self.next_is(TokenKind::Word(Ident::End)) {
+        while self.current().is_some() && !self.next_is(&TokenKind::Word(Ident::End)) {
             expressions.push(self.single_expression()?);
         }
         Ok(expressions)
@@ -252,7 +253,7 @@ impl<'a> Parser<'a> {
     /// The condition and fallback part of a ternary expression.
     fn ternary_body(&mut self) -> ParseResult<(Expression, Expression)> {
         let condition = self.single_expression()?;
-        self.expect(TokenKind::Word(Ident::Else))?;
+        self.expect(&TokenKind::Word(Ident::Else))?;
         let fallback = self.single_expression()?;
         Ok((condition, fallback))
     }
@@ -280,21 +281,21 @@ impl<'a> Parser<'a> {
             // array indexing
             TokenKind::OpenSqBracket => {
                 let index = self.single_expression()?;
-                self.expect(TokenKind::CloseSqBracket)?;
+                self.expect(&TokenKind::CloseSqBracket)?;
                 Ok(Expression::index(lhs, index))
             }
 
             // Function call
             TokenKind::OpenBracket => {
                 let mut params = Vec::new();
-                while !self.next_is(TokenKind::CloseBracket) {
+                while !self.next_is(&TokenKind::CloseBracket) {
                     let param = self.single_expression()?;
                     params.push(param);
-                    if !self.next_is(TokenKind::CloseBracket) {
-                        self.expect(TokenKind::Comma)?;
+                    if !self.next_is(&TokenKind::CloseBracket) {
+                        self.expect(&TokenKind::Comma)?;
                     }
                 }
-                self.expect(TokenKind::CloseBracket)?;
+                self.expect(&TokenKind::CloseBracket)?;
                 Ok(Expression::call(lhs, params))
             }
 
@@ -329,19 +330,19 @@ impl<'a> Parser<'a> {
             TokenKind::Word(Ident::Fn) => {
                 let identifier = self.identifier()?;
                 let mut res = Expression::function(identifier);
-                self.expect(TokenKind::OpenBracket)?;
-                if !self.next_is(TokenKind::CloseBracket) {
+                self.expect(&TokenKind::OpenBracket)?;
+                if !self.next_is(&TokenKind::CloseBracket) {
                     res = res.with_arg(self.typed_id()?);
                 }
-                while !self.next_is(TokenKind::CloseBracket) {
-                    self.expect(TokenKind::Comma)?;
+                while !self.next_is(&TokenKind::CloseBracket) {
+                    self.expect(&TokenKind::Comma)?;
                     res = res.with_arg(self.typed_id()?);
                 }
-                self.expect(TokenKind::CloseBracket)?;
+                self.expect(&TokenKind::CloseBracket)?;
                 res = res
                     .with_return_type(self.type_ref()?)
                     .with_body(self.block()?);
-                self.expect(TokenKind::Word(Ident::End))?;
+                self.expect(&TokenKind::Word(Ident::End))?;
                 Ok(Expression::from(res))
             }
             TokenKind::Word(Ident::While) | TokenKind::Word(Ident::Until) => {
@@ -353,7 +354,7 @@ impl<'a> Parser<'a> {
                     condition = Expression::Prefix(PrefixOp::Not, Box::new(condition));
                 }
                 let block = self.block()?;
-                self.expect(TokenKind::Word(Ident::End))?;
+                self.expect(&TokenKind::Word(Ident::End))?;
                 Ok(Expression::loop_while(condition, block))
             }
             TokenKind::Word(Ident::Let) => self.declaration(false),
@@ -365,18 +366,18 @@ impl<'a> Parser<'a> {
             TokenKind::Word(Ident::True) => Ok(Expression::constant_bool(true)),
             TokenKind::Word(Ident::False) => Ok(Expression::constant_bool(false)),
             TokenKind::Word(word) => Ok(Expression::identifier(
-                self.source.interned_value(word).into(),
+                self.source.interned_value(word),
             )),
-            TokenKind::Literal(ref l) => match l {
-                &Literal::Number(i) => Ok(Expression::constant_num(i)),
-                &Literal::RawString(ref s) => Ok(Expression::constant_string(s.clone())),
+            TokenKind::Literal(ref l) => match *l {
+                Literal::Number(i) => Ok(Expression::constant_num(i)),
+                Literal::RawString(ref s) => Ok(Expression::constant_string(s.clone())),
             },
             TokenKind::Plus => self.expression(100),
             TokenKind::Minus => self.prefix_op(PrefixOp::Negate),
             TokenKind::Bang => self.prefix_op(PrefixOp::Not),
             TokenKind::OpenBracket => {
                 let expr = self.single_expression()?;
-                self.expect(TokenKind::CloseBracket)?;
+                self.expect(&TokenKind::CloseBracket)?;
                 Ok(expr)
             }
             // This covers things which can't start expressions, like

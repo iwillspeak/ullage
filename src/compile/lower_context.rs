@@ -29,7 +29,7 @@ impl<'a> LowerContext<'a> {
     pub fn new(ctx: &'a mut Context, module: &'a mut Module) -> Self {
         LowerContext {
             llvm_ctx: ctx,
-            module: module,
+            module,
             ty_map: Default::default(),
         }
     }
@@ -46,7 +46,7 @@ impl<'a> LowerContext<'a> {
             self.module,
             "llvm.memcpy.p0i8.p0i8.i32",
             self.llvm_ctx.void_type(),
-            &mut vec![i8ptr, i8ptr, i32ty, self.llvm_ctx.bool_type()],
+            &mut[i8ptr, i8ptr, i32ty, self.llvm_ctx.bool_type()],
         );
     }
 
@@ -75,7 +75,7 @@ impl<'a> LowerContext<'a> {
     }
 
     /// Look up a Given Type
-    pub fn llvm_type(&self, ty: &Typ) -> Option<LLVMTypeRef> {
-        self.ty_map.get(ty).cloned()
+    pub fn llvm_type(&self, ty: Typ) -> Option<LLVMTypeRef> {
+        self.ty_map.get(&ty).cloned()
     }
 }

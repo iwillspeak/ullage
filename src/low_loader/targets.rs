@@ -134,10 +134,10 @@ pub fn dump_targets() {
     println!("default triple: {:?}", unsafe {
         CStr::from_ptr(native_target)
     });
-    println!("");
+    println!();
     println!("supported targets:");
     let mut target = unsafe { LLVMGetFirstTarget() };
-    while target != ptr::null_mut() {
+    while target.is_null() {
         let name = unsafe { CStr::from_ptr(LLVMGetTargetName(target)) };
         let desc = unsafe { CStr::from_ptr(LLVMGetTargetDescription(target)) };
         println!(" * {} ({})", name.to_str().unwrap(), desc.to_str().unwrap());

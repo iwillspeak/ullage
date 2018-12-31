@@ -33,7 +33,7 @@ use std::process::*;
 /// This is a [Docopt] compliant usage description of this program.
 ///
 ///  [Docopt]: http://docopt.org/
-const USAGE: &'static str = "
+const USAGE: &str = "
 Ullage Compiler
 
 Usage:
@@ -102,7 +102,7 @@ fn main() {
         }
     }
 
-    let output_path = &args.flag_output.unwrap_or("a.out".to_string());
+    let output_path = &args.flag_output.unwrap_or_else(|| "a.out".to_string());
     let output_path = Path::new(&output_path);
 
     // Load the file into memory, so we can parse it into a syntax tree
@@ -128,7 +128,7 @@ fn main() {
         .with_opt_level(args.flag_optimise.unwrap_or_default());
     let comp = match Compilation::new(tree, options) {
         Ok(c) => c,
-        Err(e) => handle_comp_err(e),
+        Err(e) => handle_comp_err(&e),
     };
 
     // Create a compilation, and emit to the output path
@@ -136,7 +136,7 @@ fn main() {
 
     // Print any failures encountered and return a failure status
     if let Err(e) = emit_result {
-        handle_comp_err(e);
+        handle_comp_err(&e);
     }
 }
 
@@ -160,7 +160,7 @@ fn read_input(path: Option<String>) -> std::result::Result<String, Error> {
 /// Handles a Compilation Error
 ///
 /// Prints the error to standard output and exits the process.
-fn handle_comp_err(err: CompError) -> ! {
+fn handle_comp_err(err: &CompError) -> ! {
     eprintln!("error: compilation error: {}", err);
     exit(1);
 }

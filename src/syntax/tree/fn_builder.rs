@@ -28,7 +28,7 @@ impl FunctionDeclarationBuilder {
     /// Start building a function for `id`.
     pub fn new(id: String) -> Self {
         FunctionDeclarationBuilder {
-            id: id,
+            id,
             typ: TypeRef::unit(),
             args: Vec::new(),
             body: Vec::new(),

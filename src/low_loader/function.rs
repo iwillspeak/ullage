@@ -54,7 +54,7 @@ impl Function {
     /// stronlgy typed access to it.
     pub unsafe fn from_raw(raw: LLVMValueRef) -> Self {
         Function {
-            raw: raw,
+            raw,
             call_conv: core::LLVMGetFunctionCallConv(raw).into(),
         }
     }

@@ -26,13 +26,13 @@ pub enum Typ {
 impl Typ {
     /// Returns the name of a given type
     pub fn name(&self) -> Cow<'_, str> {
-        Cow::Borrowed(match self {
-            &Typ::Unknown => "_",
-            &Typ::Unit => "()",
-            &Typ::Builtin(ref b) => match b {
-                &BuiltinType::Number => "Number",
-                &BuiltinType::Bool => "Bool",
-                &BuiltinType::String => "String",
+        Cow::Borrowed(match *self {
+            Typ::Unknown => "_",
+            Typ::Unit => "()",
+            Typ::Builtin(ref b) => match *b {
+                BuiltinType::Number => "Number",
+                BuiltinType::Bool => "Bool",
+                BuiltinType::String => "String",
             },
         })
     }

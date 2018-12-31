@@ -42,7 +42,7 @@ impl TypeRef {
     /// A tuple type is an ordered collection of values. Each value
     /// can be of a different type.
     pub fn tuple(inner: Vec<TypeRef>) -> Self {
-        if inner.len() == 0 {
+        if inner.is_empty() {
             Self::unit()
         } else {
             TypeRef::Tuple(inner)
@@ -61,8 +61,8 @@ impl TypeRef {
     ///
     /// Panics if the type is not simple
     pub fn simple_name(&self) -> &str {
-        match self {
-            &TypeRef::Simple(ref name) => name.as_ref(),
+        match *self {
+            TypeRef::Simple(ref name) => name.as_ref(),
             _ => panic!("not a simple type"),
         }
     }

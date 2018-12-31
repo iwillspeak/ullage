@@ -25,14 +25,14 @@ pub(crate) fn string_copy_guts(
     let src_buffer = string_get_buffer(builder, src);
     let src_buffer = builder.build_gep(
         src_buffer,
-        &mut vec![ctx.llvm_ctx.const_int(0), ctx.llvm_ctx.const_int(0)],
+        &mut[ctx.llvm_ctx.const_int(0), ctx.llvm_ctx.const_int(0)],
     );
     let dest_buffer = string_get_buffer(builder, dest);
-    let dest_buffer = builder.build_gep(dest_buffer, &mut vec![ctx.llvm_ctx.const_int(0), offset]);
+    let dest_buffer = builder.build_gep(dest_buffer, &mut[ctx.llvm_ctx.const_int(0), offset]);
 
     builder.build_void_call(
         &memcpy,
-        &mut vec![dest_buffer, src_buffer, len, ctx.llvm_ctx.const_bool(false)],
+        &mut [dest_buffer, src_buffer, len, ctx.llvm_ctx.const_bool(false)],
     );
 }
 

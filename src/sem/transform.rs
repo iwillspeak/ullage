@@ -25,10 +25,10 @@ pub fn transform_expression(ctx: &mut SemCtx, expr: SyntaxExpr) -> CompResult<Ex
             Ok(Expression::new(ExpressionKind::Identifier(i), typ))
         }
         SyntaxExpr::Literal(c) => {
-            let typ = Typ::Builtin(match &c {
-                &Constant::Bool(_) => BuiltinType::Bool,
-                &Constant::Number(_) => BuiltinType::Number,
-                &Constant::String(_) => BuiltinType::String,
+            let typ = Typ::Builtin(match c {
+                Constant::Bool(_) => BuiltinType::Bool,
+                Constant::Number(_) => BuiltinType::Number,
+                Constant::String(_) => BuiltinType::String,
             });
             Ok(Expression::new(ExpressionKind::Literal(c), Some(typ)))
         }
@@ -143,7 +143,7 @@ pub fn transform_expression(ctx: &mut SemCtx, expr: SyntaxExpr) -> CompResult<Ex
             let fn_decl = FnDecl {
                 ident,
                 ret_ty: ensure_ty(ctx.sem_ty(ret_ty))?,
-                params: params,
+                params,
                 body: Box::new(transform_expression(ctx, *body)?),
             };
 
@@ -218,5 +218,5 @@ fn relax_ty(maybe_typ: Option<Typ>) -> Typ {
 /// part of the `SemCtx`.
 fn ensure_ty(maybe_ty: Option<Typ>) -> CompResult<Typ> {
     // TODO: Improve error reporting here.
-    maybe_ty.ok_or(CompError::from("Reference to undefined type".to_string()))
+    maybe_ty.ok_or_else(|| CompError::from("Reference to undefined type".to_string()))
 }

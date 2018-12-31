@@ -27,6 +27,7 @@ pub struct Builder {
 /// Choice of comparison operators. These will be mapped through to
 /// `LLVMIntPreidcate` or `LLVMRealPredicate`s depending on the types
 /// being used.
+#[derive(Copy, Clone)]
 pub enum Predicate {
     /// Equality predicate
     Eq,
@@ -45,13 +46,13 @@ impl Builder {
     /// then be manipulated through the returned object and will be
     /// disposed of when this object leaves scope.
     pub fn from_raw(raw: LLVMBuilderRef) -> Self {
-        Builder { raw: raw }
+        Builder { raw }
     }
 
     /// Build at the End of a Block
     ///
     /// Takes the builder, points it at the end of the basic block.
-    pub fn position_at_end<'a>(&'a mut self, block: LLVMBasicBlockRef) {
+    pub fn position_at_end(&mut self, block: LLVMBasicBlockRef) {
         unsafe {
             core::LLVMPositionBuilderAtEnd(self.raw, block);
         }

@@ -43,7 +43,7 @@ impl TypedId {
     /// Used to construct a new identifier when a type has only
     /// optionally been specified.
     pub fn from_parts(id: String, typ: Option<TypeRef>) -> Self {
-        TypedId { id: id, typ: typ }
+        TypedId { id, typ }
     }
 }
 
@@ -82,7 +82,7 @@ impl Expression {
     /// A reference to an identifier, either as a variable reference
     /// or declaration, part of a function definition or function
     /// call.
-    pub fn identifier(s: String) -> Self {
+    pub fn identifier<S: Into<String>>(s: S) -> Self {
         Expression::Identifier(s.into())
     }
 

@@ -21,7 +21,7 @@ pub enum CompError {
 }
 
 /// Compilation result. Returned from each compilation stage.
-pub type CompResult<T> = ::std::result::Result<T, CompError>;
+pub type CompResult<T> = Result<T, CompError>;
 
 /// Link Failure Type
 ///

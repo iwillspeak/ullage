@@ -40,7 +40,7 @@ impl Pos {
     ///
     /// Returns the offset from the beginning of the `SourceText` for
     /// this position.
-    pub fn offset(&self) -> usize {
+    pub fn offset(self) -> usize {
         self.0
     }
 }
@@ -67,8 +67,8 @@ impl Span {
     /// to point 'between' the characters in the buffer.
     pub fn new(start: Pos, end: Pos) -> Self {
         Span {
-            start: start,
-            end: end,
+            start,
+            end,
         }
     }
 }

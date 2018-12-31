@@ -22,3 +22,7 @@ def docs(ctx):
 def test(ctx):
     ctx.run("cargo test")
     ctx.run("python specs.py")
+
+@task
+def clippy(ctx):
+    ctx.run("cargo clippy")

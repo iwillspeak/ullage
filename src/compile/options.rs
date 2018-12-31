@@ -57,7 +57,7 @@ impl CompilationOptions {
     /// compiled.
     pub fn with_dump_ir(self, dump_ir: bool) -> Self {
         CompilationOptions {
-            dump_ir: dump_ir,
+            dump_ir,
             ..self
         }
     }
@@ -67,7 +67,7 @@ impl CompilationOptions {
     /// Controls the optimisation level for the given options.
     pub fn with_opt_level(self, opt_level: OptimisationLevel) -> Self {
         CompilationOptions {
-            opt_level: opt_level,
+            opt_level,
             ..self
         }
     }
