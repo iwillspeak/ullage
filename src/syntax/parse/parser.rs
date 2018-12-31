@@ -19,46 +19,66 @@ use super::super::{Expression, InfixOp, PrefixOp, TypeRef, TypedId};
 use super::error::*;
 use super::raw_tokeniser::{RawTokeniser, TokenGrouper};
 
-use std::iter::Peekable;
-
 /// Expression parser. Given a stream of tokens this will produce an
 /// expression tree, or a parse error.
 pub struct Parser<'a> {
     source: &'a SourceText,
-    lexer: Peekable<TokenGrouper<'a>>,
+    lexer: TokenGrouper<'a>,
     diagnostics: Vec<String>,
+    current: Option<Option<Token>>,
 }
 
 impl<'a> Parser<'a> {
     /// Create a new Parser from a given source text.
     pub fn new(source: &'a SourceText) -> Self {
-        let lexer = RawTokeniser::new(source);
+        let lexer = RawTokeniser::new(source)
+            .group_trivia();
         Parser {
             source,
-            lexer: lexer.group_trivia().peekable(),
+            lexer,
             diagnostics: Vec::new(),
+            current: None
         }
     }
 
-    /// Moves the token stream on by a single token
-    fn advance(&mut self) {
-        self.lexer.next();
+    /// Moves the token stream on by a single token. The curren token
+    /// is returned.
+    fn advance(&mut self) -> Option<Token> {
+        match self.current.take() {
+            Some(maybe_token) => maybe_token,
+            None => self.lexer.next(),
+        }
+    }
+
+    /// Peek at the current token
+    ///
+    /// Buffers a token if one is not buffered and returns a reference
+    /// to it. This performs the one-token lookahead this parser
+    /// requires.
+    fn current(&mut self) -> Option<&Token> {
+        if self.current.is_none() {
+            self.current = Some(self.lexer.next());
+        }
+        match self.current {
+            Some(Some(ref token)) => Some(token),
+            _ => None,
+        }
     }
 
     /// Moves the token stream on by a single token, if the
     /// token's lexeme is of the given type.
     fn expect(&mut self, expected: TokenKind) -> ParseResult<()> {
-        let maybe_token = self.lexer.peek();
-        match maybe_token {
+        match self.current() {
             Some(token) if token.kind == expected => {
                 self.advance();
                 Ok(())
             }
             Some(other) => {
-                self.diagnostics.push(format!(
+                let diagnostic = format!(
                     "Unexpected token: {:?}, expecting: {:?}",
                     other, expected
-                ));
+                );
+                self.diagnostics.push(diagnostic);
                 Err(ParseError::Unexpected)
             }
             None => {
@@ -71,8 +91,7 @@ impl<'a> Parser<'a> {
 
     /// Checks that the next token is of the given type
     fn next_is(&mut self, expected: TokenKind) -> bool {
-        self.lexer
-            .peek()
+        self.current()
             .map_or(false, |token| token.kind == expected)
     }
 
@@ -99,7 +118,7 @@ impl<'a> Parser<'a> {
     /// Atttempt to parse a list of expressions
     pub fn expressions(&mut self) -> ParseResult<Vec<Expression>> {
         let mut expressions = Vec::new();
-        while self.lexer.peek().is_some() {
+        while self.current().is_some() {
             expressions.push(self.single_expression()?);
         }
         Ok(expressions)
@@ -126,7 +145,7 @@ impl<'a> Parser<'a> {
     /// Attempt to parse a type. This could be a simple type name, or
     /// it could be a more complex one such as an array type or tuple.
     fn ty(&mut self) -> ParseResult<TypeRef> {
-        match self.lexer.peek() {
+        match self.current() {
             Some(&Token {
                 kind: TokenKind::Word(t),
                 ..
@@ -201,7 +220,7 @@ impl<'a> Parser<'a> {
     /// Attempt to parse a block of expressions
     fn block(&mut self) -> ParseResult<Vec<Expression>> {
         let mut expressions = Vec::new();
-        while self.lexer.peek().is_some() && !self.next_is(TokenKind::Word(Ident::End)) {
+        while self.current().is_some() && !self.next_is(TokenKind::Word(Ident::End)) {
             expressions.push(self.single_expression()?);
         }
         Ok(expressions)
@@ -209,7 +228,7 @@ impl<'a> Parser<'a> {
 
     /// Returns true if the next token's lbp is > the given rbp
     fn next_binds_tighter_than(&mut self, rbp: u32) -> bool {
-        self.lexer.peek().map_or(false, |t| t.lbp() > rbp)
+        self.current().map_or(false, |t| t.lbp() > rbp)
     }
 
     /// Prefix Operator
@@ -236,7 +255,7 @@ impl<'a> Parser<'a> {
     /// the left hand side of it. This is responsible for parsing
     /// infix operators and function calls.
     fn parse_led(&mut self, lhs: Expression) -> ParseResult<Expression> {
-        let token = self.lexer.next().ok_or(ParseError::Incomplete)?;
+        let token = self.advance().ok_or(ParseError::Incomplete)?;
 
         match token.kind {
             // Binary infix operator
@@ -296,7 +315,7 @@ impl<'a> Parser<'a> {
     /// for parsing literals and variable references into expressions,
     /// as well as parsing prefix expressions.
     fn parse_nud(&mut self) -> ParseResult<Expression> {
-        let token = self.lexer.next().ok_or(ParseError::Incomplete)?;
+        let token = self.advance().ok_or(ParseError::Incomplete)?;
 
         match token.kind {
             TokenKind::Word(Ident::Fn) => {
