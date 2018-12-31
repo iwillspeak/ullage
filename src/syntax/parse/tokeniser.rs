@@ -248,12 +248,12 @@ mod test {
     use super::*;
 
     macro_rules! check_lex {
-        ($src:expr, $expected:expr) => {
+        ($src:expr, |$source:ident| $expected:expr) => {
             let src: &str = $src;
-            let source = SourceText::new(src);
-            let tokeniser = RawTokeniser::new(&source);
+            let $source = SourceText::new(src);
+            let tokeniser = RawTokeniser::new(&$source);
             let tokens = tokeniser.collect::<Vec<_>>();
-            let start = source.start();
+            let start = $source.start();
             let end = start + Pos::from(src.len());
             let span = Span::new(start, end);
             assert_eq!(
@@ -263,6 +263,9 @@ mod test {
                 }],
                 tokens
             );
+        };
+        ($src:expr, $expected:expr) => {
+            check_lex!($src, |t| $expected);
         };
     }
 
@@ -335,33 +338,31 @@ mod test {
         );
     }
 
-    // FIXME - interned strings
-    // #[test]
-    // pub fn check_lex_identifier_values() {
-    //     check_lex!("a", RawTokenKind::Plain(TokenKind::Word("a".into())));
-    //     check_lex!(
-    //         "hello",
-    //         RawTokenKind::Plain(TokenKind::Word("hello".into()))
-    //     );
-    //     check_lex!("a1", RawTokenKind::Plain(TokenKind::Word("a1".into())));
-    //     check_lex!(
-    //         "foo_bar",
-    //         RawTokenKind::Plain(TokenKind::Word("foo_bar".into()))
-    //     );
-    //     check_lex!("_", RawTokenKind::Plain(TokenKind::Word("_".into())));
-    //     check_lex!(
-    //         "_private",
-    //         RawTokenKind::Plain(TokenKind::Word("_private".into()))
-    //     );
-    //     check_lex!(
-    //         "while",
-    //         RawTokenKind::Plain(TokenKind::Word("while".into()))
-    //     );
-    //     check_lex!(
-    //         "ünîçøδé",
-    //         RawTokenKind::Plain(TokenKind::Word("ünîçøδé".into()))
-    //     );
-    // }
+    #[test]
+    pub fn check_lex_identifier_values() {
+        check_lex!("a", |s| RawTokenKind::Plain(TokenKind::Word(s.intern("a"))));
+        check_lex!("hello", |s| RawTokenKind::Plain(TokenKind::Word(
+            s.intern("hello")
+        )));
+        check_lex!("a1", |s| RawTokenKind::Plain(TokenKind::Word(s.intern("a1"))));
+        check_lex!(
+            "foo_bar",
+            |s| RawTokenKind::Plain(TokenKind::Word(s.intern("foo_bar")))
+        );
+        check_lex!("_", |s| RawTokenKind::Plain(TokenKind::Word(s.intern("_"))));
+        check_lex!(
+            "_private",
+            |s| RawTokenKind::Plain(TokenKind::Word(s.intern("_private")))
+        );
+        check_lex!(
+            "while",
+            |s| RawTokenKind::Plain(TokenKind::Word(s.intern("while")))
+        );
+        check_lex!(
+            "ünîçøδé",
+            |s| RawTokenKind::Plain(TokenKind::Word(s.intern("ünîçøδé")))
+        );
+    }
 
     #[test]
     pub fn check_lex_string_values() {
