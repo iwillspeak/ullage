@@ -41,6 +41,14 @@ impl<'a> Parser<'a> {
         }
     }
 
+    /// Collect the Parser and Lexer Diagnostics
+    fn collect_diagnostics(&mut self) -> Vec<String> {
+        let mut diagnostics = Vec::new();
+        diagnostics.append(&mut self.diagnostics);
+        diagnostics.append(self.lexer.diagnostics_mut());
+        diagnostics
+    }
+
     /// Moves the token stream on by a single token. The curren token
     /// is returned.
     fn advance(&mut self) -> Option<Token> {
@@ -121,7 +129,12 @@ impl<'a> Parser<'a> {
         while self.current().is_some() {
             expressions.push(self.single_expression()?);
         }
-        Ok(expressions)
+        let errors = self.collect_diagnostics();
+        if errors.len() > 0 {
+            Err(ParseError::Diagnostics(errors.into()))
+        } else {
+            Ok(expressions)
+        }
     }
 
     /// Attempt to Parse a Single Expression

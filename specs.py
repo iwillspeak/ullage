@@ -72,7 +72,7 @@ def check_compilation_failure(output, expectations):
         raise ExitCodeMismatchError("Expected successfull exit code")
     fails = list(expectations.failure_expects)
     for line in output[1].strip().split('\n'):
-        if line.endswith(fails[0]):
+        if fails and fails[0] in line:
             fails.pop()
     if fails:
         raise OutputMissingError(output[1], fails)

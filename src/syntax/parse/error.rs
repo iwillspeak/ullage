@@ -1,10 +1,31 @@
 //! Parse error module. Contains the Result and Error types for the
 //! `parse` module.
 
+use std::fmt;
+
 /// Parser result type
 ///
 /// Returned from parsing functions when success can't be guaranteed.
 pub type ParseResult<T> = ::std::result::Result<T, ParseError>;
+
+/// List of diagnostics
+#[derive(Debug, PartialEq)]
+pub struct DiagnosticsList(Vec<String>);
+
+impl From<Vec<String>> for DiagnosticsList {
+    fn from(errors: Vec<String>) -> Self {
+        DiagnosticsList(errors)
+    }
+}
+
+impl fmt::Display for DiagnosticsList {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        for error in self.0.iter() {
+            write!(f, "error: {}", error)?;
+        }
+        Ok(())
+    }
+}
 
 /// Parser error type
 ///
@@ -27,4 +48,11 @@ pub enum ParseError {
     /// Incomplete data
     #[fail(display = "incomplete expression")]
     Incomplete,
+
+    /// Diagnostics were collected
+    ///
+    /// TODO: Is this the best way to model parse failure due to
+    /// diagnostics being collected?
+    #[fail(display = "one or more errors:\n{}", _0)]
+    Diagnostics(DiagnosticsList),
 }

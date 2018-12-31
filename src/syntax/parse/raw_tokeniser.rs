@@ -180,10 +180,6 @@ impl<'t> Iterator for RawTokeniser<'t> {
                         TokenKind::Literal(Literal::RawString(lex_val[..lex_val.len() - 1].into()))
                             .into()
                     } else {
-                        // TODO: To check the handlng of unterminated
-                        // strings we could do with a failing
-                        // compilation test. We don't want these junk
-                        // tokens getting ignored.
                         TriviaTokenKind::Junk.into()
                     }
                 }
@@ -218,13 +214,18 @@ impl<'t> Iterator for RawTokeniser<'t> {
 /// next plain token is attached as trailing trivia.
 pub struct TokenGrouper<'t> {
     inner: RawTokeniser<'t>,
+    diagnostics: Vec<String>,
 }
 
 impl<'t> TokenGrouper<'t> {
     /// Construct a new Token Grouper by wrapping the `inner`
     /// `RawTokeniser`.
     pub fn new(inner: RawTokeniser<'t>) -> Self {
-        TokenGrouper { inner }
+        TokenGrouper { inner, diagnostics: Vec::new() }
+    }
+
+    pub fn diagnostics_mut(&mut self) -> &mut Vec<String> {
+        &mut self.diagnostics
     }
 }
 
@@ -236,6 +237,9 @@ impl<'t> Iterator for TokenGrouper<'t> {
             match raw.kind {
                 RawTokenKind::Plain(plain_kind) => {
                     return Some(Token::with_span(raw.span, plain_kind))
+                }
+                RawTokenKind::Trivia(TriviaTokenKind::Junk) => {
+                    self.diagnostics.push(format!("unrecognised character at {:?}", raw.span));
                 }
                 _ => (),
             }
