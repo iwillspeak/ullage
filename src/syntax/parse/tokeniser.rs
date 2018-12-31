@@ -14,7 +14,7 @@ use super::super::tree::{Literal, Token, TokenKind, TriviaTokenKind};
 
 /// The Raw Token Structure
 #[derive(Debug, PartialEq)]
-pub struct RawToken {
+struct RawToken {
     // The span of this token in the source text
     pub span: Span,
     /// The underlying token kind. This is either palin syntax token
@@ -26,7 +26,7 @@ pub struct RawToken {
 ///
 /// Used to abstract over palin and trivia tokens.
 #[derive(Debug, PartialEq)]
-pub enum RawTokenKind {
+enum RawTokenKind {
     /// A plain syntax token
     Plain(TokenKind),
     /// A trivia token
@@ -37,7 +37,7 @@ pub enum RawTokenKind {
 ///
 /// This walks a state machine over the underlying `SourceText` and
 /// returns a sequence of tokens.
-pub struct RawTokeniser<'t> {
+struct RawTokeniser<'t> {
     /// The undering source buffer
     source: &'t SourceText,
     /// The current position in the source text.
@@ -61,15 +61,6 @@ impl<'t> RawTokeniser<'t> {
     pub fn new(source: &'t SourceText) -> Self {
         let pos = source.start();
         RawTokeniser { source, pos }
-    }
-
-    /// Group the Trivia Tokens
-    ///
-    /// This method consumes the inner iterator and returns a new
-    /// iterable which transforms the stream of raw tokens by
-    /// attaching the trivia to the 'closest' plain token.
-    pub fn group_trivia(self) -> TokenGrouper<'t> {
-        TokenGrouper::new(self)
     }
 
     /// Skip Over Characters
@@ -203,26 +194,25 @@ impl<'t> Iterator for RawTokeniser<'t> {
     }
 }
 
-/// The Token Group Iterator
+/// The Token Iterator
 ///
-/// This iterator adapter groups trivia to transform a stream of raw
-/// tokens into a stream of plain tokens with the trivia attached to
-/// the 'closest' plain token.
+/// Lexer which groups trivia to transform a stream of raw tokens into
+/// a stream of plain tokens with the trivia attached to the 'closest'
+/// plain token.
 ///
 /// For our case trivia at the start of a line is attached to the
 /// first plain token. Trivia after a token up to the end of line or
 /// next plain token is attached as trailing trivia.
-pub struct TokenGrouper<'t> {
+pub struct Tokeniser<'t> {
     inner: RawTokeniser<'t>,
     diagnostics: Vec<String>,
 }
 
-impl<'t> TokenGrouper<'t> {
-    /// Construct a new Token Grouper by wrapping the `inner`
-    /// `RawTokeniser`.
-    pub fn new(inner: RawTokeniser<'t>) -> Self {
-        TokenGrouper {
-            inner,
+impl<'t> Tokeniser<'t> {
+    /// Construct a new Tokeniser for the given source text
+    pub fn new(source: &'t SourceText) -> Self {
+        Tokeniser {
+            inner: RawTokeniser::new(source),
             diagnostics: Vec::new(),
         }
     }
@@ -232,7 +222,7 @@ impl<'t> TokenGrouper<'t> {
     }
 }
 
-impl<'t> Iterator for TokenGrouper<'t> {
+impl<'t> Iterator for Tokeniser<'t> {
     type Item = Token;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -277,7 +267,7 @@ mod test {
     }
 
     #[test]
-    pub fn check_single_token_lext() {
+    pub fn check_single_token_lex() {
         // Punctuation tokens
         check_lex!("=", RawTokenKind::Plain(TokenKind::Equals));
         check_lex!("==", RawTokenKind::Plain(TokenKind::DoubleEquals));
@@ -392,7 +382,7 @@ mod test {
     }
 
     #[test]
-    fn newlines_are_not_attached_to_bscomments() {
+    fn newlines_are_not_attached_to_comments() {
         let src = SourceText::new("# comment\n#another comment\n1");
         let tokeniser = RawTokeniser::new(&src);
         let tokens = tokeniser.map(|t| t.kind).collect::<Vec<_>>();
@@ -432,10 +422,10 @@ mod test {
     }
 
     #[test]
-    fn raw_tokeniser_group_trivia_returns_expected_grouping() {
+    fn main_tokeniser_returns_expected_grouping() {
         let src = SourceText::new("(hello + world)");
-        let tokeniser = RawTokeniser::new(&src);
-        let tokens = tokeniser.group_trivia().collect::<Vec<_>>();
+        let tokeniser = Tokeniser::new(&src);
+        let tokens = tokeniser.collect::<Vec<_>>();
 
         assert_eq!(
             vec![

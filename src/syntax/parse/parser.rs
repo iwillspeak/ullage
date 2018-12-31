@@ -17,13 +17,13 @@ use super::super::text::{Ident, SourceText};
 use super::super::tree::{Literal, Token, TokenKind};
 use super::super::{Expression, InfixOp, PrefixOp, TypeRef, TypedId};
 use super::error::*;
-use super::raw_tokeniser::{RawTokeniser, TokenGrouper};
+use super::tokeniser::Tokeniser;
 
 /// Expression parser. Given a stream of tokens this will produce an
 /// expression tree, or a parse error.
 pub struct Parser<'a> {
     source: &'a SourceText,
-    lexer: TokenGrouper<'a>,
+    lexer: Tokeniser<'a>,
     diagnostics: Vec<String>,
     current: Option<Option<Token>>,
 }
@@ -31,10 +31,9 @@ pub struct Parser<'a> {
 impl<'a> Parser<'a> {
     /// Create a new Parser from a given source text.
     pub fn new(source: &'a SourceText) -> Self {
-        let lexer = RawTokeniser::new(source).group_trivia();
         Parser {
             source,
-            lexer,
+            lexer: Tokeniser::new(source),
             diagnostics: Vec::new(),
             current: None,
         }

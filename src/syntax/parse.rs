@@ -4,7 +4,7 @@
 pub mod error;
 
 mod parser;
-mod raw_tokeniser;
+mod tokeniser;
 
 #[cfg(test)]
 mod checkparse_tests;
