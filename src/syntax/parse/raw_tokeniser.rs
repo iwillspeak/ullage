@@ -221,7 +221,10 @@ impl<'t> TokenGrouper<'t> {
     /// Construct a new Token Grouper by wrapping the `inner`
     /// `RawTokeniser`.
     pub fn new(inner: RawTokeniser<'t>) -> Self {
-        TokenGrouper { inner, diagnostics: Vec::new() }
+        TokenGrouper {
+            inner,
+            diagnostics: Vec::new(),
+        }
     }
 
     pub fn diagnostics_mut(&mut self) -> &mut Vec<String> {
@@ -239,7 +242,8 @@ impl<'t> Iterator for TokenGrouper<'t> {
                     return Some(Token::with_span(raw.span, plain_kind))
                 }
                 RawTokenKind::Trivia(TriviaTokenKind::Junk) => {
-                    self.diagnostics.push(format!("unrecognised character at {:?}", raw.span));
+                    self.diagnostics
+                        .push(format!("unrecognised character at {:?}", raw.span));
                 }
                 _ => (),
             }

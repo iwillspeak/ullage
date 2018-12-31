@@ -31,13 +31,12 @@ pub struct Parser<'a> {
 impl<'a> Parser<'a> {
     /// Create a new Parser from a given source text.
     pub fn new(source: &'a SourceText) -> Self {
-        let lexer = RawTokeniser::new(source)
-            .group_trivia();
+        let lexer = RawTokeniser::new(source).group_trivia();
         Parser {
             source,
             lexer,
             diagnostics: Vec::new(),
-            current: None
+            current: None,
         }
     }
 
@@ -82,10 +81,8 @@ impl<'a> Parser<'a> {
                 Ok(())
             }
             Some(other) => {
-                let diagnostic = format!(
-                    "Unexpected token: {:?}, expecting: {:?}",
-                    other, expected
-                );
+                let diagnostic =
+                    format!("Unexpected token: {:?}, expecting: {:?}", other, expected);
                 self.diagnostics.push(diagnostic);
                 Err(ParseError::Unexpected)
             }
@@ -99,8 +96,7 @@ impl<'a> Parser<'a> {
 
     /// Checks that the next token is of the given type
     fn next_is(&mut self, expected: TokenKind) -> bool {
-        self.current()
-            .map_or(false, |token| token.kind == expected)
+        self.current().map_or(false, |token| token.kind == expected)
     }
 
     /// Attempt to parse an identifier
