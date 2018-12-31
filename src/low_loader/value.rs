@@ -22,13 +22,3 @@ impl From<Value> for LLVMValueRef {
         inner
     }
 }
-
-impl Value {
-    /// Convert an Value into an LLVM One
-    ///
-    /// TODO: This shouldn't be public
-    pub fn as_llvm_value(&self) -> LLVMValueRef {
-        let &Value(v) = self;
-        v
-    }
-}

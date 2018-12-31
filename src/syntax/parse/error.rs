@@ -16,7 +16,8 @@ pub type ParseResult<T> = ::std::result::Result<T, ParseError>;
 /// what the incomplete expression could have continued with (for
 /// error recovery). It probably makes sense to roll this in with
 /// adding position information to the parser tokens and errors
-/// though.
+/// though. Not sure if we want to have information in these error
+/// return types. Instead we could just return a list of diagnostics.
 #[derive(Fail, Debug, PartialEq)]
 pub enum ParseError {
     /// Unexpected token.

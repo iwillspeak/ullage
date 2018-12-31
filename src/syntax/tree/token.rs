@@ -42,7 +42,7 @@ pub enum Literal {
 pub enum TokenKind {
     /// A string of alpahbetic characters. This could be a langauge
     /// keyword or a variable or type identifier.
-    Word(Ident), // TODO: This could do with being an interned string
+    Word(Ident),
 
     /// Literal Value. Represents either a string or numeric literal
     /// in the source text. Booleans are not represented by literals

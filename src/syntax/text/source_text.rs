@@ -26,9 +26,7 @@ pub struct SourceText {
 }
 
 impl SourceText {
-    /// Create a `SourceText`
-    ///
-    /// Creates a new source text for the given string
+    /// Create a `SourceText` for the given string
     pub fn new<T: Into<String>>(source: T) -> Self {
         let source: String = source.into();
         let line_offsets = get_line_offsets(&source[..]);
