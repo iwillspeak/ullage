@@ -12,5 +12,5 @@ mod position;
 mod source_text;
 
 pub use self::intern::{Ident, Interner};
-pub use self::position::{Location, Pos, Span};
+pub use self::position::{Location, Pos, Span, DUMMY_SPAN};
 pub use self::source_text::SourceText;

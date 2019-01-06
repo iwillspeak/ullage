@@ -35,6 +35,12 @@ pub enum Location {
     Span(Span),
 }
 
+/// Dummy Span used when no real span is avaiable.
+pub const DUMMY_SPAN: Span = Span {
+    start: Pos(0),
+    end: Pos(0),
+};
+
 impl Pos {
     /// Get the Byte Offset
     ///
@@ -66,10 +72,7 @@ impl Span {
     /// before the second one. The cursors themselves can be thought
     /// to point 'between' the characters in the buffer.
     pub fn new(start: Pos, end: Pos) -> Self {
-        Span {
-            start,
-            end,
-        }
+        Span { start, end }
     }
 }
 

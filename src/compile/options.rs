@@ -56,20 +56,14 @@ impl CompilationOptions {
     /// Enables or disables dumping the LLVM IR when modules are
     /// compiled.
     pub fn with_dump_ir(self, dump_ir: bool) -> Self {
-        CompilationOptions {
-            dump_ir,
-            ..self
-        }
+        CompilationOptions { dump_ir, ..self }
     }
 
     /// Set the Optimisation Level
     ///
     /// Controls the optimisation level for the given options.
     pub fn with_opt_level(self, opt_level: OptimisationLevel) -> Self {
-        CompilationOptions {
-            opt_level,
-            ..self
-        }
+        CompilationOptions { opt_level, ..self }
     }
 }
 

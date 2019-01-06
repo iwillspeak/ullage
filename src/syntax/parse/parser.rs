@@ -74,12 +74,9 @@ impl<'a> Parser<'a> {
 
     /// Moves the token stream on by a single token, if the
     /// token's lexeme is of the given type.
-    fn expect(&mut self, expected: &TokenKind) -> ParseResult<()> {
+    fn expect(&mut self, expected: &TokenKind) -> ParseResult<Token> {
         match self.current() {
-            Some(token) if token.kind == *expected => {
-                self.advance();
-                Ok(())
-            }
+            Some(token) if token.kind == *expected => Ok(self.advance().unwrap()),
             Some(other) => {
                 let diagnostic =
                     format!("Unexpected token: {:?}, expecting: {:?}", other, expected);
@@ -96,7 +93,8 @@ impl<'a> Parser<'a> {
 
     /// Checks that the next token is of the given type
     fn next_is(&mut self, expected: &TokenKind) -> bool {
-        self.current().map_or(false, |token| token.kind == *expected)
+        self.current()
+            .map_or(false, |token| token.kind == *expected)
     }
 
     /// Attempt to parse an identifier
@@ -365,9 +363,7 @@ impl<'a> Parser<'a> {
             }
             TokenKind::Word(Ident::True) => Ok(Expression::constant_bool(true)),
             TokenKind::Word(Ident::False) => Ok(Expression::constant_bool(false)),
-            TokenKind::Word(word) => Ok(Expression::identifier(
-                self.source.interned_value(word),
-            )),
+            TokenKind::Word(word) => Ok(Expression::identifier(self.source.interned_value(word))),
             TokenKind::Literal(ref l) => match *l {
                 Literal::Number(i) => Ok(Expression::constant_num(i)),
                 Literal::RawString(ref s) => Ok(Expression::constant_string(s.clone())),
@@ -377,8 +373,8 @@ impl<'a> Parser<'a> {
             TokenKind::Bang => self.prefix_op(PrefixOp::Not),
             TokenKind::OpenBracket => {
                 let expr = self.single_expression()?;
-                self.expect(&TokenKind::CloseBracket)?;
-                Ok(expr)
+                let closing = self.expect(&TokenKind::CloseBracket)?;
+                Ok(Expression::grouping(token, expr, closing))
             }
             // This covers things which can't start expressions, like
             // whitespace and non-prefix operator tokens

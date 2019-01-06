@@ -5,6 +5,7 @@
 
 use super::fn_builder::FunctionDeclarationBuilder;
 use super::operators::{InfixOp, PrefixOp};
+use super::token::Token;
 use super::types::TypeRef;
 
 /// An identifier, with an optional type attached
@@ -74,6 +75,7 @@ pub enum Expression {
     Sequence(Vec<Expression>),
     Print(Box<Expression>),
     Declaration(TypedId, bool, Box<Expression>),
+    Grouping(Box<Token>, Box<Expression>, Box<Token>),
 }
 
 impl Expression {
@@ -192,5 +194,12 @@ impl Expression {
     /// and then returns the inner expression's value.
     pub fn print(expr: Expression) -> Self {
         Expression::Print(Box::new(expr))
+    }
+
+    /// # Grouping Expression
+    ///
+    /// Represents an expression wrapped in `(` and `)`.
+    pub fn grouping(left: Token, inner: Expression, right: Token) -> Self {
+        Expression::Grouping(Box::new(left), Box::new(inner), Box::new(right))
     }
 }

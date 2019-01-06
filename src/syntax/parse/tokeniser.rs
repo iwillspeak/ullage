@@ -344,24 +344,22 @@ mod test {
         check_lex!("hello", |s| RawTokenKind::Plain(TokenKind::Word(
             s.intern("hello")
         )));
-        check_lex!("a1", |s| RawTokenKind::Plain(TokenKind::Word(s.intern("a1"))));
-        check_lex!(
-            "foo_bar",
-            |s| RawTokenKind::Plain(TokenKind::Word(s.intern("foo_bar")))
-        );
+        check_lex!("a1", |s| RawTokenKind::Plain(TokenKind::Word(
+            s.intern("a1")
+        )));
+        check_lex!("foo_bar", |s| RawTokenKind::Plain(TokenKind::Word(
+            s.intern("foo_bar")
+        )));
         check_lex!("_", |s| RawTokenKind::Plain(TokenKind::Word(s.intern("_"))));
-        check_lex!(
-            "_private",
-            |s| RawTokenKind::Plain(TokenKind::Word(s.intern("_private")))
-        );
-        check_lex!(
-            "while",
-            |s| RawTokenKind::Plain(TokenKind::Word(s.intern("while")))
-        );
-        check_lex!(
-            "ünîçøδé",
-            |s| RawTokenKind::Plain(TokenKind::Word(s.intern("ünîçøδé")))
-        );
+        check_lex!("_private", |s| RawTokenKind::Plain(TokenKind::Word(
+            s.intern("_private")
+        )));
+        check_lex!("while", |s| RawTokenKind::Plain(TokenKind::Word(
+            s.intern("while")
+        )));
+        check_lex!("ünîçøδé", |s| RawTokenKind::Plain(TokenKind::Word(
+            s.intern("ünîçøδé")
+        )));
     }
 
     #[test]

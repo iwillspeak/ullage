@@ -3,14 +3,14 @@
 //! A lexeme in the token stream. Tokens are produced by the
 //! `Tokeniser` when parsing a source text.
 
-use super::super::text::{Ident, Span};
+use super::super::text::{Ident, Span, DUMMY_SPAN};
 use super::TriviaToken;
 
 /// A Syntax Token
 ///
 /// Syntax tokens are produced by the lexer and contain metadata about
 /// their position in the source text.
-#[derive(Debug, PartialEq)]
+#[derive(Debug)]
 pub struct Token {
     /// The `TokenKind` for this token. Public to allow matching over
     /// different token kinds.
@@ -103,6 +103,11 @@ pub enum TokenKind {
 }
 
 impl Token {
+    /// Create a Token from a Kind
+    pub fn new(kind: TokenKind) -> Self {
+        Token::with_span(DUMMY_SPAN, kind)
+    }
+
     /// Create a token from a position and kind
     pub fn with_span(span: Span, kind: TokenKind) -> Self {
         Token {
@@ -142,5 +147,12 @@ impl Token {
 
             _ => 0,
         }
+    }
+}
+
+impl PartialEq for Token {
+    fn eq(&self, other: &Token) -> bool {
+        self.kind == other.kind
+            && (self.span == DUMMY_SPAN || other.span == DUMMY_SPAN || self.span == other.span)
     }
 }

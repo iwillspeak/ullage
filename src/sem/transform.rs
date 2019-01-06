@@ -200,6 +200,7 @@ pub fn transform_expression(ctx: &mut SemCtx, expr: SyntaxExpr) -> CompResult<Ex
                 typ,
             ))
         }
+        SyntaxExpr::Grouping(_, inner, _) => transform_expression(ctx, *inner),
     }
 }
 

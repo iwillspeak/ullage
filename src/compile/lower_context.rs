@@ -46,7 +46,7 @@ impl<'a> LowerContext<'a> {
             self.module,
             "llvm.memcpy.p0i8.p0i8.i32",
             self.llvm_ctx.void_type(),
-            &mut[i8ptr, i8ptr, i32ty, self.llvm_ctx.bool_type()],
+            &mut [i8ptr, i8ptr, i32ty, self.llvm_ctx.bool_type()],
         );
     }
 

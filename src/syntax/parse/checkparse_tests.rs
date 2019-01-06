@@ -3,6 +3,7 @@
 //! Tests for the parser which check that a given input matches an
 //! exprexpected parse tree.
 
+use super::super::tree::{Token, TokenKind};
 use super::super::Expression::*;
 use super::super::*;
 use super::parse_single;
@@ -182,10 +183,14 @@ fn parse_groups_with_parens() {
     check_parse!(
         "(1 + 2) * 3",
         Infix(
-            Box::new(Infix(
-                Box::new(Expression::constant_num(1)),
-                InfixOp::Add,
-                Box::new(Expression::constant_num(2)),
+            Box::new(Grouping(
+                Box::new(Token::new(TokenKind::OpenBracket)),
+                Box::new(Infix(
+                    Box::new(Expression::constant_num(1)),
+                    InfixOp::Add,
+                    Box::new(Expression::constant_num(2)),
+                )),
+                Box::new(Token::new(TokenKind::CloseBracket)),
             )),
             InfixOp::Mul,
             Box::new(Expression::constant_num(3)),

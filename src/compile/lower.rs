@@ -232,10 +232,10 @@ pub fn lower_internal(
             Ok(builder.build_load(ret))
         }
         ExpressionKind::Function(fn_decl) => {
-            let mut fun = ctx.module.find_function(&fn_decl.ident).unwrap_or_else(|| panic!(
-                "missing function declaration '{}'",
-                fn_decl.ident
-            ));
+            let mut fun = ctx
+                .module
+                .find_function(&fn_decl.ident)
+                .unwrap_or_else(|| panic!("missing function declaration '{}'", fn_decl.ident));
             let bb = ctx.llvm_ctx.add_block(&mut fun, "body");
             let mut builder = ctx.llvm_ctx.add_builder();
             builder.position_at_end(bb);
