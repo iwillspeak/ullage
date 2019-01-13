@@ -3,6 +3,7 @@
 //! A syntax expression represents the value of a given node in the
 //! syntax tree.
 
+use super::super::text::Ident;
 use super::fn_builder::FunctionDeclarationBuilder;
 use super::operators::{InfixOp, PrefixOp};
 use super::token::Token;
@@ -18,7 +19,7 @@ pub struct TypedId {
     pub typ: Option<TypeRef>,
 
     /// The Idnetifier Itself
-    pub id: String,
+    pub id: Ident,
 }
 
 impl TypedId {
@@ -26,7 +27,7 @@ impl TypedId {
     ///
     /// Constructs a new idnetifier declaration where the identifier
     /// definitely has a known type.
-    pub fn new(id: String, typ: TypeRef) -> Self {
+    pub fn new(id: Ident, typ: TypeRef) -> Self {
         Self::from_parts(id, Some(typ))
     }
 
@@ -35,7 +36,7 @@ impl TypedId {
     /// Constructs a new identifier declaraiton where the identifier
     /// does not have a type specified in the source. This is used
     /// where the type will be infered at a later date.
-    pub fn new_without_type(id: String) -> Self {
+    pub fn new_without_type(id: Ident) -> Self {
         Self::from_parts(id, None)
     }
 
@@ -43,7 +44,7 @@ impl TypedId {
     ///
     /// Used to construct a new identifier when a type has only
     /// optionally been specified.
-    pub fn from_parts(id: String, typ: Option<TypeRef>) -> Self {
+    pub fn from_parts(id: Ident, typ: Option<TypeRef>) -> Self {
         TypedId { id, typ }
     }
 }
@@ -63,14 +64,14 @@ pub enum Constant {
 #[derive(Debug, PartialEq)]
 #[allow(missing_docs)]
 pub enum Expression {
-    Identifier(String),
+    Identifier(Ident),
     Literal(Constant),
     Prefix(PrefixOp, Box<Expression>),
     Infix(Box<Expression>, InfixOp, Box<Expression>),
     Call(Box<Expression>, Vec<Expression>),
     Index(Box<Expression>, Box<Expression>),
     IfThenElse(Box<Expression>, Box<Expression>, Box<Expression>),
-    Function(String, TypeRef, Vec<TypedId>, Box<Expression>),
+    Function(Ident, TypeRef, Vec<TypedId>, Box<Expression>),
     Loop(Box<Expression>, Box<Expression>),
     Sequence(Vec<Expression>),
     Print(Box<Expression>),
@@ -84,8 +85,8 @@ impl Expression {
     /// A reference to an identifier, either as a variable reference
     /// or declaration, part of a function definition or function
     /// call.
-    pub fn identifier<S: Into<String>>(s: S) -> Self {
-        Expression::Identifier(s.into())
+    pub fn identifier(id: Ident) -> Self {
+        Expression::Identifier(id)
     }
 
     /// # New Numeric Constant
@@ -160,7 +161,7 @@ impl Expression {
     ///
     /// Create a function delcaration builder. This can be used to
     /// create a function expression.
-    pub fn function(id: String) -> FunctionDeclarationBuilder {
+    pub fn function(id: Ident) -> FunctionDeclarationBuilder {
         FunctionDeclarationBuilder::new(id)
     }
 

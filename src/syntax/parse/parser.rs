@@ -98,9 +98,9 @@ impl<'a> Parser<'a> {
     }
 
     /// Attempt to parse an identifier
-    fn identifier(&mut self) -> ParseResult<String> {
+    fn identifier(&mut self) -> ParseResult<Ident> {
         match self.expression(100)? {
-            Expression::Identifier(string) => Ok(string),
+            Expression::Identifier(id) => Ok(id),
             _ => Err(ParseError::Unexpected),
         }
     }
@@ -218,7 +218,7 @@ impl<'a> Parser<'a> {
         self.expect(&TokenKind::Equals)?;
         let rhs = self.single_expression()?;
         Ok(Expression::declaration(
-            TypedId::from_parts(id.clone(), typ),
+            TypedId::from_parts(id, typ),
             is_mut,
             rhs,
         ))
@@ -363,7 +363,7 @@ impl<'a> Parser<'a> {
             }
             TokenKind::Word(Ident::True) => Ok(Expression::constant_bool(true)),
             TokenKind::Word(Ident::False) => Ok(Expression::constant_bool(false)),
-            TokenKind::Word(word) => Ok(Expression::identifier(self.source.interned_value(word))),
+            TokenKind::Word(word) => Ok(Expression::identifier(word)),
             TokenKind::Literal(ref l) => match *l {
                 Literal::Number(i) => Ok(Expression::constant_num(i)),
                 Literal::RawString(ref s) => Ok(Expression::constant_string(s.clone())),

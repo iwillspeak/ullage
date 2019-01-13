@@ -19,7 +19,7 @@ pub struct Interner {
 ///
 /// Represents a kind of interned string value. Known keywords appear
 /// in here to allow them to be easily matched.
-#[derive(Debug, PartialEq, Copy, Clone)]
+#[derive(Debug, PartialEq, Hash, Eq, Copy, Clone)]
 pub enum Ident {
     /// the `else` keyword
     Else,

@@ -21,9 +21,8 @@ use super::tree::expression::Expression;
 /// parse was successful then a sequence expression containing all the
 /// expressions in the source is returned. If any error is encountered
 /// then that is surfaced instead.
-pub fn parse_tree<S: Into<String>>(source: S) -> ParseResult<Expression> {
-    let source = SourceText::new(source);
-    let mut p = Parser::new(&source);
+pub fn parse_tree(source: &SourceText) -> ParseResult<Expression> {
+    let mut p = Parser::new(source);
     Ok(Expression::sequence(p.expressions()?))
 }
 
@@ -31,8 +30,7 @@ pub fn parse_tree<S: Into<String>>(source: S) -> ParseResult<Expression> {
 ///
 /// Runs the tokeniser and parser of the given input string, returning
 /// the first expression parsed.
-pub fn parse_single<S: Into<String>>(source: S) -> ParseResult<Expression> {
-    let source = SourceText::new(source);
-    let mut p = Parser::new(&source);
+pub fn parse_single(source: &SourceText) -> ParseResult<Expression> {
+    let mut p = Parser::new(source);
     p.single_expression()
 }

@@ -3,105 +3,80 @@
 //! Tests for the parser which check that a given input matches an
 //! exprexpected parse tree.
 
+use super::super::text::SourceText;
 use super::super::tree::{Token, TokenKind};
 use super::super::Expression::*;
 use super::super::*;
 use super::parse_single;
 
 macro_rules! check_parse {
-    ($src:expr, $expected:expr) => {
+    ($src:expr, |$source:ident| $expected:expr) => {
         let src: &str = $src;
-        let actual = parse_single(src);
+        let $source = SourceText::new(src);
+        let actual = parse_single(&$source);
         assert_eq!(Ok($expected), actual);
+    };
+    ($src:expr, $expected:expr) => {
+        check_parse!($src, |t| $expected);
     };
 }
 
 #[test]
 fn parse_simple_string() {
-    check_parse!(
-        "hello + 123",
-        Expression::infix(
-            Expression::identifier("hello".to_string()),
-            InfixOp::Add,
-            Expression::constant_num(123),
-        )
-    );
+    check_parse!("hello + 123", |s| Expression::infix(
+        Expression::identifier(s.intern("hello")),
+        InfixOp::Add,
+        Expression::constant_num(123),
+    ));
 }
 
 #[test]
 fn parse_operators() {
-    check_parse!(
-        "a = b",
-        Expression::infix(
-            Expression::identifier("a".to_string()),
-            InfixOp::Assign,
-            Expression::identifier("b".to_string()),
-        )
-    );
-    check_parse!(
-        "a + b",
-        Expression::infix(
-            Expression::identifier("a".to_string()),
-            InfixOp::Add,
-            Expression::identifier("b".to_string()),
-        )
-    );
-    check_parse!(
-        "a - b",
-        Expression::infix(
-            Expression::identifier("a".to_string()),
-            InfixOp::Sub,
-            Expression::identifier("b".to_string()),
-        )
-    );
-    check_parse!(
-        "a * b",
-        Expression::infix(
-            Expression::identifier("a".to_string()),
-            InfixOp::Mul,
-            Expression::identifier("b".to_string()),
-        )
-    );
-    check_parse!(
-        "a / b",
-        Expression::infix(
-            Expression::identifier("a".to_string()),
-            InfixOp::Div,
-            Expression::identifier("b".to_string()),
-        )
-    );
-    check_parse!(
-        "a == b",
-        Expression::infix(
-            Expression::identifier("a".to_string()),
-            InfixOp::Eq,
-            Expression::identifier("b".to_string()),
-        )
-    );
-    check_parse!(
-        "a != b",
-        Expression::infix(
-            Expression::identifier("a".to_string()),
-            InfixOp::NotEq,
-            Expression::identifier("b".to_string()),
-        )
-    );
-    check_parse!(
-        "a < b",
-        Expression::infix(
-            Expression::identifier("a".to_string()),
-            InfixOp::Lt,
-            Expression::identifier("b".to_string()),
-        )
-    );
-    check_parse!(
-        "a > b",
-        Expression::infix(
-            Expression::identifier("a".to_string()),
-            InfixOp::Gt,
-            Expression::identifier("b".to_string()),
-        )
-    );
+    check_parse!("a = b", |s| Expression::infix(
+        Expression::identifier(s.intern("a")),
+        InfixOp::Assign,
+        Expression::identifier(s.intern("b")),
+    ));
+    check_parse!("a + b", |s| Expression::infix(
+        Expression::identifier(s.intern("a")),
+        InfixOp::Add,
+        Expression::identifier(s.intern("b")),
+    ));
+    check_parse!("a - b", |s| Expression::infix(
+        Expression::identifier(s.intern("a")),
+        InfixOp::Sub,
+        Expression::identifier(s.intern("b")),
+    ));
+    check_parse!("a * b", |s| Expression::infix(
+        Expression::identifier(s.intern("a")),
+        InfixOp::Mul,
+        Expression::identifier(s.intern("b")),
+    ));
+    check_parse!("a / b", |s| Expression::infix(
+        Expression::identifier(s.intern("a")),
+        InfixOp::Div,
+        Expression::identifier(s.intern("b")),
+    ));
+    check_parse!("a == b", |s| Expression::infix(
+        Expression::identifier(s.intern("a")),
+        InfixOp::Eq,
+        Expression::identifier(s.intern("b")),
+    ));
+    check_parse!("a != b", |s| Expression::infix(
+        Expression::identifier(s.intern("a")),
+        InfixOp::NotEq,
+        Expression::identifier(s.intern("b")),
+    ));
+    check_parse!("a < b", |s| Expression::infix(
+        Expression::identifier(s.intern("a")),
+        InfixOp::Lt,
+        Expression::identifier(s.intern("b")),
+    ));
+    check_parse!("a > b", |s| Expression::infix(
+        Expression::identifier(s.intern("a")),
+        InfixOp::Gt,
+        Expression::identifier(s.intern("b")),
+    ));
 }
 
 #[test]
@@ -134,48 +109,39 @@ fn parse_prefix_expressions() {
             Expression::constant_num(3),
         )
     );
-    check_parse!(
-        "!a",
-        Expression::prefix(PrefixOp::Not, Expression::identifier("a".to_string()))
-    );
-    check_parse!(
-        "!a != !b",
-        Expression::infix(
-            Expression::prefix(PrefixOp::Not, Expression::identifier("a".to_string())),
-            InfixOp::NotEq,
-            Expression::prefix(PrefixOp::Not, Expression::identifier("b".to_string())),
-        )
-    );
+    check_parse!("!a", |s| Expression::prefix(
+        PrefixOp::Not,
+        Expression::identifier(s.intern("a"))
+    ));
+    check_parse!("!a != !b", |s| Expression::infix(
+        Expression::prefix(PrefixOp::Not, Expression::identifier(s.intern("a"))),
+        InfixOp::NotEq,
+        Expression::prefix(PrefixOp::Not, Expression::identifier(s.intern("b"))),
+    ));
 }
 
 #[test]
 fn parse_simple_call() {
-    check_parse!(
-        "foo()",
-        Expression::call(Expression::identifier("foo".to_string()), Vec::new())
-    );
+    check_parse!("foo()", |s| Expression::call(
+        Expression::identifier(s.intern("foo")),
+        Vec::new()
+    ));
 }
 
 #[test]
 fn parse_complex_call() {
-    check_parse!(
-        "hello(1, 1 + 23, -world)",
-        Expression::call(
-            Expression::identifier("hello".to_string()),
-            vec![
+    check_parse!("hello(1, 1 + 23, -world)", |s| Expression::call(
+        Expression::identifier(s.intern("hello")),
+        vec![
+            Expression::constant_num(1),
+            Expression::infix(
                 Expression::constant_num(1),
-                Expression::infix(
-                    Expression::constant_num(1),
-                    InfixOp::Add,
-                    Expression::constant_num(23),
-                ),
-                Expression::prefix(
-                    PrefixOp::Negate,
-                    Expression::identifier("world".to_string()),
-                ),
-            ],
-        )
-    );
+                InfixOp::Add,
+                Expression::constant_num(23),
+            ),
+            Expression::prefix(PrefixOp::Negate, Expression::identifier(s.intern("world")),),
+        ],
+    ));
 }
 
 #[test]
@@ -200,19 +166,16 @@ fn parse_groups_with_parens() {
 
 #[test]
 fn parse_indexing() {
-    check_parse!(
-        "hello[world](1, 2[3])",
-        Expression::call(
-            Expression::index(
-                Expression::identifier("hello".to_string()),
-                Expression::identifier("world".to_string()),
-            ),
-            vec![
-                Expression::constant_num(1),
-                Expression::index(Expression::constant_num(2), Expression::constant_num(3)),
-            ],
-        )
-    );
+    check_parse!("hello[world](1, 2[3])", |s| Expression::call(
+        Expression::index(
+            Expression::identifier(s.intern("hello")),
+            Expression::identifier(s.intern("world")),
+        ),
+        vec![
+            Expression::constant_num(1),
+            Expression::index(Expression::constant_num(2), Expression::constant_num(3)),
+        ],
+    ));
 }
 
 #[test]
@@ -225,27 +188,26 @@ fn parse_ternary_if() {
             Expression::constant_num(3),
         )
     );
-    check_parse!(
-        "hello(1) if foo[23] else world[1 if foo else 2]",
+    check_parse!("hello(1) if foo[23] else world[1 if foo else 2]", |s| {
         Expression::if_then_else(
             Expression::index(
-                Expression::identifier("foo".to_string()),
+                Expression::identifier(s.intern("foo")),
                 Expression::constant_num(23),
             ),
             Expression::call(
-                Expression::identifier("hello".to_string()),
+                Expression::identifier(s.intern("hello")),
                 vec![Expression::constant_num(1)],
             ),
             Expression::index(
-                Expression::identifier("world".to_string()),
+                Expression::identifier(s.intern("world")),
                 Expression::if_then_else(
-                    Expression::identifier("foo".to_string()),
+                    Expression::identifier(s.intern("foo")),
                     Expression::constant_num(1),
                     Expression::constant_num(2),
                 ),
             ),
         )
-    );
+    });
     check_parse!(
         "0 unless 1 else 2",
         Expression::if_then_else(
@@ -258,30 +220,26 @@ fn parse_ternary_if() {
 
 #[test]
 fn parse_unicode_identifiers() {
-    check_parse!(
-        "  übåℝ * ßeåk  ",
-        Expression::infix(
-            Expression::identifier("übåℝ".to_string()),
-            InfixOp::Mul,
-            Expression::identifier("ßeåk".to_string()),
-        )
-    );
+    check_parse!("  übåℝ * ßeåk  ", |s| Expression::infix(
+        Expression::identifier(s.intern("übåℝ")),
+        InfixOp::Mul,
+        Expression::identifier(s.intern("ßeåk")),
+    ));
 }
 
 #[test]
 fn parse_function_def() {
-    check_parse!(
-        "fn test() :Num 100 end",
-        Expression::function("test".to_string())
-            .with_return_type(TypeRef::simple("Num"))
-            .with_body(vec![Expression::constant_num(100)])
-            .into()
-    );
+    check_parse!("fn test() :Num 100 end", |s| Expression::function(
+        s.intern("test")
+    )
+    .with_return_type(TypeRef::simple("Num"))
+    .with_body(vec![Expression::constant_num(100)])
+    .into());
     check_parse!(
         "fn ünécød3() :Num
                 0 if 74 else 888
              end",
-        Expression::function("ünécød3".to_string())
+        |s| Expression::function(s.intern("ünécød3"))
             .with_return_type(TypeRef::simple("Num"))
             .with_body(vec![Expression::if_then_else(
                 Expression::constant_num(74),
@@ -309,112 +267,89 @@ fn parse_while_loop() {
 
 #[test]
 fn parse_function_with_args() {
-    check_parse!(
-        "fn neg(i: Num): Num - i end",
-        Expression::function("neg".to_string())
-            .with_arg(TypedId::new("i".to_string(), TypeRef::simple("Num")))
-            .with_return_type(TypeRef::simple("Num"))
-            .with_body(vec![Expression::prefix(
-                PrefixOp::Negate,
-                Expression::identifier("i".to_string()),
-            )])
-            .into()
-    );
+    check_parse!("fn neg(i: Num): Num - i end", |s| Expression::function(
+        s.intern("neg")
+    )
+    .with_arg(TypedId::new(s.intern("i"), TypeRef::simple("Num")))
+    .with_return_type(TypeRef::simple("Num"))
+    .with_body(vec![Expression::prefix(
+        PrefixOp::Negate,
+        Expression::identifier(s.intern("i")),
+    )])
+    .into());
 
-    check_parse!(
-        "fn test(i: Num, j, k: String): String i + j + k end",
-        Expression::function("test".to_string())
-            .with_arg(TypedId::new("i".to_string(), TypeRef::simple("Num")))
-            .with_arg(TypedId::new_without_type("j".to_string()))
-            .with_arg(TypedId::new("k".to_string(), TypeRef::simple("String")))
+    check_parse!("fn test(i: Num, j, k: String): String i + j + k end", |s| {
+        Expression::function(s.intern("test"))
+            .with_arg(TypedId::new(s.intern("i"), TypeRef::simple("Num")))
+            .with_arg(TypedId::new_without_type(s.intern("j")))
+            .with_arg(TypedId::new(s.intern("k"), TypeRef::simple("String")))
             .with_return_type(TypeRef::simple("String"))
             .with_body(vec![Expression::infix(
                 Expression::infix(
-                    Expression::identifier("i".to_string()),
+                    Expression::identifier(s.intern("i")),
                     InfixOp::Add,
-                    Expression::identifier("j".to_string()),
+                    Expression::identifier(s.intern("j")),
                 ),
                 InfixOp::Add,
-                Expression::identifier("k".to_string()),
+                Expression::identifier(s.intern("k")),
             )])
             .into()
-    );
+    });
 }
 
 #[test]
 fn parse_simple_array_type() {
-    check_parse!(
-        "let f: [Num] = 100",
-        Expression::declaration(
-            TypedId::from_parts(
-                String::from("f"),
-                Some(TypeRef::array(TypeRef::simple("Num"))),
-            ),
-            false,
-            Expression::constant_num(100),
-        )
-    );
+    check_parse!("let f: [Num] = 100", |s| Expression::declaration(
+        TypedId::from_parts(s.intern("f"), Some(TypeRef::array(TypeRef::simple("Num"))),),
+        false,
+        Expression::constant_num(100),
+    ));
 }
 
 #[test]
 fn parse_simple_let() {
-    check_parse!(
-        "let foo = 100",
-        Expression::declaration(
-            TypedId::from_parts("foo".to_string(), None),
-            false,
-            Expression::constant_num(100),
-        )
-    );
+    check_parse!("let foo = 100", |s| Expression::declaration(
+        TypedId::from_parts(s.intern("foo"), None),
+        false,
+        Expression::constant_num(100),
+    ));
 }
 
 #[test]
 fn parse_simple_tuple() {
-    check_parse!(
-        "let f: (Num) = 100",
-        Expression::declaration(
-            TypedId::from_parts(
-                String::from("f"),
-                Some(TypeRef::tuple(vec![TypeRef::simple("Num")])),
-            ),
-            false,
-            Expression::constant_num(100),
-        )
-    );
-    check_parse!(
-        "let f: (Num, [String]) = 100",
-        Expression::declaration(
-            TypedId::from_parts(
-                String::from("f"),
-                Some(TypeRef::tuple(vec![
-                    TypeRef::simple("Num"),
-                    TypeRef::array(TypeRef::simple("String")),
-                ])),
-            ),
-            false,
-            Expression::constant_num(100),
-        )
-    );
+    check_parse!("let f: (Num) = 100", |s| Expression::declaration(
+        TypedId::from_parts(
+            s.intern("f"),
+            Some(TypeRef::tuple(vec![TypeRef::simple("Num")])),
+        ),
+        false,
+        Expression::constant_num(100),
+    ));
+    check_parse!("let f: (Num, [String]) = 100", |s| Expression::declaration(
+        TypedId::from_parts(
+            s.intern("f"),
+            Some(TypeRef::tuple(vec![
+                TypeRef::simple("Num"),
+                TypeRef::array(TypeRef::simple("String")),
+            ])),
+        ),
+        false,
+        Expression::constant_num(100),
+    ));
 }
 
 #[test]
 fn parse_variable_decl() {
-    check_parse!(
-        "var foo = 93",
-        Expression::declaration(
-            TypedId::from_parts(String::from("foo"), None),
-            true,
-            Expression::constant_num(93),
-        )
-    );
-    check_parse!(
-        "var foo_bar: Number = -99999",
-        Expression::declaration(
-            TypedId::from_parts(String::from("foo_bar"), Some(TypeRef::simple("Number"))),
-            true,
-            Expression::prefix(PrefixOp::Negate, Expression::constant_num(99999)),
-        )
-    );
+    check_parse!("var foo = 93", |s| Expression::declaration(
+        TypedId::from_parts(s.intern("foo"), None),
+        true,
+        Expression::constant_num(93),
+    ));
+    check_parse!("var foo_bar: Number = -99999", |s| Expression::declaration(
+        TypedId::from_parts(s.intern("foo_bar"), Some(TypeRef::simple("Number"))),
+        true,
+        Expression::prefix(PrefixOp::Negate, Expression::constant_num(99999)),
+    ));
 }
 
 #[test]

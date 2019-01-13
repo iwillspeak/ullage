@@ -112,7 +112,8 @@ fn main() {
     });
 
     // Parse the module
-    let tree = parse::parse_tree(source).unwrap_or_else(|e| {
+    let source = text::SourceText::new(source);
+    let tree = parse::parse_tree(&source).unwrap_or_else(|e| {
         eprintln!("error: could not parse source: {}", e);
         exit(1)
     });
@@ -126,7 +127,7 @@ fn main() {
     let options = CompilationOptions::default()
         .with_dump_ir(args.flag_dumpir)
         .with_opt_level(args.flag_optimise.unwrap_or_default());
-    let comp = match Compilation::new(tree, options) {
+    let comp = match Compilation::new(&source, tree, options) {
         Ok(c) => c,
         Err(e) => handle_comp_err(&e),
     };

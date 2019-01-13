@@ -5,6 +5,7 @@
 
 use super::expression::{Expression, TypedId};
 use super::types::TypeRef;
+use crate::syntax::text::Ident;
 
 /// Builder Struct for Function Declarations
 ///
@@ -16,7 +17,7 @@ use super::types::TypeRef;
 /// the return type is `()`, the function acepts no arguments and the
 /// body is empty.
 pub struct FunctionDeclarationBuilder {
-    id: String,
+    id: Ident,
     typ: TypeRef,
     args: Vec<TypedId>,
     body: Vec<Expression>,
@@ -26,7 +27,7 @@ impl FunctionDeclarationBuilder {
     /// Create a New Function Builder
     ///
     /// Start building a function for `id`.
-    pub fn new(id: String) -> Self {
+    pub fn new(id: Ident) -> Self {
         FunctionDeclarationBuilder {
             id,
             typ: TypeRef::unit(),

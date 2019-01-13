@@ -4,6 +4,7 @@
 //! expressions from AST representation to semantic.
 
 use super::types::{BuiltinType, Typ};
+use crate::syntax::text::{Ident, SourceText};
 use crate::syntax::TypeRef;
 use std::collections::HashMap;
 
@@ -11,17 +12,19 @@ use std::collections::HashMap;
 ///
 /// Holds the context when trasnforming. This is basically the current
 /// type state information along with symbol table.
-#[derive(Default)]
-pub struct SemCtx {
+pub struct SemCtx<'a> {
     /// Symbol Table for Local Variables
-    locals: Vec<HashMap<String, Typ>>,
+    locals: Vec<HashMap<Ident, Typ>>,
+    /// The source text
+    source: &'a SourceText,
 }
 
-impl SemCtx {
+impl<'a> SemCtx<'a> {
     /// Create a new Semantic Context
-    pub fn new() -> Self {
+    pub fn new(source: &'a SourceText) -> Self {
         SemCtx {
             locals: vec![HashMap::new()],
+            source,
         }
     }
 
@@ -46,16 +49,13 @@ impl SemCtx {
     /// Add Local
     ///
     /// Inserts a local declaration into the locals map.
-    pub fn add_local<S>(&mut self, id: S, typ: Typ)
-    where
-        S: Into<String>,
-    {
-        self.locals[0].insert(id.into(), typ);
+    pub fn add_local(&mut self, id: Ident, typ: Typ) {
+        self.locals[0].insert(id, typ);
     }
 
     /// Find a Local Declaration
-    pub fn find_local(&self, id: &str) -> Option<Typ> {
-        self.locals[0].get(id).cloned()
+    pub fn find_local(&self, id: Ident) -> Option<Typ> {
+        self.locals[0].get(&id).cloned()
     }
 
     /// Push Scope
@@ -70,5 +70,10 @@ impl SemCtx {
     /// Remove and discard the top scope from the stack
     pub fn pop_scope(&mut self) {
         self.locals.pop();
+    }
+
+    /// Borrow the Source
+    pub fn source(&self) -> &SourceText {
+        &self.source
     }
 }

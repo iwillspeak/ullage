@@ -58,11 +58,16 @@ impl Compilation {
     /// Create a new compilation
     ///
     /// # Parameters
+    ///  * `source` - The source text for the program
     ///  * `expr` - the expression to compile
     ///  * `opts` - The compilation options
     #[allow(clippy::new_ret_no_self)]
-    pub fn new(expr: syntax::Expression, opts: CompilationOptions) -> CompResult<Self> {
-        let mut trans_sess = sem::SemCtx::new();
+    pub fn new(
+        source: &syntax::text::SourceText,
+        expr: syntax::Expression,
+        opts: CompilationOptions,
+    ) -> CompResult<Self> {
+        let mut trans_sess = sem::SemCtx::new(source);
         let sem_expr = sem::transform_expression(&mut trans_sess, expr)?;
         Ok(Compilation {
             expr: sem_expr,

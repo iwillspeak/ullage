@@ -21,7 +21,8 @@ use super::types::{BuiltinType, Typ};
 pub fn transform_expression(ctx: &mut SemCtx, expr: SyntaxExpr) -> CompResult<Expression> {
     match expr {
         SyntaxExpr::Identifier(i) => {
-            let typ = ctx.find_local(&i);
+            let typ = ctx.find_local(i);
+            let i = ctx.source().interned_value(i);
             Ok(Expression::new(ExpressionKind::Identifier(i), typ))
         }
         SyntaxExpr::Literal(c) => {
@@ -53,7 +54,8 @@ pub fn transform_expression(ctx: &mut SemCtx, expr: SyntaxExpr) -> CompResult<Ex
             match op {
                 InfixOp::Assign => {
                     if let SyntaxExpr::Identifier(id) = *lhs {
-                        let id_typ = ctx.find_local(&id).or(rhs.typ);
+                        let id_typ = ctx.find_local(id).or(rhs.typ);
+                        let id = ctx.source().interned_value(id);
                         Ok(Expression::new(
                             ExpressionKind::Assignment(id, Box::new(rhs)),
                             id_typ,
@@ -132,16 +134,16 @@ pub fn transform_expression(ctx: &mut SemCtx, expr: SyntaxExpr) -> CompResult<Ex
                     // errors in params. All params _must_ have a
                     // type.
                     let typ = p.typ.and_then(|t| ctx.sem_ty(t));
-                    ctx.add_local(p.id.clone(), typ.unwrap());
+                    ctx.add_local(p.id, typ.unwrap());
                     VarDecl {
-                        ident: p.id,
+                        ident: ctx.source().interned_value(p.id),
                         ty: typ,
                     }
                 })
                 .collect();
 
             let fn_decl = FnDecl {
-                ident,
+                ident: ctx.source().interned_value(ident),
                 ret_ty: ensure_ty(ctx.sem_ty(ret_ty))?,
                 params,
                 body: Box::new(transform_expression(ctx, *body)?),
@@ -166,18 +168,18 @@ pub fn transform_expression(ctx: &mut SemCtx, expr: SyntaxExpr) -> CompResult<Ex
                     if Some(declared_ty) != initialiser.typ {
                         return Err(CompError::from(format!(
                             "Initialiser doesn't match declaration type for {}",
-                            tid.id
+                            ctx.source().interned_value(tid.id)
                         )));
                     }
                     Some(declared_ty)
                 }
                 None => initialiser.typ,
             };
-            ctx.add_local(tid.id.clone(), typ.unwrap_or(Typ::Unknown));
+            ctx.add_local(tid.id, typ.unwrap_or(Typ::Unknown));
             Ok(Expression::new(
                 ExpressionKind::Declaration(
                     VarDecl {
-                        ident: tid.id,
+                        ident: ctx.source().interned_value(tid.id),
                         ty: typ,
                     },
                     is_mut,
