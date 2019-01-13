@@ -21,10 +21,19 @@ macro_rules! check_parse {
     };
 }
 
+/// Creates an Identifier Expression
+///
+/// This funciton handles interning the indentifier and creating a
+/// mock token for the idnetifier expression to use.
+fn mk_ident(source: &SourceText, id: &str) -> Expression {
+    let id = source.intern(id);
+    Expression::identifier(Token::new(TokenKind::Word(id)), id)
+}
+
 #[test]
 fn parse_simple_string() {
     check_parse!("hello + 123", |s| Expression::infix(
-        Expression::identifier(s.intern("hello")),
+        mk_ident(&s, "hello"),
         InfixOp::Add,
         Expression::constant_num(123),
     ));
@@ -33,49 +42,49 @@ fn parse_simple_string() {
 #[test]
 fn parse_operators() {
     check_parse!("a = b", |s| Expression::infix(
-        Expression::identifier(s.intern("a")),
+        mk_ident(&s, "a"),
         InfixOp::Assign,
-        Expression::identifier(s.intern("b")),
+        mk_ident(&s, "b"),
     ));
     check_parse!("a + b", |s| Expression::infix(
-        Expression::identifier(s.intern("a")),
+        mk_ident(&s, "a"),
         InfixOp::Add,
-        Expression::identifier(s.intern("b")),
+        mk_ident(&s, "b"),
     ));
     check_parse!("a - b", |s| Expression::infix(
-        Expression::identifier(s.intern("a")),
+        mk_ident(&s, "a"),
         InfixOp::Sub,
-        Expression::identifier(s.intern("b")),
+        mk_ident(&s, "b"),
     ));
     check_parse!("a * b", |s| Expression::infix(
-        Expression::identifier(s.intern("a")),
+        mk_ident(&s, "a"),
         InfixOp::Mul,
-        Expression::identifier(s.intern("b")),
+        mk_ident(&s, "b"),
     ));
     check_parse!("a / b", |s| Expression::infix(
-        Expression::identifier(s.intern("a")),
+        mk_ident(&s, "a"),
         InfixOp::Div,
-        Expression::identifier(s.intern("b")),
+        mk_ident(&s, "b"),
     ));
     check_parse!("a == b", |s| Expression::infix(
-        Expression::identifier(s.intern("a")),
+        mk_ident(&s, "a"),
         InfixOp::Eq,
-        Expression::identifier(s.intern("b")),
+        mk_ident(&s, "b"),
     ));
     check_parse!("a != b", |s| Expression::infix(
-        Expression::identifier(s.intern("a")),
+        mk_ident(&s, "a"),
         InfixOp::NotEq,
-        Expression::identifier(s.intern("b")),
+        mk_ident(&s, "b"),
     ));
     check_parse!("a < b", |s| Expression::infix(
-        Expression::identifier(s.intern("a")),
+        mk_ident(&s, "a"),
         InfixOp::Lt,
-        Expression::identifier(s.intern("b")),
+        mk_ident(&s, "b"),
     ));
     check_parse!("a > b", |s| Expression::infix(
-        Expression::identifier(s.intern("a")),
+        mk_ident(&s, "a"),
         InfixOp::Gt,
-        Expression::identifier(s.intern("b")),
+        mk_ident(&s, "b"),
     ));
 }
 
@@ -111,19 +120,19 @@ fn parse_prefix_expressions() {
     );
     check_parse!("!a", |s| Expression::prefix(
         PrefixOp::Not,
-        Expression::identifier(s.intern("a"))
+        mk_ident(&s, "a")
     ));
     check_parse!("!a != !b", |s| Expression::infix(
-        Expression::prefix(PrefixOp::Not, Expression::identifier(s.intern("a"))),
+        Expression::prefix(PrefixOp::Not, mk_ident(&s, "a")),
         InfixOp::NotEq,
-        Expression::prefix(PrefixOp::Not, Expression::identifier(s.intern("b"))),
+        Expression::prefix(PrefixOp::Not, mk_ident(&s, "b")),
     ));
 }
 
 #[test]
 fn parse_simple_call() {
     check_parse!("foo()", |s| Expression::call(
-        Expression::identifier(s.intern("foo")),
+        mk_ident(&s, "foo"),
         Vec::new()
     ));
 }
@@ -131,7 +140,7 @@ fn parse_simple_call() {
 #[test]
 fn parse_complex_call() {
     check_parse!("hello(1, 1 + 23, -world)", |s| Expression::call(
-        Expression::identifier(s.intern("hello")),
+        mk_ident(&s, "hello"),
         vec![
             Expression::constant_num(1),
             Expression::infix(
@@ -139,7 +148,7 @@ fn parse_complex_call() {
                 InfixOp::Add,
                 Expression::constant_num(23),
             ),
-            Expression::prefix(PrefixOp::Negate, Expression::identifier(s.intern("world")),),
+            Expression::prefix(PrefixOp::Negate, mk_ident(&s, "world"),),
         ],
     ));
 }
@@ -167,10 +176,7 @@ fn parse_groups_with_parens() {
 #[test]
 fn parse_indexing() {
     check_parse!("hello[world](1, 2[3])", |s| Expression::call(
-        Expression::index(
-            Expression::identifier(s.intern("hello")),
-            Expression::identifier(s.intern("world")),
-        ),
+        Expression::index(mk_ident(&s, "hello"), mk_ident(&s, "world"),),
         vec![
             Expression::constant_num(1),
             Expression::index(Expression::constant_num(2), Expression::constant_num(3)),
@@ -190,18 +196,12 @@ fn parse_ternary_if() {
     );
     check_parse!("hello(1) if foo[23] else world[1 if foo else 2]", |s| {
         Expression::if_then_else(
+            Expression::index(mk_ident(&s, "foo"), Expression::constant_num(23)),
+            Expression::call(mk_ident(&s, "hello"), vec![Expression::constant_num(1)]),
             Expression::index(
-                Expression::identifier(s.intern("foo")),
-                Expression::constant_num(23),
-            ),
-            Expression::call(
-                Expression::identifier(s.intern("hello")),
-                vec![Expression::constant_num(1)],
-            ),
-            Expression::index(
-                Expression::identifier(s.intern("world")),
+                mk_ident(&s, "world"),
                 Expression::if_then_else(
-                    Expression::identifier(s.intern("foo")),
+                    mk_ident(&s, "foo"),
                     Expression::constant_num(1),
                     Expression::constant_num(2),
                 ),
@@ -221,9 +221,9 @@ fn parse_ternary_if() {
 #[test]
 fn parse_unicode_identifiers() {
     check_parse!("  übåℝ * ßeåk  ", |s| Expression::infix(
-        Expression::identifier(s.intern("übåℝ")),
+        mk_ident(&s, "übåℝ"),
         InfixOp::Mul,
-        Expression::identifier(s.intern("ßeåk")),
+        mk_ident(&s, "ßeåk"),
     ));
 }
 
@@ -274,7 +274,7 @@ fn parse_function_with_args() {
     .with_return_type(TypeRef::simple("Num"))
     .with_body(vec![Expression::prefix(
         PrefixOp::Negate,
-        Expression::identifier(s.intern("i")),
+        mk_ident(&s, "i"),
     )])
     .into());
 
@@ -285,13 +285,9 @@ fn parse_function_with_args() {
             .with_arg(TypedId::new(s.intern("k"), TypeRef::simple("String")))
             .with_return_type(TypeRef::simple("String"))
             .with_body(vec![Expression::infix(
-                Expression::infix(
-                    Expression::identifier(s.intern("i")),
-                    InfixOp::Add,
-                    Expression::identifier(s.intern("j")),
-                ),
+                Expression::infix(mk_ident(&s, "i"), InfixOp::Add, mk_ident(&s, "j")),
                 InfixOp::Add,
-                Expression::identifier(s.intern("k")),
+                mk_ident(&s, "k"),
             )])
             .into()
     });

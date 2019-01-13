@@ -64,7 +64,7 @@ pub enum Constant {
 #[derive(Debug, PartialEq)]
 #[allow(missing_docs)]
 pub enum Expression {
-    Identifier(Ident),
+    Identifier(Box<Token>, Ident),
     Literal(Constant),
     Prefix(PrefixOp, Box<Expression>),
     Infix(Box<Expression>, InfixOp, Box<Expression>),
@@ -85,8 +85,8 @@ impl Expression {
     /// A reference to an identifier, either as a variable reference
     /// or declaration, part of a function definition or function
     /// call.
-    pub fn identifier(id: Ident) -> Self {
-        Expression::Identifier(id)
+    pub fn identifier(token: Token, id: Ident) -> Self {
+        Expression::Identifier(Box::new(token), id)
     }
 
     /// # New Numeric Constant

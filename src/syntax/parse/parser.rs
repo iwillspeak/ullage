@@ -100,7 +100,7 @@ impl<'a> Parser<'a> {
     /// Attempt to parse an identifier
     fn identifier(&mut self) -> ParseResult<Ident> {
         match self.expression(100)? {
-            Expression::Identifier(id) => Ok(id),
+            Expression::Identifier(_, id) => Ok(id),
             _ => Err(ParseError::Unexpected),
         }
     }
@@ -363,7 +363,7 @@ impl<'a> Parser<'a> {
             }
             TokenKind::Word(Ident::True) => Ok(Expression::constant_bool(true)),
             TokenKind::Word(Ident::False) => Ok(Expression::constant_bool(false)),
-            TokenKind::Word(word) => Ok(Expression::identifier(word)),
+            TokenKind::Word(word) => Ok(Expression::identifier(token, word)),
             TokenKind::Literal(ref l) => match *l {
                 Literal::Number(i) => Ok(Expression::constant_num(i)),
                 Literal::RawString(ref s) => Ok(Expression::constant_string(s.clone())),
