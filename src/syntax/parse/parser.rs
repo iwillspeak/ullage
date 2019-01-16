@@ -100,7 +100,7 @@ impl<'a> Parser<'a> {
     /// Attempt to parse an identifier
     fn identifier(&mut self) -> ParseResult<Ident> {
         match self.expression(100)? {
-            Expression::Identifier(_, id) => Ok(id),
+            Expression::Identifier(id) => Ok(id.ident),
             _ => Err(ParseError::Unexpected),
         }
     }

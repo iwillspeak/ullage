@@ -60,22 +60,49 @@ pub enum Constant {
     String(String),
 }
 
+/// A single identifier token
+#[derive(Debug, PartialEq)]
+pub struct IdentifierExpression {
+    /// The underlying token
+    pub token: Box<Token>,
+    /// The identifier for the token. This should be the same as the
+    /// contents of the `Token::Word`.
+    pub ident: Ident,
+}
+
 /// Represents an AST expression.
 #[derive(Debug, PartialEq)]
-#[allow(missing_docs)]
 pub enum Expression {
-    Identifier(Box<Token>, Ident),
+    /// A literal identifier
+    ///
+    /// Represents a reference to a variable or function parameter
+    Identifier(IdentifierExpression),
+    /// A literal value
+    ///
+    /// Represents a hardcoded value in the program, such as a number
+    /// or string literal.
     Literal(Constant),
+#[allow(missing_docs)]
     Prefix(PrefixOp, Box<Expression>),
+#[allow(missing_docs)]
     Infix(Box<Expression>, InfixOp, Box<Expression>),
+#[allow(missing_docs)]
     Call(Box<Expression>, Vec<Expression>),
+#[allow(missing_docs)]
     Index(Box<Expression>, Box<Expression>),
+#[allow(missing_docs)]
     IfThenElse(Box<Expression>, Box<Expression>, Box<Expression>),
+#[allow(missing_docs)]
     Function(Ident, TypeRef, Vec<TypedId>, Box<Expression>),
+#[allow(missing_docs)]
     Loop(Box<Expression>, Box<Expression>),
+#[allow(missing_docs)]
     Sequence(Vec<Expression>),
+#[allow(missing_docs)]
     Print(Box<Expression>),
+#[allow(missing_docs)]
     Declaration(TypedId, bool, Box<Expression>),
+#[allow(missing_docs)]
     Grouping(Box<Token>, Box<Expression>, Box<Token>),
 }
 
@@ -85,8 +112,12 @@ impl Expression {
     /// A reference to an identifier, either as a variable reference
     /// or declaration, part of a function definition or function
     /// call.
-    pub fn identifier(token: Token, id: Ident) -> Self {
-        Expression::Identifier(Box::new(token), id)
+    pub fn identifier(token: Token, ident: Ident) -> Self {
+        Expression::Identifier(
+            IdentifierExpression {
+                token: Box::new(token),
+                ident
+            })
     }
 
     /// # New Numeric Constant

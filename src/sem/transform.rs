@@ -20,10 +20,10 @@ use super::types::{BuiltinType, Typ};
 /// Convert a syntax expression into a symantic one.
 pub fn transform_expression(ctx: &mut SemCtx, expr: SyntaxExpr) -> CompResult<Expression> {
     match expr {
-        SyntaxExpr::Identifier(_, i) => {
-            let typ = ctx.find_local(i);
-            let i = ctx.source().interned_value(i);
-            Ok(Expression::new(ExpressionKind::Identifier(i), typ))
+        SyntaxExpr::Identifier(i) => {
+            let typ = ctx.find_local(i.ident);
+            let id_str = ctx.source().interned_value(i.ident);
+            Ok(Expression::new(ExpressionKind::Identifier(id_str), typ))
         }
         SyntaxExpr::Literal(c) => {
             let typ = Typ::Builtin(match c {
@@ -53,9 +53,9 @@ pub fn transform_expression(ctx: &mut SemCtx, expr: SyntaxExpr) -> CompResult<Ex
             let rhs = transform_expression(ctx, *rhs)?;
             match op {
                 InfixOp::Assign => {
-                    if let SyntaxExpr::Identifier(_, id) = *lhs {
-                        let id_typ = ctx.find_local(id).or(rhs.typ);
-                        let id = ctx.source().interned_value(id);
+                    if let SyntaxExpr::Identifier(id) = *lhs {
+                        let id_typ = ctx.find_local(id.ident).or(rhs.typ);
+                        let id = ctx.source().interned_value(id.ident);
                         Ok(Expression::new(
                             ExpressionKind::Assignment(id, Box::new(rhs)),
                             id_typ,
