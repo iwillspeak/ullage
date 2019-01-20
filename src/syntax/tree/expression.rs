@@ -70,6 +70,15 @@ pub struct IdentifierExpression {
     pub ident: Ident,
 }
 
+/// A Literal constant vlaue
+#[derive(Debug, PartialEq)]
+pub struct LiteralExpression {
+    /// The underlying token
+    pub token: Box<Token>,
+    /// The 'cooked' Literal, ready to be used.
+    pub value: Constant,
+}
+
 /// Represents an AST expression.
 #[derive(Debug, PartialEq)]
 pub enum Expression {
@@ -81,28 +90,28 @@ pub enum Expression {
     ///
     /// Represents a hardcoded value in the program, such as a number
     /// or string literal.
-    Literal(Constant),
-#[allow(missing_docs)]
+    Literal(LiteralExpression),
+    #[allow(missing_docs)]
     Prefix(PrefixOp, Box<Expression>),
-#[allow(missing_docs)]
+    #[allow(missing_docs)]
     Infix(Box<Expression>, InfixOp, Box<Expression>),
-#[allow(missing_docs)]
+    #[allow(missing_docs)]
     Call(Box<Expression>, Vec<Expression>),
-#[allow(missing_docs)]
+    #[allow(missing_docs)]
     Index(Box<Expression>, Box<Expression>),
-#[allow(missing_docs)]
+    #[allow(missing_docs)]
     IfThenElse(Box<Expression>, Box<Expression>, Box<Expression>),
-#[allow(missing_docs)]
+    #[allow(missing_docs)]
     Function(Ident, TypeRef, Vec<TypedId>, Box<Expression>),
-#[allow(missing_docs)]
+    #[allow(missing_docs)]
     Loop(Box<Expression>, Box<Expression>),
-#[allow(missing_docs)]
+    #[allow(missing_docs)]
     Sequence(Vec<Expression>),
-#[allow(missing_docs)]
+    #[allow(missing_docs)]
     Print(Box<Expression>),
-#[allow(missing_docs)]
+    #[allow(missing_docs)]
     Declaration(TypedId, bool, Box<Expression>),
-#[allow(missing_docs)]
+    #[allow(missing_docs)]
     Grouping(Box<Token>, Box<Expression>, Box<Token>),
 }
 
@@ -113,11 +122,10 @@ impl Expression {
     /// or declaration, part of a function definition or function
     /// call.
     pub fn identifier(token: Token, ident: Ident) -> Self {
-        Expression::Identifier(
-            IdentifierExpression {
-                token: Box::new(token),
-                ident
-            })
+        Expression::Identifier(IdentifierExpression {
+            token: Box::new(token),
+            ident,
+        })
     }
 
     /// # New Numeric Constant
@@ -125,8 +133,11 @@ impl Expression {
     /// A constant numeric value, either specified inline using a
     /// numeric literal or computed from other known compile-time
     /// constants.
-    pub fn constant_num(n: i64) -> Self {
-        Expression::Literal(Constant::Number(n))
+    pub fn constant_num(token: Token, n: i64) -> Self {
+        Expression::Literal(LiteralExpression {
+            token: Box::new(token),
+            value: Constant::Number(n),
+        })
     }
 
     /// # New String Constant
@@ -134,19 +145,25 @@ impl Expression {
     /// A constant string value, either specified inline using a
     /// string literal or computed from other known compile-time
     /// constants.
-    pub fn constant_string<T>(s: T) -> Self
+    pub fn constant_string<T>(token: Token, s: T) -> Self
     where
         T: Into<String>,
     {
-        Expression::Literal(Constant::String(s.into()))
+        Expression::Literal(LiteralExpression {
+            token: Box::new(token),
+            value: Constant::String(s.into()),
+        })
     }
 
     /// New Bool Constant
     ///
     /// A constant boolean value. Created from the literal 'true' or
     /// 'false'.
-    pub fn constant_bool(b: bool) -> Self {
-        Expression::Literal(Constant::Bool(b))
+    pub fn constant_bool(token: Token, b: bool) -> Self {
+        Expression::Literal(LiteralExpression {
+            token: Box::new(token),
+            value: Constant::Bool(b),
+        })
     }
 
     /// # New Prefix Operator Expression

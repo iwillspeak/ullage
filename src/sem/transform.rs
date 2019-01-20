@@ -26,6 +26,7 @@ pub fn transform_expression(ctx: &mut SemCtx, expr: SyntaxExpr) -> CompResult<Ex
             Ok(Expression::new(ExpressionKind::Identifier(id_str), typ))
         }
         SyntaxExpr::Literal(c) => {
+            let c = c.value;
             let typ = Typ::Builtin(match c {
                 Constant::Bool(_) => BuiltinType::Bool,
                 Constant::Number(_) => BuiltinType::Number,

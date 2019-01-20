@@ -229,7 +229,7 @@ impl<'t> Iterator for Tokeniser<'t> {
         while let Some(raw) = self.inner.next() {
             match raw.kind {
                 RawTokenKind::Plain(plain_kind) => {
-                    return Some(Token::with_span(raw.span, plain_kind))
+                    return Some(Token::with_span(raw.span, plain_kind));
                 }
                 RawTokenKind::Trivia(TriviaTokenKind::Junk) => {
                     self.diagnostics

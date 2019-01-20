@@ -4,7 +4,6 @@
 #![warn(missing_docs)]
 
 use failure;
-use libc;
 
 #[macro_use]
 extern crate failure_derive;

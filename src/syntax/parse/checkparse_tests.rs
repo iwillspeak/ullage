@@ -4,7 +4,7 @@
 //! exprexpected parse tree.
 
 use super::super::text::SourceText;
-use super::super::tree::{Token, TokenKind};
+use super::super::tree::{Literal, Token, TokenKind};
 use super::super::Expression::*;
 use super::super::*;
 use super::parse_single;
@@ -35,7 +35,7 @@ fn parse_simple_string() {
     check_parse!("hello + 123", |s| Expression::infix(
         mk_ident(&s, "hello"),
         InfixOp::Add,
-        Expression::constant_num(123),
+        Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(123))), 123),
     ));
 }
 
@@ -93,12 +93,12 @@ fn parse_with_precedence() {
     check_parse!(
         "1 + 2 * 3",
         Expression::infix(
-            Expression::constant_num(1),
+            Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(1))), 1),
             InfixOp::Add,
             Expression::infix(
-                Expression::constant_num(2),
+                Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(2))), 2),
                 InfixOp::Mul,
-                Expression::constant_num(3),
+                Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(3))), 3),
             ),
         )
     );
@@ -110,12 +110,15 @@ fn parse_prefix_expressions() {
         "+1 * -2 + +3",
         Expression::infix(
             Expression::infix(
-                Expression::constant_num(1),
+                Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(1))), 1),
                 InfixOp::Mul,
-                Expression::prefix(PrefixOp::Negate, Expression::constant_num(2)),
+                Expression::prefix(
+                    PrefixOp::Negate,
+                    Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(2))), 2)
+                ),
             ),
             InfixOp::Add,
-            Expression::constant_num(3),
+            Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(3))), 3),
         )
     );
     check_parse!("!a", |s| Expression::prefix(
@@ -142,11 +145,11 @@ fn parse_complex_call() {
     check_parse!("hello(1, 1 + 23, -world)", |s| Expression::call(
         mk_ident(&s, "hello"),
         vec![
-            Expression::constant_num(1),
+            Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(1))), 1),
             Expression::infix(
-                Expression::constant_num(1),
+                Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(1))), 1),
                 InfixOp::Add,
-                Expression::constant_num(23),
+                Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(23))), 23),
             ),
             Expression::prefix(PrefixOp::Negate, mk_ident(&s, "world"),),
         ],
@@ -161,14 +164,23 @@ fn parse_groups_with_parens() {
             Box::new(Grouping(
                 Box::new(Token::new(TokenKind::OpenBracket)),
                 Box::new(Infix(
-                    Box::new(Expression::constant_num(1)),
+                    Box::new(Expression::constant_num(
+                        Token::new(TokenKind::Literal(Literal::Number(1))),
+                        1
+                    )),
                     InfixOp::Add,
-                    Box::new(Expression::constant_num(2)),
+                    Box::new(Expression::constant_num(
+                        Token::new(TokenKind::Literal(Literal::Number(2))),
+                        2
+                    )),
                 )),
                 Box::new(Token::new(TokenKind::CloseBracket)),
             )),
             InfixOp::Mul,
-            Box::new(Expression::constant_num(3)),
+            Box::new(Expression::constant_num(
+                Token::new(TokenKind::Literal(Literal::Number(3))),
+                3
+            )),
         )
     );
 }
@@ -178,8 +190,11 @@ fn parse_indexing() {
     check_parse!("hello[world](1, 2[3])", |s| Expression::call(
         Expression::index(mk_ident(&s, "hello"), mk_ident(&s, "world"),),
         vec![
-            Expression::constant_num(1),
-            Expression::index(Expression::constant_num(2), Expression::constant_num(3)),
+            Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(1))), 1),
+            Expression::index(
+                Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(2))), 2),
+                Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(3))), 3)
+            ),
         ],
     ));
 }
@@ -189,21 +204,30 @@ fn parse_ternary_if() {
     check_parse!(
         "1 if 2 else 3",
         Expression::if_then_else(
-            Expression::constant_num(2),
-            Expression::constant_num(1),
-            Expression::constant_num(3),
+            Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(2))), 2),
+            Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(1))), 1),
+            Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(3))), 3),
         )
     );
     check_parse!("hello(1) if foo[23] else world[1 if foo else 2]", |s| {
         Expression::if_then_else(
-            Expression::index(mk_ident(&s, "foo"), Expression::constant_num(23)),
-            Expression::call(mk_ident(&s, "hello"), vec![Expression::constant_num(1)]),
+            Expression::index(
+                mk_ident(&s, "foo"),
+                Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(23))), 23),
+            ),
+            Expression::call(
+                mk_ident(&s, "hello"),
+                vec![Expression::constant_num(
+                    Token::new(TokenKind::Literal(Literal::Number(1))),
+                    1,
+                )],
+            ),
             Expression::index(
                 mk_ident(&s, "world"),
                 Expression::if_then_else(
                     mk_ident(&s, "foo"),
-                    Expression::constant_num(1),
-                    Expression::constant_num(2),
+                    Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(1))), 1),
+                    Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(2))), 2),
                 ),
             ),
         )
@@ -211,9 +235,9 @@ fn parse_ternary_if() {
     check_parse!(
         "0 unless 1 else 2",
         Expression::if_then_else(
-            Expression::constant_num(1),
-            Expression::constant_num(2),
-            Expression::constant_num(0),
+            Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(1))), 1),
+            Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(2))), 2),
+            Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(0))), 0),
         )
     );
 }
@@ -233,7 +257,10 @@ fn parse_function_def() {
         s.intern("test")
     )
     .with_return_type(TypeRef::simple("Num"))
-    .with_body(vec![Expression::constant_num(100)])
+    .with_body(vec![Expression::constant_num(
+        Token::new(TokenKind::Literal(Literal::Number(100))),
+        100
+    )])
     .into());
     check_parse!(
         "fn ünécød3() :Num
@@ -242,9 +269,9 @@ fn parse_function_def() {
         |s| Expression::function(s.intern("ünécød3"))
             .with_return_type(TypeRef::simple("Num"))
             .with_body(vec![Expression::if_then_else(
-                Expression::constant_num(74),
-                Expression::constant_num(0),
-                Expression::constant_num(888),
+                Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(74))), 74),
+                Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(0))), 0),
+                Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(888))), 888),
             )])
             .into()
     );
@@ -254,13 +281,19 @@ fn parse_function_def() {
 fn parse_while_loop() {
     check_parse!(
         "while 1 end",
-        Expression::loop_while(Expression::constant_num(1), Vec::new())
+        Expression::loop_while(
+            Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(1))), 1),
+            Vec::new()
+        )
     );
     check_parse!(
         "while 0 44 234 end",
         Expression::loop_while(
-            Expression::constant_num(0),
-            vec![Expression::constant_num(44), Expression::constant_num(234)],
+            Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(0))), 0),
+            vec![
+                Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(44))), 44),
+                Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(234))), 234)
+            ],
         )
     );
 }
@@ -298,7 +331,7 @@ fn parse_simple_array_type() {
     check_parse!("let f: [Num] = 100", |s| Expression::declaration(
         TypedId::from_parts(s.intern("f"), Some(TypeRef::array(TypeRef::simple("Num"))),),
         false,
-        Expression::constant_num(100),
+        Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(100))), 100),
     ));
 }
 
@@ -307,7 +340,7 @@ fn parse_simple_let() {
     check_parse!("let foo = 100", |s| Expression::declaration(
         TypedId::from_parts(s.intern("foo"), None),
         false,
-        Expression::constant_num(100),
+        Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(100))), 100),
     ));
 }
 
@@ -319,7 +352,7 @@ fn parse_simple_tuple() {
             Some(TypeRef::tuple(vec![TypeRef::simple("Num")])),
         ),
         false,
-        Expression::constant_num(100),
+        Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(100))), 100),
     ));
     check_parse!("let f: (Num, [String]) = 100", |s| Expression::declaration(
         TypedId::from_parts(
@@ -330,7 +363,7 @@ fn parse_simple_tuple() {
             ])),
         ),
         false,
-        Expression::constant_num(100),
+        Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(100))), 100),
     ));
 }
 
@@ -339,12 +372,18 @@ fn parse_variable_decl() {
     check_parse!("var foo = 93", |s| Expression::declaration(
         TypedId::from_parts(s.intern("foo"), None),
         true,
-        Expression::constant_num(93),
+        Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(93))), 93),
     ));
     check_parse!("var foo_bar: Number = -99999", |s| Expression::declaration(
         TypedId::from_parts(s.intern("foo_bar"), Some(TypeRef::simple("Number"))),
         true,
-        Expression::prefix(PrefixOp::Negate, Expression::constant_num(99999)),
+        Expression::prefix(
+            PrefixOp::Negate,
+            Expression::constant_num(
+                Token::new(TokenKind::Literal(Literal::Number(99999))),
+                99999
+            )
+        ),
     ));
 }
 
@@ -352,21 +391,41 @@ fn parse_variable_decl() {
 fn parse_print_operator() {
     check_parse!(
         "print 1334",
-        Expression::print(Expression::constant_num(1334))
+        Expression::print(Expression::constant_num(
+            Token::new(TokenKind::Literal(Literal::Number(1334))),
+            1334
+        ))
     );
 }
 
 #[test]
 fn parse_bool_literal() {
-    check_parse!("true", Expression::constant_bool(true));
-    check_parse!("false", Expression::constant_bool(false));
+    check_parse!("true", |s| Expression::constant_bool(
+        Token::new(TokenKind::Word(s.intern("true"))),
+        true
+    ));
+    check_parse!("false", |s| Expression::constant_bool(
+        Token::new(TokenKind::Word(s.intern("false"))),
+        false
+    ));
 }
 
 #[test]
 fn parse_string_literal() {
-    check_parse!("'hello'", Expression::constant_string("hello"));
+    check_parse!(
+        "'hello'",
+        Expression::constant_string(
+            Token::new(TokenKind::Literal(Literal::RawString("hello".into()))),
+            "hello"
+        )
+    );
     check_parse!(
         "'über ∂elta'",
-        Expression::constant_string("über ∂elta")
+        Expression::constant_string(
+            Token::new(TokenKind::Literal(Literal::RawString(
+                "über ∂elta".into()
+            ))),
+            "über ∂elta"
+        )
     );
 }

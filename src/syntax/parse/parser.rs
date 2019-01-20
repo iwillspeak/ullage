@@ -361,12 +361,15 @@ impl<'a> Parser<'a> {
                 let to_print = self.single_expression()?;
                 Ok(Expression::print(to_print))
             }
-            TokenKind::Word(Ident::True) => Ok(Expression::constant_bool(true)),
-            TokenKind::Word(Ident::False) => Ok(Expression::constant_bool(false)),
+            TokenKind::Word(Ident::True) => Ok(Expression::constant_bool(token, true)),
+            TokenKind::Word(Ident::False) => Ok(Expression::constant_bool(token, false)),
             TokenKind::Word(word) => Ok(Expression::identifier(token, word)),
             TokenKind::Literal(ref l) => match *l {
-                Literal::Number(i) => Ok(Expression::constant_num(i)),
-                Literal::RawString(ref s) => Ok(Expression::constant_string(s.clone())),
+                Literal::Number(i) => Ok(Expression::constant_num(token, i)),
+                Literal::RawString(ref s) => {
+                    let string_value = s.clone();
+                    Ok(Expression::constant_string(token, string_value))
+                }
             },
             TokenKind::Plus => self.expression(100),
             TokenKind::Minus => self.prefix_op(PrefixOp::Negate),
