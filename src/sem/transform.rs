@@ -42,11 +42,12 @@ pub fn transform_expression(ctx: &mut SemCtx, expr: SyntaxExpr) -> CompResult<Ex
             let typ = transformed.last().and_then(|e| e.typ);
             Ok(Expression::new(ExpressionKind::Sequence(transformed), typ))
         }
-        SyntaxExpr::Prefix(op, expr) => {
+        SyntaxExpr::Prefix(pref) => {
+            let expr = pref.inner;
             let transformed = transform_expression(ctx, *expr)?;
             let typ = transformed.typ;
             Ok(Expression::new(
-                ExpressionKind::Prefix(op, Box::new(transformed)),
+                ExpressionKind::Prefix(pref.op, Box::new(transformed)),
                 typ,
             ))
         }

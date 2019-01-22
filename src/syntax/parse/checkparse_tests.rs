@@ -113,6 +113,7 @@ fn parse_prefix_expressions() {
                 Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(1))), 1),
                 InfixOp::Mul,
                 Expression::prefix(
+                    Token::new(TokenKind::Minus),
                     PrefixOp::Negate,
                     Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(2))), 2)
                 ),
@@ -122,13 +123,22 @@ fn parse_prefix_expressions() {
         )
     );
     check_parse!("!a", |s| Expression::prefix(
+        Token::new(TokenKind::Bang),
         PrefixOp::Not,
         mk_ident(&s, "a")
     ));
     check_parse!("!a != !b", |s| Expression::infix(
-        Expression::prefix(PrefixOp::Not, mk_ident(&s, "a")),
+        Expression::prefix(
+            Token::new(TokenKind::Bang),
+            PrefixOp::Not,
+            mk_ident(&s, "a")
+        ),
         InfixOp::NotEq,
-        Expression::prefix(PrefixOp::Not, mk_ident(&s, "b")),
+        Expression::prefix(
+            Token::new(TokenKind::Bang),
+            PrefixOp::Not,
+            mk_ident(&s, "b")
+        ),
     ));
 }
 
@@ -151,7 +161,11 @@ fn parse_complex_call() {
                 InfixOp::Add,
                 Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(23))), 23),
             ),
-            Expression::prefix(PrefixOp::Negate, mk_ident(&s, "world"),),
+            Expression::prefix(
+                Token::new(TokenKind::Minus),
+                PrefixOp::Negate,
+                mk_ident(&s, "world"),
+            ),
         ],
     ));
 }
@@ -306,6 +320,7 @@ fn parse_function_with_args() {
     .with_arg(TypedId::new(s.intern("i"), TypeRef::simple("Num")))
     .with_return_type(TypeRef::simple("Num"))
     .with_body(vec![Expression::prefix(
+        Token::new(TokenKind::Minus),
         PrefixOp::Negate,
         mk_ident(&s, "i"),
     )])
@@ -378,6 +393,7 @@ fn parse_variable_decl() {
         TypedId::from_parts(s.intern("foo_bar"), Some(TypeRef::simple("Number"))),
         true,
         Expression::prefix(
+            Token::new(TokenKind::Minus),
             PrefixOp::Negate,
             Expression::constant_num(
                 Token::new(TokenKind::Literal(Literal::Number(99999))),

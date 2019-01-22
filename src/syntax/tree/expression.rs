@@ -79,6 +79,20 @@ pub struct LiteralExpression {
     pub value: Constant,
 }
 
+/// Prefix Expression
+///
+/// Holds the contents of the prefix expression. This is the operator
+/// token and the inner expression.
+#[derive(Debug, PartialEq)]
+pub struct PrefixExpression {
+    /// The token for the operator
+    pub op_token: Box<Token>,
+    /// The operator itself
+    pub op: PrefixOp,
+    /// The inner Expression
+    pub inner: Box<Expression>,
+}
+
 /// Represents an AST expression.
 #[derive(Debug, PartialEq)]
 pub enum Expression {
@@ -91,8 +105,10 @@ pub enum Expression {
     /// Represents a hardcoded value in the program, such as a number
     /// or string literal.
     Literal(LiteralExpression),
-    #[allow(missing_docs)]
-    Prefix(PrefixOp, Box<Expression>),
+    /// A Prefix Expression
+    ///
+    /// Represents the application of a prefix operator to a value.
+    Prefix(PrefixExpression),
     #[allow(missing_docs)]
     Infix(Box<Expression>, InfixOp, Box<Expression>),
     #[allow(missing_docs)]
@@ -170,8 +186,12 @@ impl Expression {
     ///
     /// Represents the application of a prefix unary operator to
     /// another expression.
-    pub fn prefix(op: PrefixOp, expr: Expression) -> Self {
-        Expression::Prefix(op, Box::new(expr))
+    pub fn prefix(op_token: Token, op: PrefixOp, expr: Expression) -> Self {
+        Expression::Prefix(PrefixExpression {
+            op_token: Box::new(op_token),
+            op,
+            inner: Box::new(expr),
+        })
     }
 
     /// # New Infix Operator Expression

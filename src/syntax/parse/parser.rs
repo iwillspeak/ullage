@@ -241,9 +241,9 @@ impl<'a> Parser<'a> {
     /// Prefix Operator
     ///
     /// Parses the trailing expression for a prefix operator.
-    fn prefix_op(&mut self, op: PrefixOp) -> ParseResult<Expression> {
+    fn prefix_op(&mut self, op_token: Token, op: PrefixOp) -> ParseResult<Expression> {
         let rhs = self.expression(100)?;
-        Ok(Expression::prefix(op, rhs))
+        Ok(Expression::prefix(op_token, op, rhs))
     }
 
     /// Ternay Body
@@ -344,15 +344,10 @@ impl<'a> Parser<'a> {
                 Ok(Expression::from(res))
             }
             TokenKind::Word(Ident::While) | TokenKind::Word(Ident::Until) => {
-                let mut condition = self.single_expression()?;
-                // TODO: It would be nice if we could do this in
-                // lowering rather than hacking it up like this in
-                // parsing
-                if token.kind == TokenKind::Word(Ident::Until) {
-                    condition = Expression::Prefix(PrefixOp::Not, Box::new(condition));
-                }
+                let condition = self.single_expression()?;
                 let block = self.block()?;
                 self.expect(&TokenKind::Word(Ident::End))?;
+                // TODO: we forget if this is a while or an until here..
                 Ok(Expression::loop_while(condition, block))
             }
             TokenKind::Word(Ident::Let) => self.declaration(false),
@@ -372,8 +367,8 @@ impl<'a> Parser<'a> {
                 }
             },
             TokenKind::Plus => self.expression(100),
-            TokenKind::Minus => self.prefix_op(PrefixOp::Negate),
-            TokenKind::Bang => self.prefix_op(PrefixOp::Not),
+            TokenKind::Minus => self.prefix_op(token, PrefixOp::Negate),
+            TokenKind::Bang => self.prefix_op(token, PrefixOp::Not),
             TokenKind::OpenBracket => {
                 let expr = self.single_expression()?;
                 let closing = self.expect(&TokenKind::CloseBracket)?;
