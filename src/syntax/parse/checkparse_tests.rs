@@ -294,16 +294,16 @@ fn parse_function_def() {
 #[test]
 fn parse_while_loop() {
     check_parse!(
-        "while 1 end",
+        "while 1 end", |s| 
         Expression::loop_while(
-            Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(1))), 1),
+        Token::new(TokenKind::Word(s.intern("while"))), Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(1))), 1),
             Vec::new()
         )
     );
     check_parse!(
-        "while 0 44 234 end",
+        "while 0 44 234 end", |s| 
         Expression::loop_while(
-            Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(0))), 0),
+        Token::new(TokenKind::Word(s.intern("while"))),             Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(0))), 0),
             vec![
                 Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(44))), 44),
                 Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(234))), 234)

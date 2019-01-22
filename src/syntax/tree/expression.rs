@@ -93,6 +93,20 @@ pub struct PrefixExpression {
     pub inner: Box<Expression>,
 }
 
+/// Loop Expression
+///
+/// Represents a loop operator. Loops always evaluate to `()` but can
+/// run the body of the loop more than once.
+#[derive(Debug, PartialEq)]
+pub struct LoopExpression {
+    /// The word used to introduce the loop
+    pub kw_token: Box<Token>,
+    /// The loop header expression
+    pub condition: Box<Expression>,
+    /// The loop body
+    pub body: Box<Expression>,
+}
+
 /// Represents an AST expression.
 #[derive(Debug, PartialEq)]
 pub enum Expression {
@@ -119,8 +133,8 @@ pub enum Expression {
     IfThenElse(Box<Expression>, Box<Expression>, Box<Expression>),
     #[allow(missing_docs)]
     Function(Ident, TypeRef, Vec<TypedId>, Box<Expression>),
-    #[allow(missing_docs)]
-    Loop(Box<Expression>, Box<Expression>),
+    /// Conditional Loop
+    Loop(LoopExpression),
     #[allow(missing_docs)]
     Sequence(Vec<Expression>),
     #[allow(missing_docs)]
@@ -237,9 +251,12 @@ impl Expression {
     ///
     /// Represents the repeated evaluation of an expression until a
     /// condition changes.
-    pub fn loop_while(condition: Expression, body: Vec<Expression>) -> Self {
-        let body = Expression::sequence(body);
-        Expression::Loop(Box::new(condition), Box::new(body))
+    pub fn loop_while(kw_token: Token, condition: Expression, body: Vec<Expression>) -> Self {
+        Expression::Loop(LoopExpression {
+            kw_token: Box::new(kw_token),
+            condition: Box::new(condition),
+            body: Box::new(Expression::sequence(body)),
+        })
     }
 
     /// # New Variable Declaration

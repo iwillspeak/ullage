@@ -7,7 +7,9 @@
 //! [`transform_expression`]: ./function.transform_expression.html
 
 use crate::syntax::InfixOp;
-use crate::syntax::{Constant, Expression as SyntaxExpr};
+use crate::syntax::text::Ident;
+use crate::syntax::{Constant, Expression as SyntaxExpr, PrefixOp};
+use crate::syntax::tree::TokenKind;
 
 use super::super::compile::{CompError, CompResult};
 use super::operators::find_builtin_op;
@@ -110,9 +112,16 @@ pub fn transform_expression(ctx: &mut SemCtx, expr: SyntaxExpr) -> CompResult<Ex
                 typ,
             ))
         }
-        SyntaxExpr::Loop(condition, body) => {
-            let condition = transform_expression(ctx, *condition)?;
-            let body = transform_expression(ctx, *body)?;
+        SyntaxExpr::Loop(loop_expr) => {
+            let mut condition = transform_expression(ctx, *loop_expr.condition)?;
+            if loop_expr.kw_token.kind == TokenKind::Word(Ident::Until) {
+                let typ = condition.typ;
+                condition = Expression::new(
+                    ExpressionKind::Prefix(PrefixOp::Not, Box::new(condition)),
+                    typ
+                );
+            }
+            let body = transform_expression(ctx, *loop_expr.body)?;
             Ok(Expression::new(
                 ExpressionKind::Loop(Box::new(condition), Box::new(body)),
                 Some(Typ::Unit),

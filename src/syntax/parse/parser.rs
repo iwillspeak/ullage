@@ -347,8 +347,7 @@ impl<'a> Parser<'a> {
                 let condition = self.single_expression()?;
                 let block = self.block()?;
                 self.expect(&TokenKind::Word(Ident::End))?;
-                // TODO: we forget if this is a while or an until here..
-                Ok(Expression::loop_while(condition, block))
+                Ok(Expression::loop_while(token, condition, block))
             }
             TokenKind::Word(Ident::Let) => self.declaration(false),
             TokenKind::Word(Ident::Var) => self.declaration(true),
