@@ -266,15 +266,15 @@ impl<'a> Parser<'a> {
 
         match token.kind {
             // Binary infix operator
-            TokenKind::DoubleEquals => self.infix(lhs, &token, InfixOp::Eq),
-            TokenKind::BangEquals => self.infix(lhs, &token, InfixOp::NotEq),
-            TokenKind::LessThan => self.infix(lhs, &token, InfixOp::Lt),
-            TokenKind::MoreThan => self.infix(lhs, &token, InfixOp::Gt),
-            TokenKind::Equals => self.infix(lhs, &token, InfixOp::Assign),
-            TokenKind::Plus => self.infix(lhs, &token, InfixOp::Add),
-            TokenKind::Minus => self.infix(lhs, &token, InfixOp::Sub),
-            TokenKind::Star => self.infix(lhs, &token, InfixOp::Mul),
-            TokenKind::Slash => self.infix(lhs, &token, InfixOp::Div),
+            TokenKind::DoubleEquals => self.infix(lhs, token, InfixOp::Eq),
+            TokenKind::BangEquals => self.infix(lhs, token, InfixOp::NotEq),
+            TokenKind::LessThan => self.infix(lhs, token, InfixOp::Lt),
+            TokenKind::MoreThan => self.infix(lhs, token, InfixOp::Gt),
+            TokenKind::Equals => self.infix(lhs, token, InfixOp::Assign),
+            TokenKind::Plus => self.infix(lhs, token, InfixOp::Add),
+            TokenKind::Minus => self.infix(lhs, token, InfixOp::Sub),
+            TokenKind::Star => self.infix(lhs, token, InfixOp::Mul),
+            TokenKind::Slash => self.infix(lhs, token, InfixOp::Div),
 
             // array indexing
             TokenKind::OpenSqBracket => {
@@ -383,8 +383,8 @@ impl<'a> Parser<'a> {
     ///
     /// Given a parsed left hand expression and infix operator parse
     /// the
-    fn infix(&mut self, lhs: Expression, token: &Token, op: InfixOp) -> ParseResult<Expression> {
+    fn infix(&mut self, lhs: Expression, token: Token, op: InfixOp) -> ParseResult<Expression> {
         let rhs = self.expression(token.lbp())?;
-        Ok(Expression::infix(lhs, op, rhs))
+        Ok(Expression::infix(lhs, token, op, rhs))
     }
 }

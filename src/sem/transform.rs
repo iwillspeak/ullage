@@ -6,10 +6,10 @@
 //!
 //! [`transform_expression`]: ./function.transform_expression.html
 
-use crate::syntax::InfixOp;
 use crate::syntax::text::Ident;
-use crate::syntax::{Constant, Expression as SyntaxExpr, PrefixOp};
 use crate::syntax::tree::TokenKind;
+use crate::syntax::InfixOp;
+use crate::syntax::{Constant, Expression as SyntaxExpr, PrefixOp};
 
 use super::super::compile::{CompError, CompResult};
 use super::operators::find_builtin_op;
@@ -53,11 +53,11 @@ pub fn transform_expression(ctx: &mut SemCtx, expr: SyntaxExpr) -> CompResult<Ex
                 typ,
             ))
         }
-        SyntaxExpr::Infix(lhs, op, rhs) => {
-            let rhs = transform_expression(ctx, *rhs)?;
-            match op {
+        SyntaxExpr::Infix(infix) => {
+            let rhs = transform_expression(ctx, *infix.right)?;
+            match infix.op {
                 InfixOp::Assign => {
-                    if let SyntaxExpr::Identifier(id) = *lhs {
+                    if let SyntaxExpr::Identifier(id) = *infix.left {
                         let id_typ = ctx.find_local(id.ident).or(rhs.typ);
                         let id = ctx.source().interned_value(id.ident);
                         Ok(Expression::new(
@@ -71,21 +71,21 @@ pub fn transform_expression(ctx: &mut SemCtx, expr: SyntaxExpr) -> CompResult<Ex
                     }
                 }
                 _ => {
-                    let lhs = transform_expression(ctx, *lhs)?;
+                    let lhs = transform_expression(ctx, *infix.left)?;
 
                     let lhs_typ = relax_ty(lhs.typ);
                     let rhs_typ = relax_ty(rhs.typ);
-                    let found = find_builtin_op(op, lhs_typ, rhs_typ);
+                    let found = find_builtin_op(infix.op, lhs_typ, rhs_typ);
 
                     if let Some(operator) = found {
                         Ok(Expression::new(
-                            ExpressionKind::Infix(Box::new(lhs), op, Box::new(rhs)),
+                            ExpressionKind::Infix(Box::new(lhs), infix.op, Box::new(rhs)),
                             Some(operator.result_typ),
                         ))
                     } else {
                         Err(CompError::from(format!(
                             "Use of operator `{:?}` with invalid arguments",
-                            op
+                            infix.op
                         )))
                     }
                 }
@@ -118,7 +118,7 @@ pub fn transform_expression(ctx: &mut SemCtx, expr: SyntaxExpr) -> CompResult<Ex
                 let typ = condition.typ;
                 condition = Expression::new(
                     ExpressionKind::Prefix(PrefixOp::Not, Box::new(condition)),
-                    typ
+                    typ,
                 );
             }
             let body = transform_expression(ctx, *loop_expr.body)?;

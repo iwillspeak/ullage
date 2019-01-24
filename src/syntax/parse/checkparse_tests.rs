@@ -34,6 +34,7 @@ fn mk_ident(source: &SourceText, id: &str) -> Expression {
 fn parse_simple_string() {
     check_parse!("hello + 123", |s| Expression::infix(
         mk_ident(&s, "hello"),
+        Token::new(TokenKind::Plus),
         InfixOp::Add,
         Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(123))), 123),
     ));
@@ -43,46 +44,55 @@ fn parse_simple_string() {
 fn parse_operators() {
     check_parse!("a = b", |s| Expression::infix(
         mk_ident(&s, "a"),
+        Token::new(TokenKind::Equals),
         InfixOp::Assign,
         mk_ident(&s, "b"),
     ));
     check_parse!("a + b", |s| Expression::infix(
         mk_ident(&s, "a"),
+        Token::new(TokenKind::Plus),
         InfixOp::Add,
         mk_ident(&s, "b"),
     ));
     check_parse!("a - b", |s| Expression::infix(
         mk_ident(&s, "a"),
+        Token::new(TokenKind::Minus),
         InfixOp::Sub,
         mk_ident(&s, "b"),
     ));
     check_parse!("a * b", |s| Expression::infix(
         mk_ident(&s, "a"),
+        Token::new(TokenKind::Star),
         InfixOp::Mul,
         mk_ident(&s, "b"),
     ));
     check_parse!("a / b", |s| Expression::infix(
         mk_ident(&s, "a"),
+        Token::new(TokenKind::Slash),
         InfixOp::Div,
         mk_ident(&s, "b"),
     ));
     check_parse!("a == b", |s| Expression::infix(
         mk_ident(&s, "a"),
+        Token::new(TokenKind::DoubleEquals),
         InfixOp::Eq,
         mk_ident(&s, "b"),
     ));
     check_parse!("a != b", |s| Expression::infix(
         mk_ident(&s, "a"),
+        Token::new(TokenKind::BangEquals),
         InfixOp::NotEq,
         mk_ident(&s, "b"),
     ));
     check_parse!("a < b", |s| Expression::infix(
         mk_ident(&s, "a"),
+        Token::new(TokenKind::LessThan),
         InfixOp::Lt,
         mk_ident(&s, "b"),
     ));
     check_parse!("a > b", |s| Expression::infix(
         mk_ident(&s, "a"),
+        Token::new(TokenKind::MoreThan),
         InfixOp::Gt,
         mk_ident(&s, "b"),
     ));
@@ -94,9 +104,11 @@ fn parse_with_precedence() {
         "1 + 2 * 3",
         Expression::infix(
             Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(1))), 1),
+            Token::new(TokenKind::Plus),
             InfixOp::Add,
             Expression::infix(
                 Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(2))), 2),
+                Token::new(TokenKind::Star),
                 InfixOp::Mul,
                 Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(3))), 3),
             ),
@@ -111,6 +123,7 @@ fn parse_prefix_expressions() {
         Expression::infix(
             Expression::infix(
                 Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(1))), 1),
+                Token::new(TokenKind::Star),
                 InfixOp::Mul,
                 Expression::prefix(
                     Token::new(TokenKind::Minus),
@@ -118,6 +131,7 @@ fn parse_prefix_expressions() {
                     Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(2))), 2)
                 ),
             ),
+            Token::new(TokenKind::Plus),
             InfixOp::Add,
             Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(3))), 3),
         )
@@ -133,6 +147,7 @@ fn parse_prefix_expressions() {
             PrefixOp::Not,
             mk_ident(&s, "a")
         ),
+        Token::new(TokenKind::BangEquals),
         InfixOp::NotEq,
         Expression::prefix(
             Token::new(TokenKind::Bang),
@@ -158,6 +173,7 @@ fn parse_complex_call() {
             Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(1))), 1),
             Expression::infix(
                 Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(1))), 1),
+                Token::new(TokenKind::Plus),
                 InfixOp::Add,
                 Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(23))), 23),
             ),
@@ -174,27 +190,20 @@ fn parse_complex_call() {
 fn parse_groups_with_parens() {
     check_parse!(
         "(1 + 2) * 3",
-        Infix(
-            Box::new(Grouping(
+        Expression::infix(
+            Grouping(
                 Box::new(Token::new(TokenKind::OpenBracket)),
-                Box::new(Infix(
-                    Box::new(Expression::constant_num(
-                        Token::new(TokenKind::Literal(Literal::Number(1))),
-                        1
-                    )),
+                Box::new(Expression::infix(
+                    Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(1))), 1),
+                    Token::new(TokenKind::Plus),
                     InfixOp::Add,
-                    Box::new(Expression::constant_num(
-                        Token::new(TokenKind::Literal(Literal::Number(2))),
-                        2
-                    )),
+                    Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(2))), 2),
                 )),
                 Box::new(Token::new(TokenKind::CloseBracket)),
-            )),
+            ),
+            Token::new(TokenKind::Star),
             InfixOp::Mul,
-            Box::new(Expression::constant_num(
-                Token::new(TokenKind::Literal(Literal::Number(3))),
-                3
-            )),
+            Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(3))), 3)
         )
     );
 }
@@ -260,6 +269,7 @@ fn parse_ternary_if() {
 fn parse_unicode_identifiers() {
     check_parse!("  übåℝ * ßeåk  ", |s| Expression::infix(
         mk_ident(&s, "übåℝ"),
+        Token::new(TokenKind::Star),
         InfixOp::Mul,
         mk_ident(&s, "ßeåk"),
     ));
@@ -293,23 +303,19 @@ fn parse_function_def() {
 
 #[test]
 fn parse_while_loop() {
-    check_parse!(
-        "while 1 end", |s| 
-        Expression::loop_while(
-        Token::new(TokenKind::Word(s.intern("while"))), Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(1))), 1),
-            Vec::new()
-        )
-    );
-    check_parse!(
-        "while 0 44 234 end", |s| 
-        Expression::loop_while(
-        Token::new(TokenKind::Word(s.intern("while"))),             Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(0))), 0),
-            vec![
-                Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(44))), 44),
-                Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(234))), 234)
-            ],
-        )
-    );
+    check_parse!("while 1 end", |s| Expression::loop_while(
+        Token::new(TokenKind::Word(s.intern("while"))),
+        Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(1))), 1),
+        Vec::new()
+    ));
+    check_parse!("while 0 44 234 end", |s| Expression::loop_while(
+        Token::new(TokenKind::Word(s.intern("while"))),
+        Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(0))), 0),
+        vec![
+            Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(44))), 44),
+            Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(234))), 234)
+        ],
+    ));
 }
 
 #[test]
@@ -333,7 +339,13 @@ fn parse_function_with_args() {
             .with_arg(TypedId::new(s.intern("k"), TypeRef::simple("String")))
             .with_return_type(TypeRef::simple("String"))
             .with_body(vec![Expression::infix(
-                Expression::infix(mk_ident(&s, "i"), InfixOp::Add, mk_ident(&s, "j")),
+                Expression::infix(
+                    mk_ident(&s, "i"),
+                    Token::new(TokenKind::Plus),
+                    InfixOp::Add,
+                    mk_ident(&s, "j"),
+                ),
+                Token::new(TokenKind::Plus),
                 InfixOp::Add,
                 mk_ident(&s, "k"),
             )])

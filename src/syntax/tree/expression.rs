@@ -93,6 +93,22 @@ pub struct PrefixExpression {
     pub inner: Box<Expression>,
 }
 
+/// Infix Operator Expression
+///
+/// Represents two expressions joined by an inner operator. This does
+/// not distignuish between assignment and other operators.
+#[derive(Debug, PartialEq)]
+pub struct InfixOperatorExpression {
+    /// The left hand side expression
+    pub left: Box<Expression>,
+    /// The token for the operator
+    pub op_token: Box<Token>,
+    /// The operator itself
+    pub op: InfixOp,
+    /// The right hand side expression
+    pub right: Box<Expression>,
+}
+
 /// Loop Expression
 ///
 /// Represents a loop operator. Loops always evaluate to `()` but can
@@ -110,21 +126,15 @@ pub struct LoopExpression {
 /// Represents an AST expression.
 #[derive(Debug, PartialEq)]
 pub enum Expression {
-    /// A literal identifier
-    ///
-    /// Represents a reference to a variable or function parameter
+    /// A reference to a variable or function parameter
     Identifier(IdentifierExpression),
-    /// A literal value
-    ///
-    /// Represents a hardcoded value in the program, such as a number
-    /// or string literal.
+    /// A hardcoded value in the program, such as a number or string
+    /// literal.
     Literal(LiteralExpression),
-    /// A Prefix Expression
-    ///
-    /// Represents the application of a prefix operator to a value.
+    /// The application of a prefix operator to a value.
     Prefix(PrefixExpression),
-    #[allow(missing_docs)]
-    Infix(Box<Expression>, InfixOp, Box<Expression>),
+    /// The application of an infix operator
+    Infix(InfixOperatorExpression),
     #[allow(missing_docs)]
     Call(Box<Expression>, Vec<Expression>),
     #[allow(missing_docs)]
@@ -212,8 +222,13 @@ impl Expression {
     ///
     /// Represents the application of an infix binary operator to two
     /// expression operands.
-    pub fn infix(lhs: Expression, op: InfixOp, rhs: Expression) -> Self {
-        Expression::Infix(Box::new(lhs), op, Box::new(rhs))
+    pub fn infix(lhs: Expression, op_token: Token, op: InfixOp, rhs: Expression) -> Self {
+        Expression::Infix(InfixOperatorExpression {
+            left: Box::new(lhs),
+            op_token: Box::new(op_token),
+            op,
+            right: Box::new(rhs),
+        })
     }
 
     /// # New Function Call Expression
