@@ -417,13 +417,10 @@ fn parse_variable_decl() {
 
 #[test]
 fn parse_print_operator() {
-    check_parse!(
-        "print 1334",
-        Expression::print(Expression::constant_num(
-            Token::new(TokenKind::Literal(Literal::Number(1334))),
-            1334
-        ))
-    );
+    check_parse!("print 1334", |s| Expression::print(
+        Token::new(TokenKind::Word(s.intern("print"))),
+        Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(1334))), 1334)
+    ));
 }
 
 #[test]

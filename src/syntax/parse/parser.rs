@@ -353,7 +353,7 @@ impl<'a> Parser<'a> {
             TokenKind::Word(Ident::Var) => self.declaration(true),
             TokenKind::Word(Ident::Print) => {
                 let to_print = self.single_expression()?;
-                Ok(Expression::print(to_print))
+                Ok(Expression::print(token, to_print))
             }
             TokenKind::Word(Ident::True) => Ok(Expression::constant_bool(token, true)),
             TokenKind::Word(Ident::False) => Ok(Expression::constant_bool(token, false)),

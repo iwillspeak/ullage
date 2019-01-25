@@ -127,8 +127,8 @@ pub fn transform_expression(ctx: &mut SemCtx, expr: SyntaxExpr) -> CompResult<Ex
                 Some(Typ::Unit),
             ))
         }
-        SyntaxExpr::Print(inner) => {
-            let transformed = transform_expression(ctx, *inner)?;
+        SyntaxExpr::Print(print) => {
+            let transformed = transform_expression(ctx, *print.inner)?;
             let typ = transformed.typ;
             Ok(Expression::new(
                 ExpressionKind::Print(Box::new(transformed)),

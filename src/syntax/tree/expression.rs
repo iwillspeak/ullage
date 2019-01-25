@@ -123,6 +123,17 @@ pub struct LoopExpression {
     pub body: Box<Expression>,
 }
 
+/// Print Expressin
+///
+/// The appliation of the prefix `print` operator.
+#[derive(Debug, PartialEq)]
+pub struct PrintExpression {
+    /// The `print` token
+    pub print_tok: Box<Token>,
+    /// The expression to be printed
+    pub inner: Box<Expression>,
+}
+
 /// Represents an AST expression.
 #[derive(Debug, PartialEq)]
 pub enum Expression {
@@ -147,8 +158,8 @@ pub enum Expression {
     Loop(LoopExpression),
     #[allow(missing_docs)]
     Sequence(Vec<Expression>),
-    #[allow(missing_docs)]
-    Print(Box<Expression>),
+    /// Print Expression
+    Print(PrintExpression),
     #[allow(missing_docs)]
     Declaration(TypedId, bool, Box<Expression>),
     #[allow(missing_docs)]
@@ -293,8 +304,11 @@ impl Expression {
     ///
     /// Evaluates an inner expression, prints it to standard output,
     /// and then returns the inner expression's value.
-    pub fn print(expr: Expression) -> Self {
-        Expression::Print(Box::new(expr))
+    pub fn print(print: Token, expr: Expression) -> Self {
+        Expression::Print(PrintExpression {
+            print_tok: Box::new(print),
+            inner: Box::new(expr),
+        })
     }
 
     /// # Grouping Expression
