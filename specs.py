@@ -8,10 +8,11 @@ import re
 import collections
 import itertools
 
-Expectations = collections.namedtuple('Expectations', ['expects', 'failure_expects'])
+Expectations = collections.namedtuple('Expectations', ['expects', 'failure_expects', 'skip_run'])
 
 EXPECT_PATTERN = re.compile(r'#\s?=>\s?(.+)')
 EXPECT_ERR_PATTERN = re.compile(r'#\s?!>\s?(.+)')
+SKIP_PATTERN = re.compile(r'#\s?!!skip')
 
 class Error(Exception):
     def __init__(self, error):
@@ -39,12 +40,16 @@ def add_matches(pattern, line, expects):
         expects.append(match.group(1))
 
 def parse_spec(path):
-    expects = Expectations([], [])
+    expects = []
+    failure_expects = []
+    skip_run = False
     with open(path) as f:
         for line in f.readlines():
-            add_matches(EXPECT_PATTERN, line, expects.expects)
-            add_matches(EXPECT_ERR_PATTERN, line, expects.failure_expects)
-    return expects
+            add_matches(EXPECT_PATTERN, line, expects)
+            add_matches(EXPECT_ERR_PATTERN, line, failure_expects)
+            if SKIP_PATTERN.search(line):
+                skip_run = True
+    return Expectations(expects, failure_expects, skip_run)
 
 def check_output(lines, expects):
     """Check that Output Matches Expectations
@@ -94,6 +99,8 @@ def run_spec(path):
         return
     if expectations.failure_expects:
         raise ExitCodeMismatchError("Expected failure but compilation succeeded")
+    if expectations.skip_run:
+        return
     run_cmd = subprocess.Popen(out, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     output = run_cmd.communicate()
     if run_cmd.returncode != 0:

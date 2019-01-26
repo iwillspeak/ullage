@@ -19,3 +19,14 @@ fn print_str(s: String): String
 end
 
 print_str('hello') # => hello
+
+## Tests for printing out 'large' numbers. This makes sure we print
+## out 64 bit values correctly
+print 2147483647 # => 2147483647
+print -2147483648 # => -2147483648
+print 2971215073 # => 2971215073
+print 9223372036854775807 #=> 9223372036854775807
+# Since negative integers aren't actually literals, just applications
+# of a prefix operator we can't actually _write_ the value in
+# full. Instead compute it.
+print -9223372036854775807 - 1 # => -9223372036854775808
