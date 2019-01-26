@@ -43,6 +43,10 @@ pub enum InfixOp {
     NotEq,
     /// Less than comparision operator (`<`)
     Lt,
+    /// Less than or equals operator (`<=`)
+    LtEq,
     /// Greater than comparison operator (`>`)
     Gt,
+    /// Greater than or equals operator (`>=`)
+    GtEq,
 }

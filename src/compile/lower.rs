@@ -22,7 +22,9 @@ impl From<InfixOp> for Predicate {
             InfixOp::Eq => Predicate::Eq,
             InfixOp::NotEq => Predicate::Neq,
             InfixOp::Lt => Predicate::Lt,
+            InfixOp::LtEq => Predicate::LtEq,
             InfixOp::Gt => Predicate::Gt,
+            InfixOp::GtEq => Predicate::GtEq,
             _ => panic!("Infix op {:?} is not a predicate", op),
         }
     }
@@ -167,9 +169,12 @@ pub fn lower_internal(
                 InfixOp::Mul => builder.build_mul(lhs_val, rhs_val),
                 InfixOp::Div => builder.build_sdiv(lhs_val, rhs_val),
 
-                InfixOp::Eq | InfixOp::NotEq | InfixOp::Lt | InfixOp::Gt => {
-                    builder.build_icmp(Predicate::from(op), lhs_val, rhs_val)
-                }
+                InfixOp::Eq
+                | InfixOp::NotEq
+                | InfixOp::Lt
+                | InfixOp::Gt
+                | InfixOp::LtEq
+                | InfixOp::GtEq => builder.build_icmp(Predicate::from(op), lhs_val, rhs_val),
 
                 InfixOp::Assign => unreachable!(),
             };

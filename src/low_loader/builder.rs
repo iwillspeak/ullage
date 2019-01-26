@@ -35,8 +35,12 @@ pub enum Predicate {
     Neq,
     /// Arithmetic less than comparison
     Lt,
+    /// Arithmetic less than or equal comparison
+    LtEq,
     /// Arithmetic greter than comparision
     Gt,
+    /// Arithmetic greater than or equal comparison
+    GtEq,
 }
 
 impl Builder {
@@ -197,6 +201,8 @@ impl Builder {
             Predicate::Neq => LLVMIntPredicate::LLVMIntNE,
             Predicate::Lt => LLVMIntPredicate::LLVMIntSLT,
             Predicate::Gt => LLVMIntPredicate::LLVMIntSGT,
+            Predicate::LtEq => LLVMIntPredicate::LLVMIntSLE,
+            Predicate::GtEq => LLVMIntPredicate::LLVMIntSGE,
         };
         unsafe {
             let name = CStr::from_bytes_with_nul_unchecked(b"cmptemp\0");

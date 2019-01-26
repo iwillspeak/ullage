@@ -56,7 +56,9 @@ pub fn find_builtin_op(op: InfixOp, lhs_typ: Typ, rhs_typ: Typ) -> Option<SemOp>
         (InfixOp::Eq, _, _)
         | (InfixOp::NotEq, _, _)
         | (InfixOp::Lt, _, _)
-        | (InfixOp::Gt, _, _) => comp_op(op),
+        | (InfixOp::LtEq, _, _)
+        | (InfixOp::Gt, _, _)
+        | (InfixOp::GtEq, _, _) => comp_op(op),
 
         _ => None,
     }

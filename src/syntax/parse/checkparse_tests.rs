@@ -90,10 +90,22 @@ fn parse_operators() {
         InfixOp::Lt,
         mk_ident(&s, "b"),
     ));
+    check_parse!("a <= b", |s| Expression::infix(
+        mk_ident(&s, "a"),
+        Token::new(TokenKind::LessThanEqual),
+        InfixOp::LtEq,
+        mk_ident(&s, "b"),
+    ));
     check_parse!("a > b", |s| Expression::infix(
         mk_ident(&s, "a"),
         Token::new(TokenKind::MoreThan),
         InfixOp::Gt,
+        mk_ident(&s, "b"),
+    ));
+    check_parse!("a >= b", |s| Expression::infix(
+        mk_ident(&s, "a"),
+        Token::new(TokenKind::MoreThanEqual),
+        InfixOp::GtEq,
         mk_ident(&s, "b"),
     ));
 }

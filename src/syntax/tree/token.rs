@@ -94,8 +94,14 @@ pub enum TokenKind {
     /// The `<` character
     LessThan,
 
+    /// The `<=` operator
+    LessThanEqual,
+
     /// The `>` character
     MoreThan,
+
+    /// The `>=` operator
+    MoreThanEqual,
 
     /// The end of the token stream. This is retuend indefinitely once
     /// the lexer reaches the end of the source text.
@@ -135,7 +141,9 @@ impl Token {
             TokenKind::DoubleEquals
             | TokenKind::BangEquals
             | TokenKind::LessThan
-            | TokenKind::MoreThan => 40,
+            | TokenKind::LessThanEqual
+            | TokenKind::MoreThan
+            | TokenKind::MoreThanEqual => 40,
 
             // Arithmetic operators
             TokenKind::Plus | TokenKind::Minus => 50,

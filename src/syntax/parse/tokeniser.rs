@@ -133,8 +133,18 @@ impl<'t> Iterator for RawTokeniser<'t> {
                 ']' => TokenKind::CloseSqBracket.into(),
                 ',' => TokenKind::Comma.into(),
                 ':' => TokenKind::Colon.into(),
-                '<' => TokenKind::LessThan.into(),
-                '>' => TokenKind::MoreThan.into(),
+                '<' => self.ch_choice(
+                    &mut chars,
+                    '=',
+                    TokenKind::LessThan,
+                    TokenKind::LessThanEqual,
+                ),
+                '>' => self.ch_choice(
+                    &mut chars,
+                    '=',
+                    TokenKind::MoreThan,
+                    TokenKind::MoreThanEqual,
+                ),
                 '#' => {
                     self.skip_over(&mut chars, |c| c != '\n');
                     TriviaTokenKind::Comment.into()
@@ -287,7 +297,9 @@ mod test {
         check_lex!(",", RawTokenKind::Plain(TokenKind::Comma));
         check_lex!(":", RawTokenKind::Plain(TokenKind::Colon));
         check_lex!("<", RawTokenKind::Plain(TokenKind::LessThan));
+        check_lex!("<=", RawTokenKind::Plain(TokenKind::LessThanEqual));
         check_lex!(">", RawTokenKind::Plain(TokenKind::MoreThan));
+        check_lex!(">=", RawTokenKind::Plain(TokenKind::MoreThanEqual));
 
         // Whitespace
         check_lex!(" ", RawTokenKind::Trivia(TriviaTokenKind::Whitespace));
