@@ -24,7 +24,7 @@ mod string_builtins;
 /// declarations/definitions of any builtin funtions are emitted.
 fn add_core_decls(ctx: &mut Context, module: &mut Module) -> CompResult<()> {
     add_printf_decl(ctx, module);
-    module.add_global(ctx.const_str("%d\n"), "printf_num_format");
+    module.add_global(ctx.const_str("%lld\n"), "printf_num_format");
     module.add_global(ctx.const_str("%s\n"), "printf_cstr_format");
     module.add_global(ctx.const_str("%.*s\n"), "printf_ustr_format");
     module.add_global(ctx.const_str("true"), "print_true");
