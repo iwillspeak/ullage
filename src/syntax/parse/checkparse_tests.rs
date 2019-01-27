@@ -3,7 +3,7 @@
 //! Tests for the parser which check that a given input matches an
 //! exprexpected parse tree.
 
-use super::super::text::SourceText;
+use super::super::text::{Ident, SourceText};
 use super::super::tree::{Literal, Token, TokenKind};
 use super::super::Expression::*;
 use super::super::*;
@@ -28,6 +28,15 @@ macro_rules! check_parse {
 fn mk_ident(source: &SourceText, id: &str) -> Expression {
     let id = source.intern(id);
     Expression::identifier(Token::new(TokenKind::Word(id)), id)
+}
+
+/// Turns a vector of expressions into a dummy block body by pasting a
+/// stubbed `Ident::End` on the end.
+fn blockify(contents: Vec<Expression>) -> BlockBody {
+    BlockBody {
+        contents: Box::new(Expression::Sequence(contents)),
+        close: Box::new(Token::new(TokenKind::Word(Ident::End))),
+    }
 }
 
 #[test]
@@ -312,10 +321,10 @@ fn parse_function_def() {
         s.intern("test")
     )
     .with_return_type(TypeRef::simple("Num"))
-    .with_body(vec![Expression::constant_num(
+    .with_body(blockify(vec![Expression::constant_num(
         Token::new(TokenKind::Literal(Literal::Number(100))),
         100
-    )])
+    )]))
     .into());
     check_parse!(
         "fn ünécød3() :Num
@@ -323,11 +332,11 @@ fn parse_function_def() {
              end",
         |s| Expression::function(s.intern("ünécød3"))
             .with_return_type(TypeRef::simple("Num"))
-            .with_body(vec![Expression::if_then_else(
+            .with_body(blockify(vec![Expression::if_then_else(
                 Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(74))), 74),
                 Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(0))), 0),
                 Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(888))), 888),
-            )])
+            )]))
             .into()
     );
 }
@@ -337,15 +346,15 @@ fn parse_while_loop() {
     check_parse!("while 1 end", |s| Expression::loop_while(
         Token::new(TokenKind::Word(s.intern("while"))),
         Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(1))), 1),
-        Vec::new()
+        blockify(Vec::new())
     ));
     check_parse!("while 0 44 234 end", |s| Expression::loop_while(
         Token::new(TokenKind::Word(s.intern("while"))),
         Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(0))), 0),
-        vec![
+        blockify(vec![
             Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(44))), 44),
             Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(234))), 234)
-        ],
+        ]),
     ));
 }
 
@@ -356,11 +365,11 @@ fn parse_function_with_args() {
     )
     .with_arg(TypedId::new(s.intern("i"), TypeRef::simple("Num")))
     .with_return_type(TypeRef::simple("Num"))
-    .with_body(vec![Expression::prefix(
+    .with_body(blockify(vec![Expression::prefix(
         Token::new(TokenKind::Minus),
         PrefixOp::Negate,
         mk_ident(&s, "i"),
-    )])
+    )]))
     .into());
 
     check_parse!("fn test(i: Num, j, k: String): String i + j + k end", |s| {
@@ -369,7 +378,7 @@ fn parse_function_with_args() {
             .with_arg(TypedId::new_without_type(s.intern("j")))
             .with_arg(TypedId::new(s.intern("k"), TypeRef::simple("String")))
             .with_return_type(TypeRef::simple("String"))
-            .with_body(vec![Expression::infix(
+            .with_body(blockify(vec![Expression::infix(
                 Expression::infix(
                     mk_ident(&s, "i"),
                     Token::new(TokenKind::Plus),
@@ -379,7 +388,7 @@ fn parse_function_with_args() {
                 Token::new(TokenKind::Plus),
                 InfixOp::Add,
                 mk_ident(&s, "k"),
-            )])
+            )]))
             .into()
     });
 }

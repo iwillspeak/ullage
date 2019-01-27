@@ -3,7 +3,7 @@
 //! Contains the `Functiondeclarationbuilder` which is used by the
 //! parser when creating `Expression::Function`s.
 
-use super::expression::{Expression, TypedId};
+use super::expression::{BlockBody, Expression, TypedId};
 use super::types::TypeRef;
 use crate::syntax::text::Ident;
 
@@ -20,7 +20,7 @@ pub struct FunctionDeclarationBuilder {
     id: Ident,
     typ: TypeRef,
     args: Vec<TypedId>,
-    body: Vec<Expression>,
+    body: Option<BlockBody>,
 }
 
 impl FunctionDeclarationBuilder {
@@ -32,7 +32,7 @@ impl FunctionDeclarationBuilder {
             id,
             typ: TypeRef::unit(),
             args: Vec::new(),
-            body: Vec::new(),
+            body: None,
         }
     }
 
@@ -69,8 +69,8 @@ impl FunctionDeclarationBuilder {
     /// # Returns
     ///
     /// The modified builder, to continue building this declaration.
-    pub fn with_body(mut self, body: Vec<Expression>) -> Self {
-        self.body = body;
+    pub fn with_body(mut self, body: BlockBody) -> Self {
+        self.body = Some(body);
         self
     }
 }
@@ -78,7 +78,10 @@ impl FunctionDeclarationBuilder {
 /// Support Converting the Builder into an Expression
 impl From<FunctionDeclarationBuilder> for Expression {
     fn from(builder: FunctionDeclarationBuilder) -> Expression {
-        let body = Expression::sequence(builder.body);
-        Expression::Function(builder.id, builder.typ, builder.args, Box::new(body))
+        let body = builder
+            .body
+            .map(|b| b.contents)
+            .unwrap_or_else(|| Box::new(Expression::sequence(Vec::new())));
+        Expression::Function(builder.id, builder.typ, builder.args, body)
     }
 }

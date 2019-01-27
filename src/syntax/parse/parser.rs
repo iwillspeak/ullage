@@ -15,7 +15,7 @@
 
 use super::super::text::{Ident, SourceText};
 use super::super::tree::{Literal, Token, TokenKind};
-use super::super::{Expression, InfixOp, PrefixOp, TypeRef, TypedId};
+use super::super::{BlockBody, Expression, InfixOp, PrefixOp, TypeRef, TypedId};
 use super::error::*;
 use super::tokeniser::Tokeniser;
 
@@ -225,12 +225,15 @@ impl<'a> Parser<'a> {
     }
 
     /// Attempt to parse a block of expressions
-    fn block(&mut self) -> ParseResult<Vec<Expression>> {
+    fn block(&mut self) -> ParseResult<BlockBody> {
         let mut expressions = Vec::new();
         while self.current().is_some() && !self.next_is(&TokenKind::Word(Ident::End)) {
             expressions.push(self.single_expression()?);
         }
-        Ok(expressions)
+        Ok(BlockBody {
+            contents: Box::new(Expression::sequence(expressions)),
+            close: Box::new(self.expect(&TokenKind::Word(Ident::End))?),
+        })
     }
 
     /// Returns true if the next token's lbp is > the given rbp
@@ -344,13 +347,11 @@ impl<'a> Parser<'a> {
                 res = res
                     .with_return_type(self.type_ref()?)
                     .with_body(self.block()?);
-                self.expect(&TokenKind::Word(Ident::End))?;
                 Ok(Expression::from(res))
             }
             TokenKind::Word(Ident::While) | TokenKind::Word(Ident::Until) => {
                 let condition = self.single_expression()?;
                 let block = self.block()?;
-                self.expect(&TokenKind::Word(Ident::End))?;
                 Ok(Expression::loop_while(token, condition, block))
             }
             TokenKind::Word(Ident::Let) => self.declaration(false),

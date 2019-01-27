@@ -143,6 +143,18 @@ pub struct IndexExpression {
     pub close_bracket: Box<Token>,
 }
 
+/// Block Body
+///
+/// represents the sequence of expressions within a given block, along
+/// with the closing delimiter of the block
+#[derive(Debug, PartialEq)]
+pub struct BlockBody {
+    /// The inner expressions
+    pub contents: Box<Expression>,
+    /// The closing delimiter
+    pub close: Box<Token>,
+}
+
 /// Loop Expression
 ///
 /// Represents a loop operator. Loops always evaluate to `()` but can
@@ -154,7 +166,7 @@ pub struct LoopExpression {
     /// The loop header expression
     pub condition: Box<Expression>,
     /// The loop body
-    pub body: Box<Expression>,
+    pub body: BlockBody,
 }
 
 /// Print Expressin
@@ -329,11 +341,11 @@ impl Expression {
     ///
     /// Represents the repeated evaluation of an expression until a
     /// condition changes.
-    pub fn loop_while(kw_token: Token, condition: Expression, body: Vec<Expression>) -> Self {
+    pub fn loop_while(kw_token: Token, condition: Expression, body: BlockBody) -> Self {
         Expression::Loop(LoopExpression {
             kw_token: Box::new(kw_token),
             condition: Box::new(condition),
-            body: Box::new(Expression::sequence(body)),
+            body,
         })
     }
 

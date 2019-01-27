@@ -121,7 +121,7 @@ pub fn transform_expression(ctx: &mut SemCtx, expr: SyntaxExpr) -> CompResult<Ex
                     typ,
                 );
             }
-            let body = transform_expression(ctx, *loop_expr.body)?;
+            let body = transform_expression(ctx, *loop_expr.body.contents)?;
             Ok(Expression::new(
                 ExpressionKind::Loop(Box::new(condition), Box::new(body)),
                 Some(Typ::Unit),
