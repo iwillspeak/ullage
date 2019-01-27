@@ -199,9 +199,10 @@ pub fn transform_expression(ctx: &mut SemCtx, expr: SyntaxExpr) -> CompResult<Ex
                 typ,
             ))
         }
-        SyntaxExpr::Call(callee, args) => {
-            let callee = transform_expression(ctx, *callee)?;
-            let args = args
+        SyntaxExpr::Call(call) => {
+            let callee = transform_expression(ctx, *call.callee)?;
+            let args = call
+                .arguments
                 .into_iter()
                 .map(|a| transform_expression(ctx, a))
                 .collect::<CompResult<Vec<_>>>()?;

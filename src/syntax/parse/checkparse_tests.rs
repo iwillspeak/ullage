@@ -173,7 +173,9 @@ fn parse_prefix_expressions() {
 fn parse_simple_call() {
     check_parse!("foo()", |s| Expression::call(
         mk_ident(&s, "foo"),
-        Vec::new()
+        Token::new(TokenKind::OpenBracket),
+        Vec::new(),
+        Token::new(TokenKind::CloseBracket)
     ));
 }
 
@@ -181,6 +183,7 @@ fn parse_simple_call() {
 fn parse_complex_call() {
     check_parse!("hello(1, 1 + 23, -world)", |s| Expression::call(
         mk_ident(&s, "hello"),
+        Token::new(TokenKind::OpenBracket),
         vec![
             Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(1))), 1),
             Expression::infix(
@@ -195,6 +198,7 @@ fn parse_complex_call() {
                 mk_ident(&s, "world"),
             ),
         ],
+        Token::new(TokenKind::CloseBracket),
     ));
 }
 
@@ -224,6 +228,7 @@ fn parse_groups_with_parens() {
 fn parse_indexing() {
     check_parse!("hello[world](1, 2[3])", |s| Expression::call(
         Expression::index(mk_ident(&s, "hello"), mk_ident(&s, "world"),),
+        Token::new(TokenKind::OpenBracket),
         vec![
             Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(1))), 1),
             Expression::index(
@@ -231,6 +236,7 @@ fn parse_indexing() {
                 Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(3))), 3)
             ),
         ],
+        Token::new(TokenKind::CloseBracket),
     ));
 }
 
@@ -252,10 +258,12 @@ fn parse_ternary_if() {
             ),
             Expression::call(
                 mk_ident(&s, "hello"),
+                Token::new(TokenKind::OpenBracket),
                 vec![Expression::constant_num(
                     Token::new(TokenKind::Literal(Literal::Number(1))),
                     1,
                 )],
+                Token::new(TokenKind::CloseBracket),
             ),
             Expression::index(
                 mk_ident(&s, "world"),

@@ -287,6 +287,7 @@ impl<'a> Parser<'a> {
 
             // Function call
             TokenKind::OpenBracket => {
+                let open = token;
                 let mut params = Vec::new();
                 while !self.next_is(&TokenKind::CloseBracket) {
                     let param = self.single_expression()?;
@@ -295,8 +296,8 @@ impl<'a> Parser<'a> {
                         self.expect(&TokenKind::Comma)?;
                     }
                 }
-                self.expect(&TokenKind::CloseBracket)?;
-                Ok(Expression::call(lhs, params))
+                let close = self.expect(&TokenKind::CloseBracket)?;
+                Ok(Expression::call(lhs, open, params, close))
             }
 
             // Ternay statement:

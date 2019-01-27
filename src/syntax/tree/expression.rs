@@ -109,6 +109,23 @@ pub struct InfixOperatorExpression {
     pub right: Box<Expression>,
 }
 
+/// Call Expression
+///
+/// Represnets the application of the call operator `()` to an
+/// expression. The arguments to the function are groupeed together in
+/// a `,` delimited list.
+#[derive(Debug, PartialEq)]
+pub struct CallExpression {
+    /// The item this funcion call should target
+    pub callee: Box<Expression>,
+    /// The opening `(` of this call
+    pub open_paren: Box<Token>,
+    /// The list of arguments to the call. This could be empty.
+    pub arguments: Vec<Expression>,
+    /// THe closing `)` of this call
+    pub close_paren: Box<Token>,
+}
+
 /// Loop Expression
 ///
 /// Represents a loop operator. Loops always evaluate to `()` but can
@@ -135,6 +152,9 @@ pub struct PrintExpression {
 }
 
 /// Represents an AST expression.
+///
+/// Each variant represnets a unique kind of expression. The data for
+/// that expresison is carried in a data `struct`.
 #[derive(Debug, PartialEq)]
 pub enum Expression {
     /// A reference to a variable or function parameter
@@ -146,8 +166,8 @@ pub enum Expression {
     Prefix(PrefixExpression),
     /// The application of an infix operator
     Infix(InfixOperatorExpression),
-    #[allow(missing_docs)]
-    Call(Box<Expression>, Vec<Expression>),
+    /// Function call
+    Call(CallExpression),
     #[allow(missing_docs)]
     Index(Box<Expression>, Box<Expression>),
     #[allow(missing_docs)]
@@ -162,7 +182,7 @@ pub enum Expression {
     Print(PrintExpression),
     #[allow(missing_docs)]
     Declaration(TypedId, bool, Box<Expression>),
-    #[allow(missing_docs)]
+    /// Expression grouped with paranthesis
     Grouping(Box<Token>, Box<Expression>, Box<Token>),
 }
 
@@ -245,8 +265,18 @@ impl Expression {
     /// # New Function Call Expression
     ///
     /// Represents calling a given function with a numer of arguments.
-    pub fn call(callee: Expression, args: Vec<Expression>) -> Self {
-        Expression::Call(Box::new(callee), args)
+    pub fn call(
+        callee: Expression,
+        open_paren: Token,
+        args: Vec<Expression>,
+        close_paren: Token,
+    ) -> Self {
+        Expression::Call(CallExpression {
+            callee: Box::new(callee),
+            open_paren: Box::new(open_paren),
+            arguments: args,
+            close_paren: Box::new(close_paren),
+        })
     }
 
     /// # New Index Expression
