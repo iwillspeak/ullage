@@ -252,11 +252,11 @@ impl<'a> Parser<'a> {
     /// Ternay Body
     ///
     /// The condition and fallback part of a ternary expression.
-    fn ternary_body(&mut self) -> ParseResult<(Expression, Expression)> {
+    fn ternary_body(&mut self) -> ParseResult<(Expression, Token, Expression)> {
         let condition = self.single_expression()?;
-        self.expect(&TokenKind::Word(Ident::Else))?;
+        let else_tok = self.expect(&TokenKind::Word(Ident::Else))?;
         let fallback = self.single_expression()?;
-        Ok((condition, fallback))
+        Ok((condition, else_tok, fallback))
     }
 
     /// Parse Left Denonation
@@ -306,16 +306,18 @@ impl<'a> Parser<'a> {
 
             // Ternay statement:
             // <x> if <y> else <z>
-            TokenKind::Word(Ident::If) => {
-                let (condition, fallback) = self.ternary_body()?;
-                Ok(Expression::if_then_else(condition, lhs, fallback))
+            TokenKind::Word(Ident::If)=> {
+                let if_tok = token;
+                let (condition, else_tok, fallback) = self.ternary_body()?;
+                Ok(Expression::if_then_else(if_tok, condition, lhs, else_tok, fallback))
             }
 
             // Ternay statement:
             // <x> unless <y> else <z>
             TokenKind::Word(Ident::Unless) => {
-                let (condition, fallback) = self.ternary_body()?;
-                Ok(Expression::if_then_else(condition, fallback, lhs))
+                let if_tok = token;
+                let (condition, else_tok, fallback) = self.ternary_body()?;
+                Ok(Expression::if_then_else(if_tok, condition, fallback, else_tok, lhs))
             }
 
             _ => Err(ParseError::Incomplete),

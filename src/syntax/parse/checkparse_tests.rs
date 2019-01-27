@@ -259,15 +259,19 @@ fn parse_indexing() {
 #[test]
 fn parse_ternary_if() {
     check_parse!(
-        "1 if 2 else 3",
+        "1 if 2 else 3", |s|
         Expression::if_then_else(
+            Token::new(TokenKind::Word(s.intern("if"))),
             Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(2))), 2),
             Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(1))), 1),
+            Token::new(TokenKind::Word(s.intern("else"))),
             Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(3))), 3),
         )
     );
     check_parse!("hello(1) if foo[23] else world[1 if foo else 2]", |s| {
         Expression::if_then_else(
+            Token::new(TokenKind::Word(s.intern("if"))),
+
             Expression::index(
                 mk_ident(&s, "foo"),
                 Token::new(TokenKind::OpenSqBracket),
@@ -283,12 +287,15 @@ fn parse_ternary_if() {
                 )],
                 Token::new(TokenKind::CloseBracket),
             ),
+            Token::new(TokenKind::Word(s.intern("else"))),
             Expression::index(
                 mk_ident(&s, "world"),
                 Token::new(TokenKind::OpenSqBracket),
                 Expression::if_then_else(
+            Token::new(TokenKind::Word(s.intern("if"))),
                     mk_ident(&s, "foo"),
                     Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(1))), 1),
+            Token::new(TokenKind::Word(s.intern("else"))),
                     Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(2))), 2),
                 ),
                 Token::new(TokenKind::CloseSqBracket),
@@ -298,8 +305,10 @@ fn parse_ternary_if() {
     check_parse!(
         "0 unless 1 else 2",
         Expression::if_then_else(
+            Token::new(TokenKind::Word(s.intern("unless"))),
             Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(1))), 1),
             Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(2))), 2),
+            Token::new(TokenKind::Word(s.intern("else"))),
             Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(0))), 0),
         )
     );
@@ -333,8 +342,11 @@ fn parse_function_def() {
         |s| Expression::function(s.intern("ünécød3"))
             .with_return_type(TypeRef::simple("Num"))
             .with_body(blockify(vec![Expression::if_then_else(
+                Token::new(TokenKind::Word(s.intern("if"))),
+
                 Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(74))), 74),
                 Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(0))), 0),
+                Token::new(TokenKind::Word(s.intern("else"))),
                 Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(888))), 888),
             )]))
             .into()

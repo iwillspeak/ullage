@@ -100,15 +100,15 @@ pub fn transform_expression(ctx: &mut SemCtx, expr: SyntaxExpr) -> CompResult<Ex
                 None,
             ))
         }
-        SyntaxExpr::IfThenElse(iff, then, els) => {
-            let iff = transform_expression(ctx, *iff)?;
-            let then = transform_expression(ctx, *then)?;
-            let els = transform_expression(ctx, *els)?;
+        SyntaxExpr::IfThenElse(expr) => {
+            let cond = transform_expression(ctx, *expr.cond)?;
+            let if_true = transform_expression(ctx, *expr.if_true)?;
+            let if_false = transform_expression(ctx, *expr.if_false)?;
             // FIXME: Check that the type of the then and else
             // branches match up.
-            let typ = then.typ;
+            let typ = if_true.typ;
             Ok(Expression::new(
-                ExpressionKind::IfThenElse(Box::new(iff), Box::new(then), Box::new(els)),
+                ExpressionKind::IfThenElse(Box::new(cond), Box::new(if_true), Box::new(if_false)),
                 typ,
             ))
         }

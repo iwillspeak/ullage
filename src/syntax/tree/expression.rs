@@ -143,6 +143,23 @@ pub struct IndexExpression {
     pub close_bracket: Box<Token>,
 }
 
+/// If Else Expression
+///
+/// The base conditional expression.
+#[derive(Debug, PartialEq)]
+pub struct IfElseExpression {
+    /// The `if` token`
+    pub if_tok: Box<Token>,
+    /// The condition for the if block
+    pub cond: Box<Expression>,
+    /// The expression to evaluate if the condition is true
+    pub if_true: Box<Expression>,
+    /// The `else` token
+    pub else_tok: Box<Token>,
+    /// The expression to evaluate if the condition is false
+    pub if_false: Box<Expression>,
+}
+
 /// Block Body
 ///
 /// represents the sequence of expressions within a given block, along
@@ -199,8 +216,8 @@ pub enum Expression {
     Call(CallExpression),
     /// Array indexing
     Index(IndexExpression),
-    #[allow(missing_docs)]
-    IfThenElse(Box<Expression>, Box<Expression>, Box<Expression>),
+    /// An if expression
+    IfThenElse(IfElseExpression),
     #[allow(missing_docs)]
     Function(Ident, TypeRef, Vec<TypedId>, Box<Expression>),
     /// Conditional Loop
@@ -325,8 +342,14 @@ impl Expression {
     ///
     /// Represents either a single conditional expression, or a
     /// ternary expression.
-    pub fn if_then_else(iff: Expression, then: Expression, els: Expression) -> Self {
-        Expression::IfThenElse(Box::new(iff), Box::new(then), Box::new(els))
+    pub fn if_then_else(if_tok: Token, cond: Expression, then: Expression, else_tok: Token, els: Expression) -> Self {
+        Expression::IfThenElse(IfElseExpression {
+            if_tok: Box::new(if_tok),
+            cond: Box::new(cond),
+            if_true: Box::new(then),
+            else_tok: Box::new(else_tok),
+            if_false: Box::new(els),
+        })
     }
 
     /// New Function Definition
