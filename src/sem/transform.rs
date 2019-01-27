@@ -91,9 +91,9 @@ pub fn transform_expression(ctx: &mut SemCtx, expr: SyntaxExpr) -> CompResult<Ex
                 }
             }
         }
-        SyntaxExpr::Index(expr, index) => {
-            let expr = transform_expression(ctx, *expr)?;
-            let index = transform_expression(ctx, *index)?;
+        SyntaxExpr::Index(index) => {
+            let expr = transform_expression(ctx, *index.indexee)?;
+            let index = transform_expression(ctx, *index.index)?;
             // FIXME: Get the type from the thing being indexed into.
             Ok(Expression::new(
                 ExpressionKind::Index(Box::new(expr), Box::new(index)),

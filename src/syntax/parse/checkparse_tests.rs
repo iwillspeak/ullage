@@ -227,13 +227,20 @@ fn parse_groups_with_parens() {
 #[test]
 fn parse_indexing() {
     check_parse!("hello[world](1, 2[3])", |s| Expression::call(
-        Expression::index(mk_ident(&s, "hello"), mk_ident(&s, "world"),),
+        Expression::index(
+            mk_ident(&s, "hello"),
+            Token::new(TokenKind::OpenSqBracket),
+            mk_ident(&s, "world"),
+            Token::new(TokenKind::CloseSqBracket)
+        ),
         Token::new(TokenKind::OpenBracket),
         vec![
             Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(1))), 1),
             Expression::index(
                 Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(2))), 2),
-                Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(3))), 3)
+                Token::new(TokenKind::OpenSqBracket),
+                Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(3))), 3),
+                Token::new(TokenKind::CloseSqBracket)
             ),
         ],
         Token::new(TokenKind::CloseBracket),
@@ -254,7 +261,9 @@ fn parse_ternary_if() {
         Expression::if_then_else(
             Expression::index(
                 mk_ident(&s, "foo"),
+                Token::new(TokenKind::OpenSqBracket),
                 Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(23))), 23),
+                Token::new(TokenKind::CloseSqBracket),
             ),
             Expression::call(
                 mk_ident(&s, "hello"),
@@ -267,11 +276,13 @@ fn parse_ternary_if() {
             ),
             Expression::index(
                 mk_ident(&s, "world"),
+                Token::new(TokenKind::OpenSqBracket),
                 Expression::if_then_else(
                     mk_ident(&s, "foo"),
                     Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(1))), 1),
                     Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(2))), 2),
                 ),
+                Token::new(TokenKind::CloseSqBracket),
             ),
         )
     });

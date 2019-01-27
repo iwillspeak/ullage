@@ -280,9 +280,10 @@ impl<'a> Parser<'a> {
 
             // array indexing
             TokenKind::OpenSqBracket => {
+                let open = token;
                 let index = self.single_expression()?;
-                self.expect(&TokenKind::CloseSqBracket)?;
-                Ok(Expression::index(lhs, index))
+                let close = self.expect(&TokenKind::CloseSqBracket)?;
+                Ok(Expression::index(lhs, open, index, close))
             }
 
             // Function call

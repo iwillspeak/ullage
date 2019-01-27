@@ -126,6 +126,23 @@ pub struct CallExpression {
     pub close_paren: Box<Token>,
 }
 
+/// Array Indexing
+///
+/// Index expressions represent accessing one or more values from an
+/// aggregate. The plan is to allow slicing by passing a rage to the
+/// index operator.
+#[derive(Debug, PartialEq)]
+pub struct IndexExpression {
+    /// The expression being indexed into
+    pub indexee: Box<Expression>,
+    /// The opening `[` of the index expression
+    pub open_bracket: Box<Token>,
+    /// The index being accessed
+    pub index: Box<Expression>,
+    /// The closing `]` of the expression
+    pub close_bracket: Box<Token>,
+}
+
 /// Loop Expression
 ///
 /// Represents a loop operator. Loops always evaluate to `()` but can
@@ -168,8 +185,8 @@ pub enum Expression {
     Infix(InfixOperatorExpression),
     /// Function call
     Call(CallExpression),
-    #[allow(missing_docs)]
-    Index(Box<Expression>, Box<Expression>),
+    /// Array indexing
+    Index(IndexExpression),
     #[allow(missing_docs)]
     IfThenElse(Box<Expression>, Box<Expression>, Box<Expression>),
     #[allow(missing_docs)]
@@ -187,7 +204,7 @@ pub enum Expression {
 }
 
 impl Expression {
-    /// # New Identifier Expression
+    /// New Identifier Expression
     ///
     /// A reference to an identifier, either as a variable reference
     /// or declaration, part of a function definition or function
@@ -199,7 +216,7 @@ impl Expression {
         })
     }
 
-    /// # New Numeric Constant
+    /// New Numeric Constant
     ///
     /// A constant numeric value, either specified inline using a
     /// numeric literal or computed from other known compile-time
@@ -211,7 +228,7 @@ impl Expression {
         })
     }
 
-    /// # New String Constant
+    /// New String Constant
     ///
     /// A constant string value, either specified inline using a
     /// string literal or computed from other known compile-time
@@ -237,7 +254,7 @@ impl Expression {
         })
     }
 
-    /// # New Prefix Operator Expression
+    /// New Prefix Operator Expression
     ///
     /// Represents the application of a prefix unary operator to
     /// another expression.
@@ -249,7 +266,7 @@ impl Expression {
         })
     }
 
-    /// # New Infix Operator Expression
+    /// New Infix Operator Expression
     ///
     /// Represents the application of an infix binary operator to two
     /// expression operands.
@@ -262,7 +279,7 @@ impl Expression {
         })
     }
 
-    /// # New Function Call Expression
+    /// New Function Call Expression
     ///
     /// Represents calling a given function with a numer of arguments.
     pub fn call(
@@ -279,15 +296,20 @@ impl Expression {
         })
     }
 
-    /// # New Index Expression
+    /// New Index Expression
     ///
     /// Represents indexing one expression by another. This could be
     /// an array lookup, or slice operation.
-    pub fn index(lhs: Expression, index: Expression) -> Self {
-        Expression::Index(Box::new(lhs), Box::new(index))
+    pub fn index(lhs: Expression, open: Token, index: Expression, close: Token) -> Self {
+        Expression::Index(IndexExpression {
+            indexee: Box::new(lhs),
+            open_bracket: Box::new(open),
+            index: Box::new(index),
+            close_bracket: Box::new(close),
+        })
     }
 
-    /// # New If Then Else Expression
+    /// New If Then Else Expression
     ///
     /// Represents either a single conditional expression, or a
     /// ternary expression.
@@ -295,7 +317,7 @@ impl Expression {
         Expression::IfThenElse(Box::new(iff), Box::new(then), Box::new(els))
     }
 
-    /// # New Function Definition
+    /// New Function Definition
     ///
     /// Create a function delcaration builder. This can be used to
     /// create a function expression.
@@ -303,7 +325,7 @@ impl Expression {
         FunctionDeclarationBuilder::new(id)
     }
 
-    /// # New Loop Expression
+    /// New Loop Expression
     ///
     /// Represents the repeated evaluation of an expression until a
     /// condition changes.
@@ -315,14 +337,14 @@ impl Expression {
         })
     }
 
-    /// # New Variable Declaration
+    /// New Variable Declaration
     ///
     /// Represents the declaration of a local variable.
     pub fn declaration(var: TypedId, is_mut: bool, expr: Expression) -> Self {
         Expression::Declaration(var, is_mut, Box::new(expr))
     }
 
-    /// # New Sequence Expression
+    /// New Sequence Expression
     ///
     /// Represents a sequence of expressions evaluated one after the
     /// other.
@@ -330,7 +352,7 @@ impl Expression {
         Expression::Sequence(exprs)
     }
 
-    /// # Print Expression
+    /// Print Expression
     ///
     /// Evaluates an inner expression, prints it to standard output,
     /// and then returns the inner expression's value.
@@ -341,7 +363,7 @@ impl Expression {
         })
     }
 
-    /// # Grouping Expression
+    /// Grouping Expression
     ///
     /// Represents an expression wrapped in `(` and `)`.
     pub fn grouping(left: Token, inner: Expression, right: Token) -> Self {
