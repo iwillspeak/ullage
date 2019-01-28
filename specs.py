@@ -92,7 +92,7 @@ def run_spec(path):
 
     expectations = parse_spec(path)
     out = "specbin/{}".format(os.path.basename(path).split('.')[0])
-    compile_cmd = subprocess.Popen(["target/debug/ullage", path, "-o", out], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    compile_cmd = subprocess.Popen(["target/release/ullage", path, "-o", out], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     output = compile_cmd.communicate()
     if compile_cmd.returncode != 0:
         check_compilation_failure(output, expectations)
