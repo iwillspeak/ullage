@@ -258,20 +258,16 @@ fn parse_indexing() {
 
 #[test]
 fn parse_ternary_if() {
-    check_parse!(
-        "1 if 2 else 3", |s|
-        Expression::if_then_else(
-            Token::new(TokenKind::Word(s.intern("if"))),
-            Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(2))), 2),
-            Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(1))), 1),
-            Token::new(TokenKind::Word(s.intern("else"))),
-            Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(3))), 3),
-        )
-    );
+    check_parse!("1 if 2 else 3", |s| Expression::if_then_else(
+        Token::new(TokenKind::Word(s.intern("if"))),
+        Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(2))), 2),
+        Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(1))), 1),
+        Token::new(TokenKind::Word(s.intern("else"))),
+        Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(3))), 3),
+    ));
     check_parse!("hello(1) if foo[23] else world[1 if foo else 2]", |s| {
         Expression::if_then_else(
             Token::new(TokenKind::Word(s.intern("if"))),
-
             Expression::index(
                 mk_ident(&s, "foo"),
                 Token::new(TokenKind::OpenSqBracket),
@@ -292,10 +288,10 @@ fn parse_ternary_if() {
                 mk_ident(&s, "world"),
                 Token::new(TokenKind::OpenSqBracket),
                 Expression::if_then_else(
-            Token::new(TokenKind::Word(s.intern("if"))),
+                    Token::new(TokenKind::Word(s.intern("if"))),
                     mk_ident(&s, "foo"),
                     Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(1))), 1),
-            Token::new(TokenKind::Word(s.intern("else"))),
+                    Token::new(TokenKind::Word(s.intern("else"))),
                     Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(2))), 2),
                 ),
                 Token::new(TokenKind::CloseSqBracket),
@@ -343,7 +339,6 @@ fn parse_function_def() {
             .with_return_type(TypeRef::simple("Num"))
             .with_body(blockify(vec![Expression::if_then_else(
                 Token::new(TokenKind::Word(s.intern("if"))),
-
                 Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(74))), 74),
                 Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(0))), 0),
                 Token::new(TokenKind::Word(s.intern("else"))),
@@ -408,8 +403,10 @@ fn parse_function_with_args() {
 #[test]
 fn parse_simple_array_type() {
     check_parse!("let f: [Num] = 100", |s| Expression::declaration(
+        Token::new(TokenKind::Word(s.intern("let"))),
         TypedId::from_parts(s.intern("f"), Some(TypeRef::array(TypeRef::simple("Num"))),),
-        false,
+        VarStyle::Immutable,
+        Token::new(TokenKind::Equals),
         Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(100))), 100),
     ));
 }
@@ -417,8 +414,10 @@ fn parse_simple_array_type() {
 #[test]
 fn parse_simple_let() {
     check_parse!("let foo = 100", |s| Expression::declaration(
+        Token::new(TokenKind::Word(s.intern("let"))),
         TypedId::from_parts(s.intern("foo"), None),
-        false,
+        VarStyle::Immutable,
+        Token::new(TokenKind::Equals),
         Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(100))), 100),
     ));
 }
@@ -426,14 +425,17 @@ fn parse_simple_let() {
 #[test]
 fn parse_simple_tuple() {
     check_parse!("let f: (Num) = 100", |s| Expression::declaration(
+        Token::new(TokenKind::Word(s.intern("let"))),
         TypedId::from_parts(
             s.intern("f"),
             Some(TypeRef::tuple(vec![TypeRef::simple("Num")])),
         ),
-        false,
+        VarStyle::Immutable,
+        Token::new(TokenKind::Equals),
         Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(100))), 100),
     ));
     check_parse!("let f: (Num, [String]) = 100", |s| Expression::declaration(
+        Token::new(TokenKind::Word(s.intern("let"))),
         TypedId::from_parts(
             s.intern("f"),
             Some(TypeRef::tuple(vec![
@@ -441,7 +443,8 @@ fn parse_simple_tuple() {
                 TypeRef::array(TypeRef::simple("String")),
             ])),
         ),
-        false,
+        VarStyle::Immutable,
+        Token::new(TokenKind::Equals),
         Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(100))), 100),
     ));
 }
@@ -449,13 +452,17 @@ fn parse_simple_tuple() {
 #[test]
 fn parse_variable_decl() {
     check_parse!("var foo = 93", |s| Expression::declaration(
+        Token::new(TokenKind::Word(s.intern("var"))),
         TypedId::from_parts(s.intern("foo"), None),
-        true,
+        VarStyle::Mutable,
+        Token::new(TokenKind::Equals),
         Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(93))), 93),
     ));
     check_parse!("var foo_bar: Number = -99999", |s| Expression::declaration(
+        Token::new(TokenKind::Word(s.intern("var"))),
         TypedId::from_parts(s.intern("foo_bar"), Some(TypeRef::simple("Number"))),
-        true,
+        VarStyle::Mutable,
+        Token::new(TokenKind::Equals),
         Expression::prefix(
             Token::new(TokenKind::Minus),
             PrefixOp::Negate,

@@ -15,7 +15,7 @@
 
 use super::super::text::{Ident, SourceText};
 use super::super::tree::{Literal, Token, TokenKind};
-use super::super::{BlockBody, Expression, InfixOp, PrefixOp, TypeRef, TypedId};
+use super::super::{BlockBody, Expression, InfixOp, PrefixOp, TypeRef, TypedId, VarStyle};
 use super::error::*;
 use super::tokeniser::Tokeniser;
 
@@ -212,14 +212,21 @@ impl<'a> Parser<'a> {
     ///
     /// Parses the body of a local variable delcaration (`let` or
     /// `var`).
-    fn declaration(&mut self, is_mut: bool) -> ParseResult<Expression> {
+    fn declaration(&mut self, var_tok: Token) -> ParseResult<Expression> {
         let id = self.identifier()?;
         let typ = self.optional_type_ref();
-        self.expect(&TokenKind::Equals)?;
+        let assign_tok = self.expect(&TokenKind::Equals)?;
         let rhs = self.single_expression()?;
+        let style = if let TokenKind::Word(Ident::Var) = var_tok.kind {
+            VarStyle::Mutable
+        } else {
+            VarStyle::Immutable
+        };
         Ok(Expression::declaration(
+            var_tok,
             TypedId::from_parts(id, typ),
-            is_mut,
+            style,
+            assign_tok,
             rhs,
         ))
     }
@@ -306,10 +313,12 @@ impl<'a> Parser<'a> {
 
             // Ternay statement:
             // <x> if <y> else <z>
-            TokenKind::Word(Ident::If)=> {
+            TokenKind::Word(Ident::If) => {
                 let if_tok = token;
                 let (condition, else_tok, fallback) = self.ternary_body()?;
-                Ok(Expression::if_then_else(if_tok, condition, lhs, else_tok, fallback))
+                Ok(Expression::if_then_else(
+                    if_tok, condition, lhs, else_tok, fallback,
+                ))
             }
 
             // Ternay statement:
@@ -317,7 +326,9 @@ impl<'a> Parser<'a> {
             TokenKind::Word(Ident::Unless) => {
                 let if_tok = token;
                 let (condition, else_tok, fallback) = self.ternary_body()?;
-                Ok(Expression::if_then_else(if_tok, condition, fallback, else_tok, lhs))
+                Ok(Expression::if_then_else(
+                    if_tok, condition, fallback, else_tok, lhs,
+                ))
             }
 
             _ => Err(ParseError::Incomplete),
@@ -356,8 +367,7 @@ impl<'a> Parser<'a> {
                 let block = self.block()?;
                 Ok(Expression::loop_while(token, condition, block))
             }
-            TokenKind::Word(Ident::Let) => self.declaration(false),
-            TokenKind::Word(Ident::Var) => self.declaration(true),
+            TokenKind::Word(Ident::Let) | TokenKind::Word(Ident::Var) => self.declaration(token),
             TokenKind::Word(Ident::Print) => {
                 let to_print = self.single_expression()?;
                 Ok(Expression::print(token, to_print))

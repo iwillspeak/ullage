@@ -186,7 +186,7 @@ pub struct LoopExpression {
     pub body: BlockBody,
 }
 
-/// Print Expressin
+/// Print Expression
 ///
 /// The appliation of the prefix `print` operator.
 #[derive(Debug, PartialEq)]
@@ -195,6 +195,33 @@ pub struct PrintExpression {
     pub print_tok: Box<Token>,
     /// The expression to be printed
     pub inner: Box<Expression>,
+}
+
+/// Variable mutability style
+#[derive(Debug, PartialEq)]
+pub enum VarStyle {
+    /// No modifications can be made
+    Immutable,
+    /// The variable can be re-assigned later
+    Mutable,
+}
+
+/// Declaration Expression
+///
+/// Variable declaration. Holds the identifier the declaration
+/// introduces and the initial value of the expression.
+#[derive(Debug, PartialEq)]
+pub struct DeclarationExpression {
+    /// The keyword token which introduces this declaration
+    pub var_kw: Box<Token>,
+    /// is the variable mutable
+    pub style: VarStyle,
+    /// The identifier to introduce
+    pub id: TypedId,
+    /// The assignment token
+    pub assignment_tok: Box<Token>,
+    /// Initialiser for the variable
+    pub initialiser: Box<Expression>,
 }
 
 /// Represents an AST expression.
@@ -222,12 +249,14 @@ pub enum Expression {
     Function(Ident, TypeRef, Vec<TypedId>, Box<Expression>),
     /// Conditional Loop
     Loop(LoopExpression),
-    #[allow(missing_docs)]
+    /// Sequence expression. Represents a series of expressions and
+    /// evaluates to the last one. If there are no expressions this
+    /// evaluates to the unit value `()`.
     Sequence(Vec<Expression>),
     /// Print Expression
     Print(PrintExpression),
-    #[allow(missing_docs)]
-    Declaration(TypedId, bool, Box<Expression>),
+    /// Variable delcaration expression
+    Declaration(DeclarationExpression),
     /// Expression grouped with paranthesis
     Grouping(Box<Token>, Box<Expression>, Box<Token>),
 }
@@ -342,7 +371,13 @@ impl Expression {
     ///
     /// Represents either a single conditional expression, or a
     /// ternary expression.
-    pub fn if_then_else(if_tok: Token, cond: Expression, then: Expression, else_tok: Token, els: Expression) -> Self {
+    pub fn if_then_else(
+        if_tok: Token,
+        cond: Expression,
+        then: Expression,
+        else_tok: Token,
+        els: Expression,
+    ) -> Self {
         Expression::IfThenElse(IfElseExpression {
             if_tok: Box::new(if_tok),
             cond: Box::new(cond),
@@ -375,8 +410,20 @@ impl Expression {
     /// New Variable Declaration
     ///
     /// Represents the declaration of a local variable.
-    pub fn declaration(var: TypedId, is_mut: bool, expr: Expression) -> Self {
-        Expression::Declaration(var, is_mut, Box::new(expr))
+    pub fn declaration(
+        var_kw: Token,
+        var: TypedId,
+        style: VarStyle,
+        assign_tok: Token,
+        expr: Expression,
+    ) -> Self {
+        Expression::Declaration(DeclarationExpression {
+            style,
+            var_kw: Box::new(var_kw),
+            id: var,
+            assignment_tok: Box::new(assign_tok),
+            initialiser: Box::new(expr),
+        })
     }
 
     /// New Sequence Expression

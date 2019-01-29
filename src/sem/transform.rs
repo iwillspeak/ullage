@@ -9,7 +9,7 @@
 use crate::syntax::text::Ident;
 use crate::syntax::tree::TokenKind;
 use crate::syntax::InfixOp;
-use crate::syntax::{Constant, Expression as SyntaxExpr, PrefixOp};
+use crate::syntax::{Constant, Expression as SyntaxExpr, PrefixOp, VarStyle};
 
 use super::super::compile::{CompError, CompResult};
 use super::operators::find_builtin_op;
@@ -167,30 +167,31 @@ pub fn transform_expression(ctx: &mut SemCtx, expr: SyntaxExpr) -> CompResult<Ex
             let typ = None;
             Ok(Expression::new(ExpressionKind::Function(fn_decl), typ))
         }
-        SyntaxExpr::Declaration(tid, is_mut, initialiser) => {
-            let initialiser = transform_expression(ctx, *initialiser)?;
+        SyntaxExpr::Declaration(decl) => {
+            let initialiser = transform_expression(ctx, *decl.initialiser)?;
             // TODO: This is a mess. Need to make ensuring type match
             // between delcaration and expression the responsibility
             // of something else. Better than not checking it at all
             // though I suppose.
-            let typ = match tid.typ {
+            let typ = match decl.id.typ {
                 Some(ty_ref) => {
                     let declared_ty = ensure_ty(ctx.sem_ty(ty_ref))?;
                     if Some(declared_ty) != initialiser.typ {
                         return Err(CompError::from(format!(
                             "Initialiser doesn't match declaration type for {}",
-                            ctx.source().interned_value(tid.id)
+                            ctx.source().interned_value(decl.id.id)
                         )));
                     }
                     Some(declared_ty)
                 }
                 None => initialiser.typ,
             };
-            ctx.add_local(tid.id, typ.unwrap_or(Typ::Unknown));
+            let is_mut = decl.style == VarStyle::Mutable;
+            ctx.add_local(decl.id.id, typ.unwrap_or(Typ::Unknown));
             Ok(Expression::new(
                 ExpressionKind::Declaration(
                     VarDecl {
-                        ident: ctx.source().interned_value(tid.id),
+                        ident: ctx.source().interned_value(decl.id.id),
                         ty: typ,
                     },
                     is_mut,
