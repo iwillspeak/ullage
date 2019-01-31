@@ -224,6 +224,19 @@ pub struct DeclarationExpression {
     pub initialiser: Box<Expression>,
 }
 
+/// Parathesis Grouping Expression
+///
+/// Represents an inner expression, wrapped in a pair of `()`.
+#[derive(Debug, PartialEq)]
+pub struct GroupingExpression {
+    /// The opening `(`
+    pub open_tok: Box<Token>,
+    /// The inner expression
+    pub inner: Box<Expression>,
+    /// The closing `)`
+    pub close_tok: Box<Token>,
+}
+
 /// Represents an AST expression.
 ///
 /// Each variant represnets a unique kind of expression. The data for
@@ -258,7 +271,7 @@ pub enum Expression {
     /// Variable delcaration expression
     Declaration(DeclarationExpression),
     /// Expression grouped with paranthesis
-    Grouping(Box<Token>, Box<Expression>, Box<Token>),
+    Grouping(GroupingExpression),
 }
 
 impl Expression {
@@ -448,7 +461,11 @@ impl Expression {
     /// Grouping Expression
     ///
     /// Represents an expression wrapped in `(` and `)`.
-    pub fn grouping(left: Token, inner: Expression, right: Token) -> Self {
-        Expression::Grouping(Box::new(left), Box::new(inner), Box::new(right))
+    pub fn grouping(open: Token, inner: Expression, close: Token) -> Self {
+        Expression::Grouping(GroupingExpression {
+            open_tok: Box::new(open),
+            inner: Box::new(inner),
+            close_tok: Box::new(close),
+        })
     }
 }

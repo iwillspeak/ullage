@@ -5,7 +5,6 @@
 
 use super::super::text::{Ident, SourceText};
 use super::super::tree::{Literal, Token, TokenKind};
-use super::super::Expression::*;
 use super::super::*;
 use super::parse_single;
 
@@ -216,15 +215,15 @@ fn parse_groups_with_parens() {
     check_parse!(
         "(1 + 2) * 3",
         Expression::infix(
-            Grouping(
-                Box::new(Token::new(TokenKind::OpenBracket)),
-                Box::new(Expression::infix(
+            Expression::grouping(
+                Token::new(TokenKind::OpenBracket),
+                Expression::infix(
                     Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(1))), 1),
                     Token::new(TokenKind::Plus),
                     InfixOp::Add,
                     Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(2))), 2),
-                )),
-                Box::new(Token::new(TokenKind::CloseBracket)),
+                ),
+                Token::new(TokenKind::CloseBracket),
             ),
             Token::new(TokenKind::Star),
             InfixOp::Mul,
