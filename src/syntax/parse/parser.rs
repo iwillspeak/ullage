@@ -15,7 +15,9 @@
 
 use super::super::text::{Ident, SourceText};
 use super::super::tree::{Literal, Token, TokenKind};
-use super::super::{BlockBody, Expression, InfixOp, PrefixOp, TypeRef, TypedId, VarStyle};
+use super::super::{
+    BlockBody, DelimItem, Expression, InfixOp, PrefixOp, TypeRef, TypedId, VarStyle,
+};
 use super::error::*;
 use super::tokeniser::Tokeniser;
 
@@ -78,10 +80,9 @@ impl<'a> Parser<'a> {
         match self.current() {
             Some(token) if token.kind == *expected => Ok(self.advance().unwrap()),
             Some(other) => {
-                let diagnostic =
-                    format!("Unexpected token: {:?}, expecting: {:?}", other, expected);
-                self.diagnostics.push(diagnostic);
-                Err(ParseError::Unexpected)
+                let diagnostic = format!("expecting: {:?}, found: {:?}", other, expected);
+                self.diagnostics.push(diagnostic.clone());
+                Err(ParseError::Unexpected(diagnostic))
             }
             None => {
                 self.diagnostics
@@ -101,7 +102,10 @@ impl<'a> Parser<'a> {
     fn identifier(&mut self) -> ParseResult<Ident> {
         match self.expression(100)? {
             Expression::Identifier(id) => Ok(id.ident),
-            _ => Err(ParseError::Unexpected),
+            other => Err(ParseError::Unexpected(format!(
+                "expected identifier, found: {:?}",
+                other
+            ))),
         }
     }
 
@@ -185,7 +189,10 @@ impl<'a> Parser<'a> {
                 self.expect(&TokenKind::CloseBracket)?;
                 Ok(TypeRef::tuple(types))
             }
-            _ => Err(ParseError::Unexpected),
+            t => Err(ParseError::Unexpected(format!(
+                "expected type, found: {:?}",
+                t
+            ))),
         }
     }
 
@@ -335,6 +342,27 @@ impl<'a> Parser<'a> {
         }
     }
 
+    /// Parse a Delimited List of Items
+    ///
+    /// Returns a list of zero or more elemnets delimited by the given
+    /// tokens. Used to parse the parameter list for a function and
+    /// the argument list for a call site.
+    fn delimited(
+        &mut self,
+        delimiter: TokenKind,
+        close: TokenKind,
+    ) -> ParseResult<Vec<DelimItem<TypedId>>> {
+        let mut res = Vec::new();
+        if !self.next_is(&close) {
+            res.push(DelimItem::First(self.typed_id()?));
+        }
+        while !self.next_is(&close) {
+            let delim = self.expect(&delimiter)?;
+            res.push(DelimItem::Follow(delim, self.typed_id()?));
+        }
+        Ok(res)
+    }
+
     /// Parse Null Denotation
     ///
     /// This is the parse of the symbol when it doesn't have any
@@ -346,21 +374,22 @@ impl<'a> Parser<'a> {
 
         match token.kind {
             TokenKind::Word(Ident::Fn) => {
+                let fn_kw = token;
                 let identifier = self.identifier()?;
-                let mut res = Expression::function(identifier);
-                self.expect(&TokenKind::OpenBracket)?;
-                if !self.next_is(&TokenKind::CloseBracket) {
-                    res = res.with_arg(self.typed_id()?);
-                }
-                while !self.next_is(&TokenKind::CloseBracket) {
-                    self.expect(&TokenKind::Comma)?;
-                    res = res.with_arg(self.typed_id()?);
-                }
-                self.expect(&TokenKind::CloseBracket)?;
-                res = res
-                    .with_return_type(self.type_ref()?)
-                    .with_body(self.block()?);
-                Ok(Expression::from(res))
+                let params_open = self.expect(&TokenKind::OpenBracket)?;
+                let params = self.delimited(TokenKind::Comma, TokenKind::CloseBracket)?;
+                let params_close = self.expect(&TokenKind::CloseBracket)?;
+                let return_type = self.type_ref()?;
+                let body = self.block()?;
+                Ok(Expression::function(
+                    fn_kw,
+                    identifier,
+                    params_open,
+                    params,
+                    params_close,
+                    return_type,
+                    body,
+                ))
             }
             TokenKind::Word(Ident::While) | TokenKind::Word(Ident::Until) => {
                 let condition = self.single_expression()?;
@@ -392,7 +421,7 @@ impl<'a> Parser<'a> {
             }
             // This covers things which can't start expressions, like
             // whitespace and non-prefix operator tokens
-            _ => Err(ParseError::Unexpected),
+            _ => Err(ParseError::Unexpected(format!("{:?}", token))),
         }
     }
 

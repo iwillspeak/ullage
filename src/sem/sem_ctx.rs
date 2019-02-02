@@ -32,11 +32,11 @@ impl<'a> SemCtx<'a> {
     ///
     /// Returns the `sem::Typ` declaration for the type if one is
     /// available.
-    pub fn sem_ty(&self, ast_ty: TypeRef) -> Option<Typ> {
+    pub fn sem_ty(&self, ast_ty: &TypeRef) -> Option<Typ> {
         // TODO: This should be looked up dynamically.
-        Some(match ast_ty {
+        Some(match *ast_ty {
             TypeRef::Unit => Typ::Unit,
-            TypeRef::Simple(name) => match &name[..] {
+            TypeRef::Simple(ref name) => match &name[..] {
                 "String" => Typ::Builtin(BuiltinType::String),
                 "Bool" => Typ::Builtin(BuiltinType::Bool),
                 "Number" => Typ::Builtin(BuiltinType::Number),

@@ -135,16 +135,18 @@ pub fn transform_expression(ctx: &mut SemCtx, expr: SyntaxExpr) -> CompResult<Ex
                 typ,
             ))
         }
-        SyntaxExpr::Function(ident, ret_ty, params, body) => {
+        SyntaxExpr::Function(func) => {
             ctx.push_scope();
 
-            let params = params
+            let params = func
+                .params
                 .into_iter()
                 .map(|p| {
                     // FIXME: this will squash type declaration
                     // errors in params. All params _must_ have a
                     // type.
-                    let typ = p.typ.and_then(|t| ctx.sem_ty(t));
+                    let p = p.as_inner();
+                    let typ = p.typ.as_ref().and_then(|t| ctx.sem_ty(t));
                     ctx.add_local(p.id, typ.unwrap());
                     VarDecl {
                         ident: ctx.source().interned_value(p.id),
@@ -154,10 +156,10 @@ pub fn transform_expression(ctx: &mut SemCtx, expr: SyntaxExpr) -> CompResult<Ex
                 .collect();
 
             let fn_decl = FnDecl {
-                ident: ctx.source().interned_value(ident),
-                ret_ty: ensure_ty(ctx.sem_ty(ret_ty))?,
+                ident: ctx.source().interned_value(func.identifier),
+                ret_ty: ensure_ty(ctx.sem_ty(&func.return_type))?,
                 params,
-                body: Box::new(transform_expression(ctx, *body)?),
+                body: Box::new(transform_expression(ctx, *func.body.contents)?),
             };
 
             ctx.pop_scope();
@@ -175,7 +177,7 @@ pub fn transform_expression(ctx: &mut SemCtx, expr: SyntaxExpr) -> CompResult<Ex
             // though I suppose.
             let typ = match decl.id.typ {
                 Some(ty_ref) => {
-                    let declared_ty = ensure_ty(ctx.sem_ty(ty_ref))?;
+                    let declared_ty = ensure_ty(ctx.sem_ty(&ty_ref))?;
                     if Some(declared_ty) != initialiser.typ {
                         return Err(CompError::from(format!(
                             "Initialiser doesn't match declaration type for {}",

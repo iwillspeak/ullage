@@ -4,7 +4,6 @@
 //! syntax tree.
 
 use super::super::text::Ident;
-use super::fn_builder::FunctionDeclarationBuilder;
 use super::operators::{InfixOp, PrefixOp};
 use super::token::Token;
 use super::types::TypeRef;
@@ -46,6 +45,29 @@ impl TypedId {
     /// optionally been specified.
     pub fn from_parts(id: Ident, typ: Option<TypeRef>) -> Self {
         TypedId { id, typ }
+    }
+}
+
+/// Delimited Item
+///
+/// A single element in a list of token-delimited values.
+#[derive(Debug, PartialEq)]
+pub enum DelimItem<T> {
+    /// The first item in a list. Doesn't have a corresponding
+    /// dlimiter token.
+    First(T),
+    /// The follwing items in the list. Carries the token which
+    /// separated it from the previous element.
+    Follow(Token, T),
+}
+
+impl<T> DelimItem<T> {
+    /// Borrow in inner item
+    pub fn as_inner(&self) -> &T {
+        match *self {
+            DelimItem::First(ref t) => t,
+            DelimItem::Follow(_, ref t) => t,
+        }
     }
 }
 
@@ -160,6 +182,28 @@ pub struct IfElseExpression {
     pub if_false: Box<Expression>,
 }
 
+/// Function Declaration Expression
+///
+/// Represents the definition of a function and the implementation of
+/// it.
+#[derive(Debug, PartialEq)]
+pub struct FunctionExpression {
+    /// The function's identifier
+    pub fn_kw: Box<Token>,
+    /// The function's identifier
+    pub identifier: Ident,
+    /// The open `(` before the parameter list
+    pub params_open: Box<Token>,
+    /// Function parameters
+    pub params: Vec<DelimItem<TypedId>>,
+    /// The closing `)` after the parameter list
+    pub params_close: Box<Token>,
+    /// Function return type
+    pub return_type: TypeRef,
+    /// Body of the function
+    pub body: BlockBody,
+}
+
 /// Block Body
 ///
 /// represents the sequence of expressions within a given block, along
@@ -258,8 +302,8 @@ pub enum Expression {
     Index(IndexExpression),
     /// An if expression
     IfThenElse(IfElseExpression),
-    #[allow(missing_docs)]
-    Function(Ident, TypeRef, Vec<TypedId>, Box<Expression>),
+    /// Function declaration
+    Function(FunctionExpression),
     /// Conditional Loop
     Loop(LoopExpression),
     /// Sequence expression. Represents a series of expressions and
@@ -404,8 +448,30 @@ impl Expression {
     ///
     /// Create a function delcaration builder. This can be used to
     /// create a function expression.
-    pub fn function(id: Ident) -> FunctionDeclarationBuilder {
-        FunctionDeclarationBuilder::new(id)
+    pub fn function(
+        fn_kw: Token,
+
+        identifier: Ident,
+
+        params_open: Token,
+
+        params: Vec<DelimItem<TypedId>>,
+
+        params_close: Token,
+
+        return_type: TypeRef,
+
+        body: BlockBody,
+    ) -> Expression {
+        Expression::Function(FunctionExpression {
+            fn_kw: Box::new(fn_kw),
+            identifier,
+            params_open: Box::new(params_open),
+            params,
+            params_close: Box::new(params_close),
+            return_type,
+            body,
+        })
     }
 
     /// New Loop Expression

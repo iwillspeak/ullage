@@ -322,28 +322,36 @@ fn parse_unicode_identifiers() {
 #[test]
 fn parse_function_def() {
     check_parse!("fn test() :Num 100 end", |s| Expression::function(
-        s.intern("test")
-    )
-    .with_return_type(TypeRef::simple("Num"))
-    .with_body(blockify(vec![Expression::constant_num(
-        Token::new(TokenKind::Literal(Literal::Number(100))),
-        100
-    )]))
-    .into());
+        Token::new(TokenKind::Word(s.intern("fn"))),
+        s.intern("test"),
+        Token::new(TokenKind::OpenBracket),
+        Vec::new(),
+        Token::new(TokenKind::CloseBracket),
+        TypeRef::simple("Num"),
+        blockify(vec![Expression::constant_num(
+            Token::new(TokenKind::Literal(Literal::Number(100))),
+            100
+        )])
+    ));
     check_parse!(
         "fn ünécød3() :Num
                 0 if 74 else 888
              end",
-        |s| Expression::function(s.intern("ünécød3"))
-            .with_return_type(TypeRef::simple("Num"))
-            .with_body(blockify(vec![Expression::if_then_else(
+        |s| Expression::function(
+            Token::new(TokenKind::Word(s.intern("fn"))),
+            s.intern("ünécød3"),
+            Token::new(TokenKind::OpenBracket),
+            Vec::new(),
+            Token::new(TokenKind::CloseBracket),
+            TypeRef::simple("Num"),
+            blockify(vec![Expression::if_then_else(
                 Token::new(TokenKind::Word(s.intern("if"))),
                 Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(74))), 74),
                 Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(0))), 0),
                 Token::new(TokenKind::Word(s.intern("else"))),
                 Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(888))), 888),
-            )]))
-            .into()
+            )])
+        )
     );
 }
 
@@ -367,24 +375,41 @@ fn parse_while_loop() {
 #[test]
 fn parse_function_with_args() {
     check_parse!("fn neg(i: Num): Num - i end", |s| Expression::function(
-        s.intern("neg")
-    )
-    .with_arg(TypedId::new(s.intern("i"), TypeRef::simple("Num")))
-    .with_return_type(TypeRef::simple("Num"))
-    .with_body(blockify(vec![Expression::prefix(
-        Token::new(TokenKind::Minus),
-        PrefixOp::Negate,
-        mk_ident(&s, "i"),
-    )]))
-    .into());
+        Token::new(TokenKind::Word(s.intern("fn"))),
+        s.intern("neg"),
+        Token::new(TokenKind::OpenBracket),
+        vec![DelimItem::First(TypedId::new(
+            s.intern("i"),
+            TypeRef::simple("Num")
+        ))],
+        Token::new(TokenKind::CloseBracket),
+        TypeRef::simple("Num"),
+        blockify(vec![Expression::prefix(
+            Token::new(TokenKind::Minus),
+            PrefixOp::Negate,
+            mk_ident(&s, "i"),
+        )])
+    ));
 
     check_parse!("fn test(i: Num, j, k: String): String i + j + k end", |s| {
-        Expression::function(s.intern("test"))
-            .with_arg(TypedId::new(s.intern("i"), TypeRef::simple("Num")))
-            .with_arg(TypedId::new_without_type(s.intern("j")))
-            .with_arg(TypedId::new(s.intern("k"), TypeRef::simple("String")))
-            .with_return_type(TypeRef::simple("String"))
-            .with_body(blockify(vec![Expression::infix(
+        Expression::function(
+            Token::new(TokenKind::Word(s.intern("fn"))),
+            s.intern("test"),
+            Token::new(TokenKind::OpenBracket),
+            vec![
+                DelimItem::First(TypedId::new(s.intern("i"), TypeRef::simple("Num"))),
+                DelimItem::Follow(
+                    Token::new(TokenKind::Comma),
+                    TypedId::new_without_type(s.intern("j")),
+                ),
+                DelimItem::Follow(
+                    Token::new(TokenKind::Comma),
+                    TypedId::new(s.intern("k"), TypeRef::simple("String")),
+                ),
+            ],
+            Token::new(TokenKind::CloseBracket),
+            TypeRef::simple("String"),
+            blockify(vec![Expression::infix(
                 Expression::infix(
                     mk_ident(&s, "i"),
                     Token::new(TokenKind::Plus),
@@ -394,8 +419,8 @@ fn parse_function_with_args() {
                 Token::new(TokenKind::Plus),
                 InfixOp::Add,
                 mk_ident(&s, "k"),
-            )]))
-            .into()
+            )]),
+        )
     });
 }
 

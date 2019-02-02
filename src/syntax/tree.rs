@@ -5,7 +5,6 @@
 //! before any semantic transformation is done.
 
 pub mod expression;
-mod fn_builder;
 pub mod operators;
 mod token;
 mod trivia;
