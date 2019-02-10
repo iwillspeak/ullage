@@ -5,11 +5,6 @@
 
 use failure;
 
-#[macro_use]
-extern crate failure_derive;
-#[macro_use]
-extern crate serde_derive;
-
 pub mod compile;
 pub mod low_loader;
 pub mod meta;
@@ -26,6 +21,7 @@ use std::io;
 use std::io::prelude::*;
 use std::path::Path;
 use std::process::*;
+use serde::Deserialize;
 
 /// Usage Information
 ///

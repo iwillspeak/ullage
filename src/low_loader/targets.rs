@@ -5,6 +5,7 @@ use super::llvm_sys::target_machine::*;
 use libc;
 use std::ffi::{CStr, CString};
 use std::{fmt, ptr};
+use failure::Fail;
 
 /// Compilation Target
 ///

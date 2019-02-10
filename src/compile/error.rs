@@ -2,6 +2,7 @@
 //! the compile module.
 
 use std::io;
+use failure::Fail;
 
 /// Represents the different types of errors which can be encountered
 /// when compiling.

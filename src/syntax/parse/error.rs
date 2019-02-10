@@ -2,6 +2,7 @@
 //! `parse` module.
 
 use std::fmt;
+use failure::Fail;
 
 /// Parser result type
 ///
