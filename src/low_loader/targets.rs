@@ -2,10 +2,10 @@
 
 use super::llvm_sys::core::LLVMDisposeMessage;
 use super::llvm_sys::target_machine::*;
+use failure::Fail;
 use libc;
 use std::ffi::{CStr, CString};
 use std::{fmt, ptr};
-use failure::Fail;
 
 /// Compilation Target
 ///

@@ -16,12 +16,13 @@ use crate::low_loader::targets;
 use crate::syntax::*;
 use docopt::Docopt;
 use failure::Error;
+use serde::{Deserialize, Deserializer};
+use std::fmt;
 use std::fs::File;
 use std::io;
 use std::io::prelude::*;
 use std::path::Path;
 use std::process::*;
-use serde::Deserialize;
 
 /// Usage Information
 ///
@@ -67,32 +68,66 @@ struct Args {
 /// Optimisation Level
 ///
 /// Used to hold the requested optimisation level
-#[derive(Debug, Deserialize)]
+#[derive(Debug)]
 enum OptFlag {
-    /// No optimisation
-    #[serde(rename = "0")]
-    Off,
-    /// O1
-    #[serde(rename = "1")]
-    One,
-    /// O2
-    #[serde(rename = "2")]
-    Two,
-    /// O3
-    #[serde(rename = "3")]
-    Three,
+    /// numeric optimisation level
+    Numeric(u64),
     /// size optimisation
-    #[serde(rename = "s")]
     Size,
+}
+
+/// Custom Deserialiser for Optimisation Flags
+///
+/// This deserialiser will handle both numeric values and 's' or
+/// 'size'. Numbers greater than 3 are accepted, and transformed into
+/// range when converting to the stronger `OptimisationLevel` type.
+impl<'de> Deserialize<'de> for OptFlag {
+    fn deserialize<D>(d: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        struct OptFlagVisitor;
+        impl<'de> serde::de::Visitor<'de> for OptFlagVisitor {
+            type Value = OptFlag;
+
+            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                formatter.write_str("a number from range 0..3, or s for size")
+            }
+
+            fn visit_u64<E>(self, n: u64) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                Ok(OptFlag::Numeric(n))
+            }
+
+            fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                match value {
+                    "size" | "s" => Ok(OptFlag::Size),
+                    s => s.parse::<u64>().map(OptFlag::Numeric).map_err(|_| {
+                        let err = format!("Could not deserialize '{}' as optimisation flag", value);
+                        E::custom(err)
+                    }),
+                }
+            }
+        }
+
+        d.deserialize_identifier(OptFlagVisitor)
+    }
 }
 
 impl From<OptFlag> for OptimisationLevel {
     fn from(flag: OptFlag) -> Self {
         match flag {
-            OptFlag::Off => OptimisationLevel::Off,
-            OptFlag::One => OptimisationLevel::Low,
-            OptFlag::Two => OptimisationLevel::Med,
-            OptFlag::Three => OptimisationLevel::High,
+            OptFlag::Numeric(level) => match level {
+                0 => OptimisationLevel::Off,
+                1 => OptimisationLevel::Low,
+                2 => OptimisationLevel::Med,
+                _ => OptimisationLevel::High,
+            },
             OptFlag::Size => OptimisationLevel::Size,
         }
     }

@@ -1,8 +1,8 @@
 //! Parse error module. Contains the Result and Error types for the
 //! `parse` module.
 
-use std::fmt;
 use failure::Fail;
+use std::fmt;
 
 /// Parser result type
 ///
