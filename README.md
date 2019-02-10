@@ -51,10 +51,10 @@ Ullage is open source, under the [MIT License](LICENSE.md).
 
 ### Lexer
 
- * [x] Recognise words, numbers, comments, operators and whitespace
+ * [x] Recognise words, numbers, comments, operators and white-space
  * [x] Position information on each token
  * [ ] Interpolated strings
- * [ ] Expose whitespace to the parser
+ * [x] Expose whitespace to the parser
 
 ### Parser
 

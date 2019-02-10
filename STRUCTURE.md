@@ -8,7 +8,7 @@ The language parser and compiler are written in Rust. The source lives in the `s
 
 Functional tests for the language consist of a set of source files in `spec/`. These files contain specially formatted comments which are interpreted by the Python test runner `specs.py` when run.
 
-Documentation, written in Markdown, is in the `docs/` folder. It can be compiled into a static side with [`docket`](http://willspeak.me/docket/).
+Documentation, written in Markdown, is in the `docs/` folder. It can be compiled into a static site with [`docket`](http://willspeak.me/docket/).
 
 ## Rust modules
 

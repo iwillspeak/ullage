@@ -170,14 +170,6 @@ print add(add(1, 2), 3) # => 6
 The following grammar defines the language:
 
 
-```
-def foo(bar):
-	pass
-```
-
-
-    :::python
-
     identifier = WORD
                ;
     

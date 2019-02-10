@@ -38,4 +38,4 @@ Rather than aiming to control access to data as Rust does the language should pr
  * Reference counting. E.g. Swift's ARC & Python.
  * Simple mark & sweep GC.
  
- For a full mark and sweep or other collector the code generated needs to insert GC statepoints. For this reason i'm tempted to head towards the second option. I place of statepoints we will need to decide in the lower pass where to insert RC retain and release code to maintain the count. Could this work the same way as Rust's ARC model? In that case the code just needs to know a fixed point in the scope where each value is deallocated.
+For a full mark and sweep or other collector the code generated needs to insert GC statepoints. For this reason i'm tempted to head towards the second option. I place of statepoints we will need to decide in the lower pass where to insert RC retain and release code to maintain the count. Could this work the same way as Rust's ARC model? In that case the code just needs to know a fixed point in the scope where each value is deallocated.
