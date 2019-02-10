@@ -60,12 +60,46 @@ Options:
 struct Args {
     flag_dumpast: bool,
     flag_output: Option<String>,
-    flag_optimise: Option<OptimisationLevel>,
+    flag_optimise: Option<OptFlag>,
     flag_dumpir: bool,
     flag_dumptargets: bool,
     flag_dumptargetinfo: bool,
     flag_target: Option<String>,
     arg_file: Option<String>,
+}
+
+/// Optimisation Level
+///
+/// Used to hold the requested optimisation level
+#[derive(Debug, Deserialize)]
+enum OptFlag {
+    /// No optimisation
+    #[serde(rename = "0")]
+    Off,
+    /// O1
+    #[serde(rename = "1")]
+    One,
+    /// O2
+    #[serde(rename = "2")]
+    Two,
+    /// O3
+    #[serde(rename = "3")]
+    Three,
+    /// size optimisation
+    #[serde(rename = "s")]
+    Size,
+}
+
+impl From<OptFlag> for OptimisationLevel {
+    fn from(flag: OptFlag) -> Self {
+        match flag {
+            OptFlag::Off => OptimisationLevel::Off,
+            OptFlag::One => OptimisationLevel::Low,
+            OptFlag::Two => OptimisationLevel::Med,
+            OptFlag::Three => OptimisationLevel::High,
+            OptFlag::Size => OptimisationLevel::Size,
+        }
+    }
 }
 
 /// Main
@@ -125,7 +159,10 @@ fn main() {
 
     let options = CompilationOptions::default()
         .with_dump_ir(args.flag_dumpir)
-        .with_opt_level(args.flag_optimise.unwrap_or_default());
+        .with_opt_level(
+            args.flag_optimise
+                .map_or(OptimisationLevel::Off, |o| o.into()),
+        );
     let comp = match Compilation::new(&source, tree, options) {
         Ok(c) => c,
         Err(e) => handle_comp_err(&e),

@@ -8,6 +8,7 @@ use crate::low_loader::pass_manager as pm;
 /// Compilation Options
 ///
 /// This is used to control how each `Compilation` instance behaves.
+#[derive(Default)]
 pub struct CompilationOptions {
     /// Dump the LLVM IR when the module is compiled
     pub dump_ir: bool,
@@ -20,34 +21,17 @@ pub struct CompilationOptions {
 /// Defines the different levels of optimisation that the compiler
 /// supports. These levels are usually controlled from the command
 /// line.
-// FIXME: this deserialisation stuff seems quite tightly coupled to
-// the command line interface.
-#[derive(Debug, Deserialize)]
 pub enum OptimisationLevel {
     /// No optimisation
-    #[serde(rename = "0")]
     Off,
     /// Low optimisation, same as -O1
-    #[serde(rename = "1")]
     Low,
     /// Medium optimisation. Same as -O2
-    #[serde(rename = "2")]
     Med,
     /// High optimisation. Same as -O3
-    #[serde(rename = "3")]
     High,
     /// Optimise for size not speed
-    #[serde(rename = "s")]
     Size,
-}
-
-impl Default for CompilationOptions {
-    fn default() -> Self {
-        CompilationOptions {
-            dump_ir: false,
-            opt_level: OptimisationLevel::default(),
-        }
-    }
 }
 
 impl CompilationOptions {
