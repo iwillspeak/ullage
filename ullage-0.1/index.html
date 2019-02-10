@@ -2,6 +2,7 @@
   <head>
     <title>Ullage 0.1</title>
     <meta name="viewport" content="width=700">
+    <meta charset="UTF-8"> 
     <link href="https://fonts.googleapis.com/css?family=Merriweather|Open+Sans" rel="stylesheet">
     <link rel="stylesheet"
       href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/default.min.css">
@@ -24,10 +25,9 @@
 </ul>
 <h2 id="Printing"><a href="#Printing">Printing</a></h2><p>A simple addition to the early language, and not intended to stay the course. <code>print</code> should allow us to develop an array of functional test cases quickly before getting the whole language runtime up on its feet.</p>
 <h2 id="Variables"><a href="#Variables">Variables</a></h2><p>To begin with we just need two kinds of variables: <code>var</code> and <code>let</code>. Both will take a type annotation and an expression of that type. The difference between the two is just mutability. Neither should allow you to define an uninitialised variable at this stage.</p>
-<h2 id="Compilation"><a href="#Compilation">Compilation</a></h2><p>The language itself will be compiled with LLVM. The output should be something which is independently runnable. For initial versions the compiler can just produce LLVM IR. A small language <em>runtime</em> will be needed to support the print statement and manage calling the entry point. This runtime support can initially be a small Rust stub with a c api. In the future it would be nice to have an interactive REPL.</p>
-<h2 id="Future"><a href="#Future">Future</a></h2><h3 id="Jit-"><a href="#Jit-">Jit?</a></h3><p>The compilation part of the JIT should be usable to perform AOT
-compilation. That is we should build the JIT on top of the AOT
-compilation support. Maybe look at CraneLift for this?</p>
+<h2 id="Compilation"><a href="#Compilation">Compilation</a></h2><p>The language itself will be compiled with LLVM. The output should be something which is independently runnable. For initial versions the compiler can just produce LLVM IR. A small language <em>runtime</em> will be needed to support the print statement and manage calling the entry point. This runtime support is currently dynamically built into each binary with the LLVM API. In the future it could be a small Rust stub with a c api.</p>
+<h2 id="Future"><a href="#Future">Future</a></h2><h3 id="Make-low_lader-a-Crate"><a href="#Make-low_lader-a-Crate">Make <code>low_lader</code> a Crate</a></h3><p>It would be nice to push this to &lt;crates.io&gt; and have a proper API. Would need to make sure as little LLVM leaks through the interface though.</p>
+<h3 id="Cranelift"><a href="#Cranelift">Cranelift</a></h3><p>Do we want to use the new <em>Cranelift</em> backend in place of LLVM? Could support be added to <code>low_loader</code>?</p>
 <h2 id="Types"><a href="#Types">Types</a></h2><p>We want the following built in types:</p>
 <ul>
 <li>Integer/Number (arbitrary precision?)</li>
@@ -36,7 +36,7 @@ compilation support. Maybe look at CraneLift for this?</p>
 <li>Function</li>
 <li>Tuples, (including the unit tuple?)</li>
 </ul>
-<p>As far as further user defined types I'd like a full algabraic data type set with sum and product types. Unsure if this should be through asigning names to unknown types or with an explict syntax as in Rust. E.g.:</p>
+<p>As far as further user defined types I'd like a full algebraic data type set with sum and product types. Unsure if this should be through assigning names to unknown types or with an explicit syntax as in Rust. E.g.:</p>
 <pre><code class="language-ullage">type Foo = Number | String
 
 # or

@@ -1,0 +1,35 @@
+<html>
+  <head>
+    <title>Parsing and Syntax Trees</title>
+    <meta name="viewport" content="width=700">
+    <meta charset="UTF-8"> 
+    <link href="https://fonts.googleapis.com/css?family=Merriweather|Open+Sans" rel="stylesheet">
+    <link rel="stylesheet"
+      href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/default.min.css">
+    <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
+    <link rel="stylesheet" href="../style.css">
+    <script>hljs.initHighlightingOnLoad();</script>
+  </head>
+  <body><header class="page-heading"><h1><a href="#">Parsing and Syntax Trees</h1><a class="home-link" href="../">ullage</a></header><p>The current parsing architecture works but doesn't provide enough metadata to the parser in the token stream. The parser then fails to pass on any metadata to the AST.</p>
+<p><ol><li><a href="#Current">Current</a><ol></ol></li><li><a href="#Proposed-Replacement">Proposed Replacement</a><ol><li><a href="#Structure">Structure</a></li><li><a href="#Diagnostics">Diagnostics</a></li></ol></li></ol></p>
+<h2 id="Current"><a href="#Current">Current</a></h2><p>A <code>Tokeniser</code> is created from a string. This iterates over the <code>char</code>s in the string and yields tokens. Word tokens in the stream have their value copied out of the source buffer.</p>
+<p>There are a few downsides to this:</p>
+<ol>
+<li>We are stuck with only being able to parse strings. Would be nice to abstract over the input so that string buffers and files can be parsed.</li>
+<li>The value of each token is only extracted for <code>Word</code> tokens. It would be nice to access the raw value for all tokens.</li>
+<li>Whitespace is lost in the AST. Richer whitespace and other trivia tokens would allow better error reporting and round-tripping.</li>
+<li>The position of each token is lost. It would be nice to keep the tokens around in the AST so that their position information is available.</li>
+<li>Parsing is limited to a single source. It would be nice to add more than one syntax tree to a compilation.</li>
+</ol>
+<h2 id="Proposed-Replacement"><a href="#Proposed-Replacement">Proposed Replacement</a></h2><p>Source will be represented by a <code>SourceText</code> type. This will expose the  characters at a given index along with the ability to take a position and convert it into a file, line, column triple.</p>
+<p>Parsing will crate a lexer which implements token iteration for a given <code>SourceText</code>. Each token should be a pair of a <code>Position</code> and <code>TokenKind</code>. Consumption of tokens from the iterator by the parser should stub out missing tokens as well as recording errors in a <code>DiagnosticCollection</code>.</p>
+<p>Rather than returning a <code>Result</code> type from the parser instead a valid parse should always be returned. At the end if there are any diagnostics an error type containing those messages and the parsed tree with its substitutions should be returned.</p>
+<h3 id="Structure"><a href="#Structure">Structure</a></h3><p>The structure could look something like this:</p>
+<ul>
+<li><code>syntax/parse/</code> - Parser and tokenisation logic</li>
+<li><code>syntax/tree/</code> - Tree node types and the <code>SyntaxNode</code> enum.</li>
+<li><code>syntax/text/</code> - Source buffer abstraction as well as diagnostic pretty printing.</li>
+<li><code>diagnostics/</code> - Diagnostic collection implementation.</li>
+</ul>
+<h3 id="Diagnostics"><a href="#Diagnostics">Diagnostics</a></h3><p>Initially diagnostics could just be string values and position information.  More metadata can be added later. It might be useful to add 'level' information to each diagnostic to allow for warnings.</p>
+<footer></footer></body></html>

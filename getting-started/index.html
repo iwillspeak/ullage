@@ -2,6 +2,7 @@
   <head>
     <title>Getting Started</title>
     <meta name="viewport" content="width=700">
+    <meta charset="UTF-8"> 
     <link href="https://fonts.googleapis.com/css?family=Merriweather|Open+Sans" rel="stylesheet">
     <link rel="stylesheet"
       href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/default.min.css">
@@ -15,7 +16,7 @@
 <li>Python - to run the functional tests</li>
 <li>Clang - Used to link the output to create the final executables.</li>
 </ul>
-<p>The compiler can be built with <em>Cargo</em>. Functional tests are defined by a collection of source in <code>spec/</code> and run by <code>specs.py</code>. It's easier to run them with Python's invoke however. Unit and functional test can be run with <code>invoke test</code>.</p>
+<p>The compiler is written in Rust and built with <em>Cargo</em>. Functional tests are defined by a collection of source in <code>spec/</code> and run by <code>specs.py</code>. It's easier to run the tests with a virtual environment. Rather than running <code>cargo</code> or python directly use the <code>build.sh</code> script. This will set up the required python environment as required.</p>
 <h2 id="Source"><a href="#Source">Source</a></h2><p>The source is all available <a href="https://github.com/iwillspeak/ullage">at GitHub</a>. Pull requests, comments and issues are welcome. Any thoughts I find interesting during development might be posted to <a href="http://willspeak.me/">my blog</a>.</p>
-<h2 id="Building---Running-the-Compiler"><a href="#Building---Running-the-Compiler">Building &amp; Running the Compiler</a></h2><p>The compiler can be built with <code>cargo build --release</code> from the root directory. This should create a <code>target/release/ullage</code> executable. With this executable in your path you can compile an example program with <code>$ ullage -o hello specs/hello.ulg</code>. This will produce an execuable called <code>hello</code> in the currrent directory based on the source file <code>specs/hello.ulg</code>. Running <code>$ ./hello</code> should then print 1337 to the terminal. For full usage instructions on the compiler run <code>$ ullage --help</code>.</p>
+<h2 id="Building---Running-the-Compiler"><a href="#Building---Running-the-Compiler">Building &amp; Running the Compiler</a></h2><p>The compiler can be built with <code>./build.sh build --release</code> from the root directory. This should create a <code>target/release/ullage</code> executable. With this executable in your path you can compile an example program with <code>$ ullage -o hello specs/hello.ulg</code>. This will produce an executable called <code>hello</code> in the current directory based on the source file <code>specs/hello.ulg</code>. Running <code>$ ./hello</code> should then print 1337 to the terminal. For full usage instructions on the compiler run <code>$ ullage --help</code>.</p>
 <footer></footer></body></html>
