@@ -44,3 +44,11 @@ into `while`.
 
 Further use of these would be to implement a language server in the
 future and some kind of code formatter.
+
+## Mangling
+
+We need to come up with some way of mangling the names of functions to
+support modules. Would probably make sense to use the Itanium ABI like
+everyone else. Can't find a crate which provides mangling for it
+though, just demangling.
+
