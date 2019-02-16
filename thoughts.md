@@ -61,5 +61,33 @@ allows building more complex trees part by part and stubs in tokens
 when trees are not being directly backed by source. This would be
 useful when creating replacement trees in a syntax transformation.
 
+## Defining a Parser API
+
+It would be nice if the different areas of the compiler lived in
+separate crates within this workspace. This would hopefully mean we
+can have API level integration tests for each unit of the compiler in
+isolation.
+
+For this each part (`syntax`, `sem` etc.) we would need to have a
+clean API. I see an initial split of the _syntax_ related concerns
+(source text, parsing and tokenisation) from the _compilation_
+concerns (typechecking, binding, and code lowering).
+
+E.g.
+
+* Syntax concerns
+ * `SourceText` - represents the input.
+  * `from_string` - for direct input
+  * `from_file` - for `mmmaping` files?? 
+  * `PPS_to_line` - for extracting line information for a `Span`
+ * `SyntaxTree` - Parsed syntax element.
+  * `parse_compilation_unit` - Parse a whole 'compilation unit'
+  * `parse_expression` - Just parse a single expression.
+ * `SyntaxVisitor`/`SyntaxWalker` - Trait for walking trees?
+  * `walk_*` - default walks for different node kinds.
+* Compilation concerns
+ * `Compilation` - represent the binding and diagnostic state of an
+   expression.
+
  [roslyn_quoter]: https://roslynquoter.azurewebsites.net/
 
