@@ -3,6 +3,8 @@
 //! This module contians the structures used in the syntax tree to
 //! reference types.
 
+use super::Token;
+
 /// Type Reference
 ///
 /// Represents a reference to a type. This could be a simple reference
@@ -10,7 +12,7 @@
 #[derive(Debug, PartialEq)]
 pub enum TypeRef {
     /// Simple Named Type
-    Simple(String),
+    Simple(Box<Token>),
     /// The Unit Type
     Unit,
     /// A non-empty Tuple
@@ -23,9 +25,10 @@ impl TypeRef {
     /// Create a New Simple Type
     ///
     /// A simple type is a direct reference to a non-generic non-array
-    /// type, such as `Num` or `String`.
-    pub fn simple<S: Into<String>>(name: S) -> Self {
-        TypeRef::Simple(name.into())
+    /// type, such as `Num` or `String`. We keep track of the token
+    /// and the inner identifier separately for convenience.
+    pub fn simple(tok: Token) -> Self {
+        TypeRef::Simple(Box::new(tok))
     }
 
     /// Create a new Unit Type Reference
@@ -55,15 +58,5 @@ impl TypeRef {
     /// type.
     pub fn array(inner: TypeRef) -> Self {
         TypeRef::Array(Box::new(inner))
-    }
-
-    /// Get the Simple Name of a Type
-    ///
-    /// Panics if the type is not simple
-    pub fn simple_name(&self) -> &str {
-        match *self {
-            TypeRef::Simple(ref name) => name.as_ref(),
-            _ => panic!("not a simple type"),
-        }
     }
 }

@@ -10,8 +10,9 @@
 //! # Grammar
 //!
 //! The language grammer is relatively simple and should be possible
-//! to parse with a single-token lookahead. This parser uses the
-//! `Peekable` iterator to acchieve this.
+//! to parse with a single-token lookahead. For a full description of
+//! the syntax take a look at the Syntax documentation in the `docs/`
+//! folder.
 
 use super::super::text::{Ident, SourceText};
 use super::super::tree::{Literal, Token, TokenKind};
@@ -24,7 +25,6 @@ use super::tokeniser::Tokeniser;
 /// Expression parser. Given a stream of tokens this will produce an
 /// expression tree, or a parse error.
 pub struct Parser<'a> {
-    source: &'a SourceText,
     lexer: Tokeniser<'a>,
     diagnostics: Vec<String>,
     #[allow(clippy::option_option)]
@@ -35,7 +35,6 @@ impl<'a> Parser<'a> {
     /// Create a new Parser from a given source text.
     pub fn new(source: &'a SourceText) -> Self {
         Parser {
-            source,
             lexer: Tokeniser::new(source),
             diagnostics: Vec::new(),
             current: None,
@@ -52,6 +51,7 @@ impl<'a> Parser<'a> {
 
     /// Moves the token stream on by a single token. The curren token
     /// is returned.
+    #[must_use]
     fn advance(&mut self) -> Option<Token> {
         match self.current.take() {
             Some(maybe_token) => maybe_token,
@@ -156,28 +156,19 @@ impl<'a> Parser<'a> {
     /// Attempt to parse a type. This could be a simple type name, or
     /// it could be a more complex one such as an array type or tuple.
     fn ty(&mut self) -> ParseResult<TypeRef> {
-        match self.current() {
-            Some(&Token {
-                kind: TokenKind::Word(t),
-                ..
-            }) => {
-                self.advance();
-                Ok(TypeRef::simple(self.source.interned_value(t)))
-            }
-            Some(&Token {
-                kind: TokenKind::OpenSqBracket,
-                ..
-            }) => {
-                self.advance();
+        let current = self.current().ok_or(ParseError::Incomplete)?;
+        Ok(match &current.kind {
+            TokenKind::Word(_) => TypeRef::simple(self.advance().unwrap()),
+            TokenKind::OpenSqBracket => {
+                // FIXME: proper token handling for array types
+                let _open = self.advance();
                 let inner = self.ty()?;
-                self.expect(&TokenKind::CloseSqBracket)?;
-                Ok(TypeRef::array(inner))
+                let _close = self.expect(&TokenKind::CloseSqBracket)?;
+                TypeRef::array(inner)
             }
-            Some(&Token {
-                kind: TokenKind::OpenBracket,
-                ..
-            }) => {
-                self.advance();
+            TokenKind::OpenBracket => {
+                // FIXME: Proper token handling for tuple types
+                let _open = self.advance();
                 let mut types = Vec::new();
                 if !self.next_is(&TokenKind::CloseBracket) {
                     types.push(self.ty()?);
@@ -186,14 +177,16 @@ impl<'a> Parser<'a> {
                     self.expect(&TokenKind::Comma)?;
                     types.push(self.ty()?);
                 }
-                self.expect(&TokenKind::CloseBracket)?;
-                Ok(TypeRef::tuple(types))
+                let _close = self.expect(&TokenKind::CloseBracket)?;
+                TypeRef::tuple(types)
             }
-            t => Err(ParseError::Unexpected(format!(
-                "expected type, found: {:?}",
-                t
-            ))),
-        }
+            t => {
+                return Err(ParseError::Unexpected(format!(
+                    "expected type, found: {:?}",
+                    t
+                )));
+            }
+        })
     }
 
     /// Parse an optional type reference

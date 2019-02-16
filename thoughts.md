@@ -52,3 +52,14 @@ support modules. Would probably make sense to use the Itanium ABI like
 everyone else. Can't find a crate which provides mangling for it
 though, just demangling.
 
+## Tree Building and Syntax Factories
+
+The current checkparse tests are getting unwieldy. Writing the tree to
+match against is a bit of a pain. It would be nice to introduce a
+builder API similar to the [Roslyn "quoter" API][roslyn_quoter]. This
+allows building more complex trees part by part and stubs in tokens
+when trees are not being directly backed by source. This would be
+useful when creating replacement trees in a syntax transformation.
+
+ [roslyn_quoter]: https://roslynquoter.azurewebsites.net/
+

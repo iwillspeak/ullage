@@ -24,9 +24,21 @@ macro_rules! check_parse {
 ///
 /// This funciton handles interning the indentifier and creating a
 /// mock token for the idnetifier expression to use.
+///
+/// FIXME: Replace with a proper builder API for trees
 fn mk_ident(source: &SourceText, id: &str) -> Expression {
     let id = source.intern(id);
     Expression::identifier(Token::new(TokenKind::Word(id)), id)
+}
+
+/// Create a Simple TypeRef
+///
+/// Takes the given string, interns it and creates a type reference to
+/// that simple type.
+///
+/// FIXME: Replace with a proper builder API for trees
+fn mk_simple_ty(source: &SourceText, simple_name: &str) -> TypeRef {
+    TypeRef::simple(Token::new(TokenKind::Word(source.intern(simple_name))))
 }
 
 /// Turns a vector of expressions into a dummy block body by pasting a
@@ -327,7 +339,7 @@ fn parse_function_def() {
         Token::new(TokenKind::OpenBracket),
         Vec::new(),
         Token::new(TokenKind::CloseBracket),
-        TypeRef::simple("Num"),
+        mk_simple_ty(&s, "Num"),
         blockify(vec![Expression::constant_num(
             Token::new(TokenKind::Literal(Literal::Number(100))),
             100
@@ -343,7 +355,7 @@ fn parse_function_def() {
             Token::new(TokenKind::OpenBracket),
             Vec::new(),
             Token::new(TokenKind::CloseBracket),
-            TypeRef::simple("Num"),
+            mk_simple_ty(&s, "Num"),
             blockify(vec![Expression::if_then_else(
                 Token::new(TokenKind::Word(s.intern("if"))),
                 Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(74))), 74),
@@ -380,10 +392,10 @@ fn parse_function_with_args() {
         Token::new(TokenKind::OpenBracket),
         vec![DelimItem::First(TypedId::new(
             s.intern("i"),
-            TypeRef::simple("Num")
+            mk_simple_ty(&s, "Num")
         ))],
         Token::new(TokenKind::CloseBracket),
-        TypeRef::simple("Num"),
+        mk_simple_ty(&s, "Num"),
         blockify(vec![Expression::prefix(
             Token::new(TokenKind::Minus),
             PrefixOp::Negate,
@@ -397,18 +409,18 @@ fn parse_function_with_args() {
             s.intern("test"),
             Token::new(TokenKind::OpenBracket),
             vec![
-                DelimItem::First(TypedId::new(s.intern("i"), TypeRef::simple("Num"))),
+                DelimItem::First(TypedId::new(s.intern("i"), mk_simple_ty(&s, "Num"))),
                 DelimItem::Follow(
                     Token::new(TokenKind::Comma),
                     TypedId::new_without_type(s.intern("j")),
                 ),
                 DelimItem::Follow(
                     Token::new(TokenKind::Comma),
-                    TypedId::new(s.intern("k"), TypeRef::simple("String")),
+                    TypedId::new(s.intern("k"), mk_simple_ty(&s, "String")),
                 ),
             ],
             Token::new(TokenKind::CloseBracket),
-            TypeRef::simple("String"),
+            mk_simple_ty(&s, "String"),
             blockify(vec![Expression::infix(
                 Expression::infix(
                     mk_ident(&s, "i"),
@@ -428,7 +440,7 @@ fn parse_function_with_args() {
 fn parse_simple_array_type() {
     check_parse!("let f: [Num] = 100", |s| Expression::declaration(
         Token::new(TokenKind::Word(s.intern("let"))),
-        TypedId::from_parts(s.intern("f"), Some(TypeRef::array(TypeRef::simple("Num"))),),
+        TypedId::from_parts(s.intern("f"), Some(TypeRef::array(mk_simple_ty(&s, "Num"))),),
         VarStyle::Immutable,
         Token::new(TokenKind::Equals),
         Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(100))), 100),
@@ -452,7 +464,7 @@ fn parse_simple_tuple() {
         Token::new(TokenKind::Word(s.intern("let"))),
         TypedId::from_parts(
             s.intern("f"),
-            Some(TypeRef::tuple(vec![TypeRef::simple("Num")])),
+            Some(TypeRef::tuple(vec![mk_simple_ty(&s, "Num")])),
         ),
         VarStyle::Immutable,
         Token::new(TokenKind::Equals),
@@ -463,8 +475,8 @@ fn parse_simple_tuple() {
         TypedId::from_parts(
             s.intern("f"),
             Some(TypeRef::tuple(vec![
-                TypeRef::simple("Num"),
-                TypeRef::array(TypeRef::simple("String")),
+                mk_simple_ty(&s, "Num"),
+                TypeRef::array(mk_simple_ty(&s, "String")),
             ])),
         ),
         VarStyle::Immutable,
@@ -484,7 +496,7 @@ fn parse_variable_decl() {
     ));
     check_parse!("var foo_bar: Number = -99999", |s| Expression::declaration(
         Token::new(TokenKind::Word(s.intern("var"))),
-        TypedId::from_parts(s.intern("foo_bar"), Some(TypeRef::simple("Number"))),
+        TypedId::from_parts(s.intern("foo_bar"), Some(mk_simple_ty(&s, "Number"))),
         VarStyle::Mutable,
         Token::new(TokenKind::Equals),
         Expression::prefix(

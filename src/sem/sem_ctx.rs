@@ -5,6 +5,7 @@
 
 use super::types::{BuiltinType, Typ};
 use crate::syntax::text::{Ident, SourceText};
+use crate::syntax::tree::TokenKind;
 use crate::syntax::TypeRef;
 use std::collections::HashMap;
 
@@ -36,12 +37,19 @@ impl<'a> SemCtx<'a> {
         // TODO: This should be looked up dynamically.
         Some(match *ast_ty {
             TypeRef::Unit => Typ::Unit,
-            TypeRef::Simple(ref name) => match &name[..] {
-                "String" => Typ::Builtin(BuiltinType::String),
-                "Bool" => Typ::Builtin(BuiltinType::Bool),
-                "Number" => Typ::Builtin(BuiltinType::Number),
-                _ => unimplemented!(),
-            },
+            TypeRef::Simple(ref name) => {
+                let id = match name.kind {
+                    TokenKind::Word(id) => id,
+                    _ => panic!("Expected word token"),
+                };
+                let name = self.source().interned_value(id);
+                match &name[..] {
+                    "String" => Typ::Builtin(BuiltinType::String),
+                    "Bool" => Typ::Builtin(BuiltinType::Bool),
+                    "Number" => Typ::Builtin(BuiltinType::Number),
+                    _ => unimplemented!(),
+                }
+            }
             _ => unimplemented!(),
         })
     }
