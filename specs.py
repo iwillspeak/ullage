@@ -78,7 +78,7 @@ def check_compilation_failure(output, expectations):
     fails = list(expectations.failure_expects)
     for line in output[1].strip().split('\n'):
         if fails and fails[0] in line:
-            fails.pop()
+            fails.pop(0)
     if fails:
         raise OutputMissingError(output[1], fails)
 

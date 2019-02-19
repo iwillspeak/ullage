@@ -3,6 +3,7 @@
 //! A lexeme in the token stream. Tokens are produced by the
 //! `Tokeniser` when parsing a source text.
 
+use std::fmt;
 use super::super::text::{Ident, Span, DUMMY_SPAN};
 use super::TriviaToken;
 
@@ -23,7 +24,7 @@ pub struct Token {
 /// Literal Value
 ///
 /// Represents any constant / literal value in the syntax tree.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Literal {
     /// A literal string
     RawString(String),
@@ -38,7 +39,7 @@ pub enum Literal {
 /// some tokens, like `Word` we also store their value. For all token
 /// kinds the underlying source can be retrieved from the `Token`'s
 /// span.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum TokenKind {
     /// A string of alpahbetic characters. This could be a langauge
     /// keyword or a variable or type identifier.
@@ -106,6 +107,34 @@ pub enum TokenKind {
     /// The end of the token stream. This is retuend indefinitely once
     /// the lexer reaches the end of the source text.
     End,
+}
+
+impl fmt::Display for TokenKind {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", match self {
+            TokenKind::Word(_) => "identifier or keyword",
+            TokenKind::Literal(_) => "literal value",
+            TokenKind::Equals => "'='",
+            TokenKind::DoubleEquals => "'=='",
+            TokenKind::Bang => "'!'",
+            TokenKind::BangEquals => "'!='",
+            TokenKind::Plus => "'+'",
+            TokenKind::Minus => "'-'",
+            TokenKind::Star => "'*'",
+            TokenKind::Slash => "'/'",
+            TokenKind::OpenBracket => "'('",
+            TokenKind::CloseBracket => "')'",
+            TokenKind::OpenSqBracket => "'['",
+            TokenKind::CloseSqBracket => "']'",
+            TokenKind::Comma => "','",
+            TokenKind::Colon => "':'",
+            TokenKind::LessThan => "'<'",
+            TokenKind::LessThanEqual => "'<='",
+            TokenKind::MoreThan => "'>'",
+            TokenKind::MoreThanEqual => "'>='",
+            TokenKind::End => "end of file",
+        })
+    }
 }
 
 impl Token {

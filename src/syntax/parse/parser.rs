@@ -76,18 +76,19 @@ impl<'a> Parser<'a> {
 
     /// Moves the token stream on by a single token, if the
     /// token's lexeme is of the given type.
+    #[must_use]
     fn expect(&mut self, expected: &TokenKind) -> ParseResult<Token> {
         match self.current() {
             Some(token) if token.kind == *expected => Ok(self.advance().unwrap()),
             Some(other) => {
                 let diagnostic = format!("expecting: {:?}, found: {:?}", other, expected);
                 self.diagnostics.push(diagnostic.clone());
-                Err(ParseError::Unexpected(diagnostic))
+                Ok(Token::new(expected.clone()))
             }
             None => {
                 self.diagnostics
-                    .push(format!("Expected {:?} but found end of file", expected));
-                Err(ParseError::Incomplete)
+                    .push(format!("expected {} but found end of file", expected));
+                Ok(Token::new(expected.clone()))
             }
         }
     }
