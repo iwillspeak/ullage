@@ -153,6 +153,11 @@ impl Token {
         }
     }
 
+    /// Get the Span of a Token
+    pub fn span(&self) -> Span {
+        self.span
+    }
+
     /// Left binding power. This controls the precedence of
     /// the symbol when being parsed as an infix operator.
     ///

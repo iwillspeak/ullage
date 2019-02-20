@@ -18,8 +18,10 @@ pub struct Pos(usize);
 /// interest when emitting error information.
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub struct Span {
-    start: Pos,
-    end: Pos,
+    /// FIXME: These shouldn't be public
+    pub    start: Pos,
+    /// FIXME: These shouldn't be public
+    pub    end: Pos,
 }
 
 /// Source Location

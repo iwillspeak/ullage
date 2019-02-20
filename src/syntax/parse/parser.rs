@@ -25,6 +25,7 @@ use super::tokeniser::Tokeniser;
 /// Expression parser. Given a stream of tokens this will produce an
 /// expression tree, or a parse error.
 pub struct Parser<'a> {
+    source: &'a SourceText,
     lexer: Tokeniser<'a>,
     diagnostics: Vec<String>,
     #[allow(clippy::option_option)]
@@ -35,6 +36,7 @@ impl<'a> Parser<'a> {
     /// Create a new Parser from a given source text.
     pub fn new(source: &'a SourceText) -> Self {
         Parser {
+            source,
             lexer: Tokeniser::new(source),
             diagnostics: Vec::new(),
             current: None,
@@ -418,7 +420,10 @@ impl<'a> Parser<'a> {
             }
             // This covers things which can't start expressions, like
             // whitespace and non-prefix operator tokens
-            _ => Err(ParseError::Unexpected(token.kind.to_string())),
+            _ => {
+                let pos = self.source.line_pos(token.span().start);
+                Err(ParseError::Unexpected(format!("{} at {}:{}", token.kind, pos.0, pos.1)))
+            },
         }
     }
 
