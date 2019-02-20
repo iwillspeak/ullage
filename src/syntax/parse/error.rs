@@ -43,7 +43,7 @@ impl fmt::Display for DiagnosticsList {
 #[derive(Fail, Debug, PartialEq)]
 pub enum ParseError {
     /// Unexpected token.
-    #[fail(display = "unexpected token: {:?}", _0)]
+    #[fail(display = "unexpected token: {}", _0)]
     Unexpected(String),
 
     /// Incomplete data

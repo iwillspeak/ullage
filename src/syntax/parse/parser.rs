@@ -418,7 +418,7 @@ impl<'a> Parser<'a> {
             }
             // This covers things which can't start expressions, like
             // whitespace and non-prefix operator tokens
-            _ => Err(ParseError::Unexpected(format!("{:?}", token))),
+            _ => Err(ParseError::Unexpected(token.kind.to_string())),
         }
     }
 

@@ -180,7 +180,7 @@ pub fn transform_expression(ctx: &mut SemCtx, expr: SyntaxExpr) -> CompResult<Ex
                     let declared_ty = ensure_ty(ctx.sem_ty(&ty_ref))?;
                     if Some(declared_ty) != initialiser.typ {
                         return Err(CompError::from(format!(
-                            "Initialiser doesn't match declaration type for {}",
+                            "Initialiser doesn't match declaration type for '{}'",
                             ctx.source().interned_value(decl.id.id)
                         )));
                     }
