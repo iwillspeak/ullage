@@ -77,18 +77,18 @@ impl<'a> Parser<'a> {
     /// Moves the token stream on by a single token, if the
     /// token's lexeme is of the given type.
     #[must_use]
-    fn expect(&mut self, expected: &TokenKind) -> ParseResult<Token> {
+    fn expect(&mut self, expected: &TokenKind) -> Token {
         match self.current() {
-            Some(token) if token.kind == *expected => Ok(self.advance().unwrap()),
+            Some(token) if token.kind == *expected => self.advance().unwrap(),
             Some(other) => {
                 let diagnostic = format!("expecting: {:?}, found: {:?}", other, expected);
                 self.diagnostics.push(diagnostic.clone());
-                Ok(Token::new(expected.clone()))
+                Token::new(expected.clone())
             }
             None => {
                 self.diagnostics
                     .push(format!("expected {} but found end of file", expected));
-                Ok(Token::new(expected.clone()))
+                Token::new(expected.clone())
             }
         }
     }
@@ -148,7 +148,8 @@ impl<'a> Parser<'a> {
     /// Attempt to parse a type reference, this is a single
     /// `:` followed by a type name.
     fn type_ref(&mut self) -> ParseResult<TypeRef> {
-        self.expect(&TokenKind::Colon)?;
+        // FIXME: need to store token introducing type
+        let _fixme = self.expect(&TokenKind::Colon);
         self.ty()
     }
 
@@ -164,7 +165,7 @@ impl<'a> Parser<'a> {
                 // FIXME: proper token handling for array types
                 let _open = self.advance();
                 let inner = self.ty()?;
-                let _close = self.expect(&TokenKind::CloseSqBracket)?;
+                let _close = self.expect(&TokenKind::CloseSqBracket);
                 TypeRef::array(inner)
             }
             TokenKind::OpenBracket => {
@@ -175,10 +176,11 @@ impl<'a> Parser<'a> {
                     types.push(self.ty()?);
                 }
                 while !self.next_is(&TokenKind::CloseBracket) {
-                    self.expect(&TokenKind::Comma)?;
+                    // FIXME: Separated lists
+                    let _delim = self.expect(&TokenKind::Comma);
                     types.push(self.ty()?);
                 }
-                let _close = self.expect(&TokenKind::CloseBracket)?;
+                let _close = self.expect(&TokenKind::CloseBracket);
                 TypeRef::tuple(types)
             }
             t => {
@@ -216,7 +218,7 @@ impl<'a> Parser<'a> {
     fn declaration(&mut self, var_tok: Token) -> ParseResult<Expression> {
         let id = self.identifier()?;
         let typ = self.optional_type_ref();
-        let assign_tok = self.expect(&TokenKind::Equals)?;
+        let assign_tok = self.expect(&TokenKind::Equals);
         let rhs = self.single_expression()?;
         let style = if let TokenKind::Word(Ident::Var) = var_tok.kind {
             VarStyle::Mutable
@@ -240,7 +242,7 @@ impl<'a> Parser<'a> {
         }
         Ok(BlockBody {
             contents: Box::new(Expression::sequence(expressions)),
-            close: Box::new(self.expect(&TokenKind::Word(Ident::End))?),
+            close: Box::new(self.expect(&TokenKind::Word(Ident::End))),
         })
     }
 
@@ -262,7 +264,7 @@ impl<'a> Parser<'a> {
     /// The condition and fallback part of a ternary expression.
     fn ternary_body(&mut self) -> ParseResult<(Expression, Token, Expression)> {
         let condition = self.single_expression()?;
-        let else_tok = self.expect(&TokenKind::Word(Ident::Else))?;
+        let else_tok = self.expect(&TokenKind::Word(Ident::Else));
         let fallback = self.single_expression()?;
         Ok((condition, else_tok, fallback))
     }
@@ -293,7 +295,7 @@ impl<'a> Parser<'a> {
             TokenKind::OpenSqBracket => {
                 let open = token;
                 let index = self.single_expression()?;
-                let close = self.expect(&TokenKind::CloseSqBracket)?;
+                let close = self.expect(&TokenKind::CloseSqBracket);
                 Ok(Expression::index(lhs, open, index, close))
             }
 
@@ -305,10 +307,11 @@ impl<'a> Parser<'a> {
                     let param = self.single_expression()?;
                     params.push(param);
                     if !self.next_is(&TokenKind::CloseBracket) {
-                        self.expect(&TokenKind::Comma)?;
+                        // FIXME: Separated lists. Ties in with tuples
+                        let _delim = self.expect(&TokenKind::Comma);
                     }
                 }
-                let close = self.expect(&TokenKind::CloseBracket)?;
+                let close = self.expect(&TokenKind::CloseBracket);
                 Ok(Expression::call(lhs, open, params, close))
             }
 
@@ -332,7 +335,7 @@ impl<'a> Parser<'a> {
                 ))
             }
 
-            _ => Err(ParseError::Incomplete),
+            _ => unreachable!("`parse_led` should only be called if looking at a token with a left binding power."),
         }
     }
 
@@ -351,7 +354,7 @@ impl<'a> Parser<'a> {
             res.push(DelimItem::First(self.typed_id()?));
         }
         while !self.next_is(&close) {
-            let delim = self.expect(&delimiter)?;
+            let delim = self.expect(&delimiter);
             res.push(DelimItem::Follow(delim, self.typed_id()?));
         }
         Ok(res)
@@ -370,9 +373,9 @@ impl<'a> Parser<'a> {
             TokenKind::Word(Ident::Fn) => {
                 let fn_kw = token;
                 let identifier = self.identifier()?;
-                let params_open = self.expect(&TokenKind::OpenBracket)?;
+                let params_open = self.expect(&TokenKind::OpenBracket);
                 let params = self.delimited(TokenKind::Comma, TokenKind::CloseBracket)?;
-                let params_close = self.expect(&TokenKind::CloseBracket)?;
+                let params_close = self.expect(&TokenKind::CloseBracket);
                 let return_type = self.type_ref()?;
                 let body = self.block()?;
                 Ok(Expression::function(
@@ -410,7 +413,7 @@ impl<'a> Parser<'a> {
             TokenKind::Bang => self.prefix_op(token, PrefixOp::Not),
             TokenKind::OpenBracket => {
                 let expr = self.single_expression()?;
-                let closing = self.expect(&TokenKind::CloseBracket)?;
+                let closing = self.expect(&TokenKind::CloseBracket);
                 Ok(Expression::grouping(token, expr, closing))
             }
             // This covers things which can't start expressions, like
