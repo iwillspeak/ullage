@@ -19,9 +19,9 @@ pub struct Pos(usize);
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub struct Span {
     /// FIXME: These shouldn't be public
-    pub    start: Pos,
+    pub start: Pos,
     /// FIXME: These shouldn't be public
-    pub    end: Pos,
+    pub end: Pos,
 }
 
 /// Source Location

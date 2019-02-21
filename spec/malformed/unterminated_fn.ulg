@@ -1,4 +1,4 @@
 fn foo(): Number
 # !> could not parse source: one or more errors:
-# !> expected identifier or keyword but found end of file
+# !> expected keyword but found end of file
 

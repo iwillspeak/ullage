@@ -3,9 +3,9 @@
 //! A lexeme in the token stream. Tokens are produced by the
 //! `Tokeniser` when parsing a source text.
 
-use std::fmt;
 use super::super::text::{Ident, Span, DUMMY_SPAN};
 use super::TriviaToken;
+use std::fmt;
 
 /// A Syntax Token
 ///
@@ -111,29 +111,36 @@ pub enum TokenKind {
 
 impl fmt::Display for TokenKind {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", match self {
-            TokenKind::Word(_) => "identifier or keyword",
-            TokenKind::Literal(_) => "literal value",
-            TokenKind::Equals => "'='",
-            TokenKind::DoubleEquals => "'=='",
-            TokenKind::Bang => "'!'",
-            TokenKind::BangEquals => "'!='",
-            TokenKind::Plus => "'+'",
-            TokenKind::Minus => "'-'",
-            TokenKind::Star => "'*'",
-            TokenKind::Slash => "'/'",
-            TokenKind::OpenBracket => "'('",
-            TokenKind::CloseBracket => "')'",
-            TokenKind::OpenSqBracket => "'['",
-            TokenKind::CloseSqBracket => "']'",
-            TokenKind::Comma => "','",
-            TokenKind::Colon => "':'",
-            TokenKind::LessThan => "'<'",
-            TokenKind::LessThanEqual => "'<='",
-            TokenKind::MoreThan => "'>'",
-            TokenKind::MoreThanEqual => "'>='",
-            TokenKind::End => "end of file",
-        })
+        write!(
+            f,
+            "{}",
+            match self {
+                TokenKind::Word(id) => match id {
+                    Ident::Unknown(_) => "identifier",
+                    _ => "keyword",
+                },
+                TokenKind::Literal(_) => "literal value",
+                TokenKind::Equals => "'='",
+                TokenKind::DoubleEquals => "'=='",
+                TokenKind::Bang => "'!'",
+                TokenKind::BangEquals => "'!='",
+                TokenKind::Plus => "'+'",
+                TokenKind::Minus => "'-'",
+                TokenKind::Star => "'*'",
+                TokenKind::Slash => "'/'",
+                TokenKind::OpenBracket => "'('",
+                TokenKind::CloseBracket => "')'",
+                TokenKind::OpenSqBracket => "'['",
+                TokenKind::CloseSqBracket => "']'",
+                TokenKind::Comma => "','",
+                TokenKind::Colon => "':'",
+                TokenKind::LessThan => "'<'",
+                TokenKind::LessThanEqual => "'<='",
+                TokenKind::MoreThan => "'>'",
+                TokenKind::MoreThanEqual => "'>='",
+                TokenKind::End => "end of file",
+            }
+        )
     }
 }
 

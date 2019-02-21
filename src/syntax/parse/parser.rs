@@ -422,8 +422,11 @@ impl<'a> Parser<'a> {
             // whitespace and non-prefix operator tokens
             _ => {
                 let pos = self.source.line_pos(token.span().start);
-                Err(ParseError::Unexpected(format!("{} at {}:{}", token.kind, pos.0, pos.1)))
-            },
+                Err(ParseError::Unexpected(format!(
+                    "{} at {}:{}",
+                    token.kind, pos.0, pos.1
+                )))
+            }
         }
     }
 
