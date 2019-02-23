@@ -21,6 +21,18 @@ pub enum TypeRef {
     Array(Box<TypeRef>),
 }
 
+/// Type Annotation
+///
+/// Reference to a type annotated to a variable or function. This is a
+/// type reference and the accompanying `:` token.
+#[derive(Debug, PartialEq)]
+pub struct TypeAnno {
+    /// The `:` Token
+    pub anno_tok: Box<Token>,
+    /// The type reference
+    pub type_ref: TypeRef,
+}
+
 impl TypeRef {
     /// Create a New Simple Type
     ///
@@ -58,5 +70,18 @@ impl TypeRef {
     /// type.
     pub fn array(inner: TypeRef) -> Self {
         TypeRef::Array(Box::new(inner))
+    }
+}
+
+impl TypeAnno {
+    /// Create a Type Annotation
+    ///
+    /// Constructs a new `TypeAnno` structure with the given
+    /// annotation separation token and inner type reference.
+    pub fn new(anno_tok: Token, inner_ty: TypeRef) -> Self {
+        TypeAnno {
+            anno_tok: Box::new(anno_tok),
+            type_ref: inner_ty,
+        }
     }
 }

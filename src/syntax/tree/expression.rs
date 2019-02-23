@@ -6,7 +6,7 @@
 use super::super::text::Ident;
 use super::operators::{InfixOp, PrefixOp};
 use super::token::Token;
-use super::types::TypeRef;
+use super::types::TypeAnno;
 
 /// An identifier, with an optional type attached
 #[derive(Debug, PartialEq)]
@@ -15,7 +15,7 @@ pub struct TypedId {
     ///
     /// If a type was specified then this contains the type
     /// reference. If empty then the type should be inferred.
-    pub typ: Option<TypeRef>,
+    pub typ: Option<TypeAnno>,
 
     /// The Idnetifier Itself
     pub id: Ident,
@@ -26,7 +26,7 @@ impl TypedId {
     ///
     /// Constructs a new idnetifier declaration where the identifier
     /// definitely has a known type.
-    pub fn new(id: Ident, typ: TypeRef) -> Self {
+    pub fn new(id: Ident, typ: TypeAnno) -> Self {
         Self::from_parts(id, Some(typ))
     }
 
@@ -43,7 +43,7 @@ impl TypedId {
     ///
     /// Used to construct a new identifier when a type has only
     /// optionally been specified.
-    pub fn from_parts(id: Ident, typ: Option<TypeRef>) -> Self {
+    pub fn from_parts(id: Ident, typ: Option<TypeAnno>) -> Self {
         TypedId { id, typ }
     }
 }
@@ -199,7 +199,7 @@ pub struct FunctionExpression {
     /// The closing `)` after the parameter list
     pub params_close: Box<Token>,
     /// Function return type
-    pub return_type: TypeRef,
+    pub return_type: TypeAnno,
     /// Body of the function
     pub body: BlockBody,
 }
@@ -459,7 +459,7 @@ impl Expression {
 
         params_close: Token,
 
-        return_type: TypeRef,
+        return_type: TypeAnno,
 
         body: BlockBody,
     ) -> Expression {

@@ -17,7 +17,7 @@
 use super::super::text::{Ident, SourceText};
 use super::super::tree::{Literal, Token, TokenKind};
 use super::super::{
-    BlockBody, DelimItem, Expression, InfixOp, PrefixOp, TypeRef, TypedId, VarStyle,
+    BlockBody, DelimItem, Expression, InfixOp, PrefixOp, TypeAnno, TypeRef, TypedId, VarStyle,
 };
 use super::error::*;
 use super::tokeniser::Tokeniser;
@@ -145,14 +145,13 @@ impl<'a> Parser<'a> {
         self.expression(0)
     }
 
-    /// Parse Type Reference
+    /// Parse Type Annotation
     ///
     /// Attempt to parse a type reference, this is a single
     /// `:` followed by a type name.
-    fn type_ref(&mut self) -> ParseResult<TypeRef> {
-        // FIXME: need to store token introducing type
-        let _fixme = self.expect(&TokenKind::Colon);
-        self.ty()
+    fn type_anno(&mut self) -> ParseResult<TypeAnno> {
+        let anno_tok = self.expect(&TokenKind::Colon);
+        Ok(TypeAnno::new(anno_tok, self.ty()?))
     }
 
     /// Parse Type
@@ -194,13 +193,13 @@ impl<'a> Parser<'a> {
         })
     }
 
-    /// Parse an optional type reference
+    /// Parse an optional type annotation
     ///
     /// If there is a type refernece then parse it and return it. If
     /// there is no type we may have to infer it later.
-    fn optional_type_ref(&mut self) -> Option<TypeRef> {
+    fn optional_type_anno(&mut self) -> Option<TypeAnno> {
         if self.next_is(&TokenKind::Colon) {
-            self.type_ref().ok()
+            self.type_anno().ok()
         } else {
             None
         }
@@ -209,7 +208,7 @@ impl<'a> Parser<'a> {
     /// Parse an identifier, with an optional type
     fn typed_id(&mut self) -> ParseResult<TypedId> {
         let id = self.identifier()?;
-        let typ = self.optional_type_ref();
+        let typ = self.optional_type_anno();
         Ok(TypedId { id, typ })
     }
 
@@ -219,7 +218,7 @@ impl<'a> Parser<'a> {
     /// `var`).
     fn declaration(&mut self, var_tok: Token) -> ParseResult<Expression> {
         let id = self.identifier()?;
-        let typ = self.optional_type_ref();
+        let typ = self.optional_type_anno();
         let assign_tok = self.expect(&TokenKind::Equals);
         let rhs = self.single_expression()?;
         let style = if let TokenKind::Word(Ident::Var) = var_tok.kind {
@@ -378,7 +377,7 @@ impl<'a> Parser<'a> {
                 let params_open = self.expect(&TokenKind::OpenBracket);
                 let params = self.delimited(TokenKind::Comma, TokenKind::CloseBracket)?;
                 let params_close = self.expect(&TokenKind::CloseBracket);
-                let return_type = self.type_ref()?;
+                let return_type = self.type_anno()?;
                 let body = self.block()?;
                 Ok(Expression::function(
                     fn_kw,

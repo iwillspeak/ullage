@@ -146,7 +146,7 @@ pub fn transform_expression(ctx: &mut SemCtx, expr: SyntaxExpr) -> CompResult<Ex
                     // errors in params. All params _must_ have a
                     // type.
                     let p = p.as_inner();
-                    let typ = p.typ.as_ref().and_then(|t| ctx.sem_ty(t));
+                    let typ = p.typ.as_ref().and_then(|t| ctx.sem_ty(&t.type_ref));
                     ctx.add_local(p.id, typ.unwrap());
                     VarDecl {
                         ident: ctx.source().interned_value(p.id),
@@ -157,7 +157,7 @@ pub fn transform_expression(ctx: &mut SemCtx, expr: SyntaxExpr) -> CompResult<Ex
 
             let fn_decl = FnDecl {
                 ident: ctx.source().interned_value(func.identifier),
-                ret_ty: ensure_ty(ctx.sem_ty(&func.return_type))?,
+                ret_ty: ensure_ty(ctx.sem_ty(&func.return_type.type_ref))?,
                 params,
                 body: Box::new(transform_expression(ctx, *func.body.contents)?),
             };
@@ -176,8 +176,8 @@ pub fn transform_expression(ctx: &mut SemCtx, expr: SyntaxExpr) -> CompResult<Ex
             // of something else. Better than not checking it at all
             // though I suppose.
             let typ = match decl.id.typ {
-                Some(ty_ref) => {
-                    let declared_ty = ensure_ty(ctx.sem_ty(&ty_ref))?;
+                Some(ty) => {
+                    let declared_ty = ensure_ty(ctx.sem_ty(&ty.type_ref))?;
                     if Some(declared_ty) != initialiser.typ {
                         return Err(CompError::from(format!(
                             "Initialiser doesn't match declaration type for '{}'",
