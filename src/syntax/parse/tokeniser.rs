@@ -245,6 +245,7 @@ impl<'t> Iterator for Tokeniser<'t> {
                     self.diagnostics
                         .push(format!("unrecognised character at {:?}", raw.span));
                 }
+                // FIXME: This just discards trivia tokens...
                 _ => (),
             }
         }
