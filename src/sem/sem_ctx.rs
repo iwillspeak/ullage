@@ -36,7 +36,7 @@ impl<'a> SemCtx<'a> {
     pub fn sem_ty(&self, ast_ty: &TypeRef) -> Option<Typ> {
         // TODO: This should be looked up dynamically.
         Some(match *ast_ty {
-            TypeRef::Unit => Typ::Unit,
+            TypeRef::Unit(..) => Typ::Unit,
             TypeRef::Simple(ref name) => {
                 let id = match name.kind {
                     TokenKind::Word(id) => id,

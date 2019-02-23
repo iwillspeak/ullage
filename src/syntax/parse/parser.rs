@@ -168,8 +168,7 @@ impl<'a> Parser<'a> {
                 self.expect(&TokenKind::CloseSqBracket),
             ),
             TokenKind::OpenBracket => {
-                // FIXME: Proper token handling for tuple types
-                let _open = self.advance();
+                let open = self.advance().unwrap();
                 let mut types = Vec::new();
                 if !self.next_is(&TokenKind::CloseBracket) {
                     types.push(self.ty()?);
@@ -179,8 +178,8 @@ impl<'a> Parser<'a> {
                     let _delim = self.expect(&TokenKind::Comma);
                     types.push(self.ty()?);
                 }
-                let _close = self.expect(&TokenKind::CloseBracket);
-                TypeRef::tuple(types)
+                let close = self.expect(&TokenKind::CloseBracket);
+                TypeRef::tuple(open, types, close)
             }
             t => {
                 return Err(ParseError::Unexpected(format!(

@@ -14,9 +14,9 @@ pub enum TypeRef {
     /// Simple Named Type
     Simple(Box<Token>),
     /// The Unit Type
-    Unit,
+    Unit(Box<Token>, Box<Token>),
     /// A non-empty Tuple
-    Tuple(Vec<TypeRef>),
+    Tuple(Box<Token>, Vec<TypeRef>, Box<Token>),
     /// An Array Type
     Array(Box<Token>, Box<TypeRef>, Box<Token>),
 }
@@ -48,19 +48,19 @@ impl TypeRef {
     /// The unit type is represented as a struct with no contents. It
     /// has special meaning in some areas as it can be used to idicate
     /// the absence of a value.
-    pub fn unit() -> Self {
-        TypeRef::Unit
+    pub fn unit(open: Token, close: Token) -> Self {
+        TypeRef::Unit(Box::new(open), Box::new(close))
     }
 
     /// Create a Tuple Type
     ///
     /// A tuple type is an ordered collection of values. Each value
     /// can be of a different type.
-    pub fn tuple(inner: Vec<TypeRef>) -> Self {
+    pub fn tuple(open: Token, inner: Vec<TypeRef>, close: Token) -> Self {
         if inner.is_empty() {
-            Self::unit()
+            Self::unit(open, close)
         } else {
-            TypeRef::Tuple(inner)
+            TypeRef::Tuple(Box::new(open), inner, Box::new(close))
         }
     }
 
