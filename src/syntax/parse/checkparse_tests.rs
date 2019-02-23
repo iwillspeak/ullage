@@ -455,7 +455,11 @@ fn parse_simple_array_type() {
             s.intern("f"),
             Some(TypeAnno::new(
                 Token::new(TokenKind::Colon),
-                TypeRef::array(mk_simple_ty(&s, "Num"))
+                TypeRef::array(
+                    Token::new(TokenKind::OpenSqBracket),
+                    mk_simple_ty(&s, "Num"),
+                    Token::new(TokenKind::CloseSqBracket)
+                )
             )),
         ),
         VarStyle::Immutable,
@@ -498,7 +502,11 @@ fn parse_simple_tuple() {
                 Token::new(TokenKind::Colon),
                 TypeRef::tuple(vec![
                     mk_simple_ty(&s, "Num"),
-                    TypeRef::array(mk_simple_ty(&s, "String")),
+                    TypeRef::array(
+                        Token::new(TokenKind::OpenSqBracket),
+                        mk_simple_ty(&s, "String"),
+                        Token::new(TokenKind::CloseSqBracket)
+                    ),
                 ])
             )),
         ),

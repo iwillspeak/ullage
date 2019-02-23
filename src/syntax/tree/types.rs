@@ -18,7 +18,7 @@ pub enum TypeRef {
     /// A non-empty Tuple
     Tuple(Vec<TypeRef>),
     /// An Array Type
-    Array(Box<TypeRef>),
+    Array(Box<Token>, Box<TypeRef>, Box<Token>),
 }
 
 /// Type Annotation
@@ -68,8 +68,8 @@ impl TypeRef {
     ///
     /// An array type represents a contiguous collection of another
     /// type.
-    pub fn array(inner: TypeRef) -> Self {
-        TypeRef::Array(Box::new(inner))
+    pub fn array(open: Token, inner: TypeRef, close: Token) -> Self {
+        TypeRef::Array(Box::new(open), Box::new(inner), Box::new(close))
     }
 }
 

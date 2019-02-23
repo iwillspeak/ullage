@@ -162,13 +162,11 @@ impl<'a> Parser<'a> {
         let current = self.current().ok_or(ParseError::Incomplete)?;
         Ok(match &current.kind {
             TokenKind::Word(_) => TypeRef::simple(self.advance().unwrap()),
-            TokenKind::OpenSqBracket => {
-                // FIXME: proper token handling for array types
-                let _open = self.advance();
-                let inner = self.ty()?;
-                let _close = self.expect(&TokenKind::CloseSqBracket);
-                TypeRef::array(inner)
-            }
+            TokenKind::OpenSqBracket => TypeRef::array(
+                self.advance().unwrap(),
+                self.ty()?,
+                self.expect(&TokenKind::CloseSqBracket),
+            ),
             TokenKind::OpenBracket => {
                 // FIXME: Proper token handling for tuple types
                 let _open = self.advance();
