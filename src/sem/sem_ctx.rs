@@ -16,6 +16,8 @@ use std::collections::HashMap;
 pub struct SemCtx<'a> {
     /// Symbol Table for Local Variables
     locals: Vec<HashMap<Ident, Typ>>,
+    /// Named types map
+    named_types: HashMap<Ident, Typ>,
     /// The source text
     source: &'a SourceText,
 }
@@ -25,6 +27,14 @@ impl<'a> SemCtx<'a> {
     pub fn new(source: &'a SourceText) -> Self {
         SemCtx {
             locals: vec![HashMap::new()],
+            named_types: [
+                (source.intern("String"), Typ::Builtin(BuiltinType::String)),
+                (source.intern("Bool"), Typ::Builtin(BuiltinType::Bool)),
+                (source.intern("Number"), Typ::Builtin(BuiltinType::Number)),
+            ]
+            .into_iter()
+            .cloned()
+            .collect(),
             source,
         }
     }
@@ -34,7 +44,6 @@ impl<'a> SemCtx<'a> {
     /// Returns the `sem::Typ` declaration for the type if one is
     /// available.
     pub fn sem_ty(&self, ast_ty: &TypeRef) -> Option<Typ> {
-        // TODO: This should be looked up dynamically.
         Some(match *ast_ty {
             TypeRef::Unit(..) => Typ::Unit,
             TypeRef::Simple(ref name) => {
@@ -42,15 +51,11 @@ impl<'a> SemCtx<'a> {
                     TokenKind::Word(id) => id,
                     _ => panic!("Expected word token"),
                 };
-                let name = self.source().interned_value(id);
-                match &name[..] {
-                    "String" => Typ::Builtin(BuiltinType::String),
-                    "Bool" => Typ::Builtin(BuiltinType::Bool),
-                    "Number" => Typ::Builtin(BuiltinType::Number),
-                    _ => unimplemented!(),
-                }
+                return self.named_types.get(&id).cloned();
             }
-            _ => unimplemented!(),
+            // TODO: array and tuple types
+            TypeRef::Array(..) => unimplemented!("array types are not yet supported"),
+            TypeRef::Tuple(..) => unimplemented!("tuple types are not yet supported"),
         })
     }
 
