@@ -2,14 +2,7 @@
 
 This is just a scratchpad for ongoing work on this arboreal branch.
 
-## Types Need Tokens
-
-Currently we aren't keeping track of the tokens in the `TypeRef`
-structure. Once we do it should be possible to add `#[must_use]` to
-`Parser::advance`.
-
-
-## Round-tripping PIC
+## Round-tripping POC
 
 We could have a visitor for the tree which writes the tree to the
 standard output to prove out the round-tripping. Add a new set of

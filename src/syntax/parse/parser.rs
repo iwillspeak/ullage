@@ -28,8 +28,7 @@ pub struct Parser<'a> {
     source: &'a SourceText,
     lexer: Tokeniser<'a>,
     diagnostics: Vec<String>,
-    #[allow(clippy::option_option)]
-    current: Option<Option<Token>>,
+    current: Option<Token>,
 }
 
 impl<'a> Parser<'a> {
@@ -56,7 +55,7 @@ impl<'a> Parser<'a> {
     #[must_use]
     fn advance(&mut self) -> Option<Token> {
         match self.current.take() {
-            Some(maybe_token) => maybe_token,
+            Some(maybe_token) => Some(maybe_token),
             None => self.lexer.next(),
         }
     }
@@ -66,14 +65,10 @@ impl<'a> Parser<'a> {
     /// Buffers a token if one is not buffered and returns a reference
     /// to it. This performs the one-token lookahead this parser
     /// requires.
-    fn current(&mut self) -> Option<&Token> {
-        if self.current.is_none() {
-            self.current = Some(self.lexer.next());
-        }
-        match self.current {
-            Some(Some(ref token)) => Some(token),
-            _ => None,
-        }
+    fn current(&mut self) -> &Token {
+        let current = &mut self.current;
+        let lexer = &mut self.lexer;
+        current.get_or_insert_with(|| lexer.next().unwrap_or_else(|| Token::new(TokenKind::End)))
     }
 
     /// Moves the token stream on by a single token, if the
@@ -81,15 +76,10 @@ impl<'a> Parser<'a> {
     #[must_use]
     fn expect(&mut self, expected: &TokenKind) -> Token {
         match self.current() {
-            Some(token) if token.kind == *expected => self.advance().unwrap(),
-            Some(other) => {
+            token if token.kind == *expected => self.advance().unwrap(),
+            other => {
                 let diagnostic = format!("expecting: {:?}, found: {:?}", other, expected);
                 self.diagnostics.push(diagnostic.clone());
-                Token::new(expected.clone())
-            }
-            None => {
-                self.diagnostics
-                    .push(format!("expected {} but found end of file", expected));
                 Token::new(expected.clone())
             }
         }
@@ -97,8 +87,7 @@ impl<'a> Parser<'a> {
 
     /// Checks that the next token is of the given type
     fn next_is(&mut self, expected: &TokenKind) -> bool {
-        self.current()
-            .map_or(false, |token| token.kind == *expected)
+        self.current().kind == *expected
     }
 
     /// Attempt to parse an identifier
@@ -127,7 +116,7 @@ impl<'a> Parser<'a> {
     /// Atttempt to parse a list of expressions
     pub fn expressions(&mut self) -> ParseResult<Vec<Expression>> {
         let mut expressions = Vec::new();
-        while self.current().is_some() {
+        while !self.next_is(&TokenKind::End) {
             expressions.push(self.single_expression()?);
         }
         let errors = self.collect_diagnostics();
@@ -159,7 +148,7 @@ impl<'a> Parser<'a> {
     /// Attempt to parse a type. This could be a simple type name, or
     /// it could be a more complex one such as an array type or tuple.
     fn ty(&mut self) -> ParseResult<TypeRef> {
-        let current = self.current().ok_or(ParseError::Incomplete)?;
+        let current = self.current();
         Ok(match &current.kind {
             TokenKind::Word(_) => TypeRef::simple(self.advance().unwrap()),
             TokenKind::OpenSqBracket => TypeRef::array(
@@ -235,7 +224,7 @@ impl<'a> Parser<'a> {
     /// Attempt to parse a block of expressions
     fn block(&mut self) -> ParseResult<BlockBody> {
         let mut expressions = Vec::new();
-        while self.current().is_some() && !self.next_is(&TokenKind::Word(Ident::End)) {
+        while !self.next_is(&TokenKind::Word(Ident::End)) {
             expressions.push(self.single_expression()?);
         }
         Ok(BlockBody {
@@ -246,7 +235,7 @@ impl<'a> Parser<'a> {
 
     /// Returns true if the next token's lbp is > the given rbp
     fn next_binds_tighter_than(&mut self, rbp: u32) -> bool {
-        self.current().map_or(false, |t| t.lbp() > rbp)
+        self.current().lbp() > rbp
     }
 
     /// Prefix Operator
@@ -418,10 +407,12 @@ impl<'a> Parser<'a> {
             // whitespace and non-prefix operator tokens
             _ => {
                 let pos = self.source.line_pos(token.span().start());
-                Err(ParseError::Unexpected(format!(
-                    "{} at {}:{}",
+                let err = format!(
+                    "expected expression but found {} at {}:{}",
                     token.kind, pos.0, pos.1
-                )))
+                );
+                self.diagnostics.push(err.clone());
+                Err(ParseError::Unexpected(err))
             }
         }
     }

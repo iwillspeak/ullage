@@ -1,4 +1,3 @@
 fn foo(): Number
-# !> could not parse source: one or more errors:
-# !> expected keyword but found end of file
+# !> unexpected token: expected expression but found end of file
 
