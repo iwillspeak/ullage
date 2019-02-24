@@ -19,4 +19,4 @@ end
 
 print collatz(17) # => 12
 print collatz(1)  # => 0
-print collatz(9)  #=> 19
+print collatz(9)  # => 19
