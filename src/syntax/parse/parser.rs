@@ -14,7 +14,7 @@
 //! the syntax take a look at the Syntax documentation in the `docs/`
 //! folder.
 
-use super::super::text::{Ident, SourceText};
+use super::super::text::{Ident, Location, SourceText};
 use super::super::tree::{Literal, Token, TokenKind};
 use super::super::{
     BlockBody, DelimItem, Expression, InfixOp, PrefixOp, TypeAnno, TypeRef, TypedId, VarStyle,
@@ -417,7 +417,7 @@ impl<'a> Parser<'a> {
             // This covers things which can't start expressions, like
             // whitespace and non-prefix operator tokens
             _ => {
-                let pos = self.source.line_pos(token.span().start);
+                let pos = self.source.line_pos(token.span().start());
                 Err(ParseError::Unexpected(format!(
                     "{} at {}:{}",
                     token.kind, pos.0, pos.1
