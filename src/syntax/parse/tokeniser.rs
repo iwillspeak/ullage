@@ -12,6 +12,16 @@
 use super::super::text::{Pos, SourceText, Span};
 use super::super::tree::{Literal, Token, TokenKind, TriviaTokenKind};
 
+/// Token Stream Trait
+///
+/// Token streams are iterators of tokesn that never end.
+pub trait TokenStream {
+    /// Next Token
+    ///
+    /// Advances the lexer to get the next underlying token.
+    fn next_token(&mut self) -> Token;
+}
+
 /// The Raw Token Structure
 #[derive(Debug, PartialEq)]
 struct RawToken {
@@ -250,6 +260,14 @@ impl<'t> Iterator for Tokeniser<'t> {
             }
         }
         None
+    }
+}
+
+impl<T> TokenStream for T
+where T: Iterator<Item=Token>
+{
+    fn next_token(&mut self) -> Token {
+        self.next().unwrap_or_else(|| Token::new(TokenKind::End))
     }
 }
 

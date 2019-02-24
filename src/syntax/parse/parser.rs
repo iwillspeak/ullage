@@ -20,7 +20,7 @@ use super::super::{
     BlockBody, DelimItem, Expression, InfixOp, PrefixOp, TypeAnno, TypeRef, TypedId, VarStyle,
 };
 use super::error::*;
-use super::tokeniser::Tokeniser;
+use super::tokeniser::{Tokeniser, TokenStream};
 
 /// Expression parser. Given a stream of tokens this will produce an
 /// expression tree, or a parse error.
@@ -53,10 +53,10 @@ impl<'a> Parser<'a> {
     /// Moves the token stream on by a single token. The curren token
     /// is returned.
     #[must_use]
-    fn advance(&mut self) -> Option<Token> {
+    fn advance(&mut self) -> Token {
         match self.current.take() {
-            Some(maybe_token) => Some(maybe_token),
-            None => self.lexer.next(),
+            Some(maybe_token) => maybe_token,
+            None => self.lexer.next_token(),
         }
     }
 
@@ -68,7 +68,7 @@ impl<'a> Parser<'a> {
     fn current(&mut self) -> &Token {
         let current = &mut self.current;
         let lexer = &mut self.lexer;
-        current.get_or_insert_with(|| lexer.next().unwrap_or_else(|| Token::new(TokenKind::End)))
+        current.get_or_insert_with(|| lexer.next_token())
     }
 
     /// Moves the token stream on by a single token, if the
@@ -76,7 +76,7 @@ impl<'a> Parser<'a> {
     #[must_use]
     fn expect(&mut self, expected: &TokenKind) -> Token {
         match self.current() {
-            token if token.kind == *expected => self.advance().unwrap(),
+            token if token.kind == *expected => self.advance(),
             other => {
                 let diagnostic = format!("expecting: {:?}, found: {:?}", other, expected);
                 self.diagnostics.push(diagnostic.clone());
@@ -94,10 +94,13 @@ impl<'a> Parser<'a> {
     fn identifier(&mut self) -> ParseResult<Ident> {
         match self.expression(100)? {
             Expression::Identifier(id) => Ok(id.ident),
-            other => Err(ParseError::Unexpected(format!(
-                "expected identifier, found: {:?}",
-                other
-            ))),
+            other => {
+                self.diagnostics.push(format!(
+                    "expected identifier, found: {:?}",
+                    other
+                ));
+                Err(ParseError::Diagnostics(self.collect_diagnostics().into()))
+            }
         }
     }
 
@@ -150,14 +153,14 @@ impl<'a> Parser<'a> {
     fn ty(&mut self) -> ParseResult<TypeRef> {
         let current = self.current();
         Ok(match &current.kind {
-            TokenKind::Word(_) => TypeRef::simple(self.advance().unwrap()),
+            TokenKind::Word(_) => TypeRef::simple(self.advance()),
             TokenKind::OpenSqBracket => TypeRef::array(
-                self.advance().unwrap(),
+                self.advance(),
                 self.ty()?,
                 self.expect(&TokenKind::CloseSqBracket),
             ),
             TokenKind::OpenBracket => {
-                let open = self.advance().unwrap();
+                let open = self.advance();
                 let mut types = Vec::new();
                 if !self.next_is(&TokenKind::CloseBracket) {
                     types.push(self.ty()?);
@@ -262,7 +265,7 @@ impl<'a> Parser<'a> {
     /// the left hand side of it. This is responsible for parsing
     /// infix operators and function calls.
     fn parse_led(&mut self, lhs: Expression) -> ParseResult<Expression> {
-        let token = self.advance().ok_or(ParseError::Incomplete)?;
+        let token = self.advance();
 
         match token.kind {
             // Binary infix operator
@@ -354,7 +357,7 @@ impl<'a> Parser<'a> {
     /// for parsing literals and variable references into expressions,
     /// as well as parsing prefix expressions.
     fn parse_nud(&mut self) -> ParseResult<Expression> {
-        let token = self.advance().ok_or(ParseError::Incomplete)?;
+        let token = self.advance();
 
         match token.kind {
             TokenKind::Word(Ident::Fn) => {
@@ -403,6 +406,7 @@ impl<'a> Parser<'a> {
                 let closing = self.expect(&TokenKind::CloseBracket);
                 Ok(Expression::grouping(token, expr, closing))
             }
+            TokenKind::End => Err(ParseError::Incomplete),
             // This covers things which can't start expressions, like
             // whitespace and non-prefix operator tokens
             _ => {
