@@ -480,4 +480,29 @@ mod test {
             tokens
         );
     }
+
+    #[test]
+    fn token_stream_returns_eof() {
+        let tokens = Vec::new();
+        let mut token_stream = tokens.into_iter();
+
+        assert_eq!(TokenKind::End, token_stream.next_token().kind);
+        assert_eq!(TokenKind::End, token_stream.next_token().kind);
+        assert_eq!(TokenKind::End, token_stream.next_token().kind);
+    }
+
+    #[test]
+    fn token_stream_returns_eof_after_tokens() {
+        let tokens = vec![
+            Token::new(TokenKind::OpenSqBracket),
+            Token::new(TokenKind::Comma)
+        ];
+        let mut token_stream = tokens.into_iter();
+
+        assert_eq!(TokenKind::OpenSqBracket, token_stream.next_token().kind);
+        assert_eq!(TokenKind::Comma, token_stream.next_token().kind);
+        assert_eq!(TokenKind::End, token_stream.next_token().kind);
+        assert_eq!(TokenKind::End, token_stream.next_token().kind);
+        assert_eq!(TokenKind::End, token_stream.next_token().kind);
+    }
 }
