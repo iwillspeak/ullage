@@ -264,7 +264,8 @@ impl<'t> Iterator for Tokeniser<'t> {
 }
 
 impl<T> TokenStream for T
-where T: Iterator<Item=Token>
+where
+    T: Iterator<Item = Token>,
 {
     fn next_token(&mut self) -> Token {
         self.next().unwrap_or_else(|| Token::new(TokenKind::End))
@@ -495,7 +496,7 @@ mod test {
     fn token_stream_returns_eof_after_tokens() {
         let tokens = vec![
             Token::new(TokenKind::OpenSqBracket),
-            Token::new(TokenKind::Comma)
+            Token::new(TokenKind::Comma),
         ];
         let mut token_stream = tokens.into_iter();
 

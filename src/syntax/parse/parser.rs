@@ -20,7 +20,7 @@ use super::super::{
     BlockBody, DelimItem, Expression, InfixOp, PrefixOp, TypeAnno, TypeRef, TypedId, VarStyle,
 };
 use super::error::*;
-use super::tokeniser::{Tokeniser, TokenStream};
+use super::tokeniser::{TokenStream, Tokeniser};
 
 /// Expression parser. Given a stream of tokens this will produce an
 /// expression tree, or a parse error.
@@ -95,10 +95,8 @@ impl<'a> Parser<'a> {
         match self.expression(100)? {
             Expression::Identifier(id) => Ok(id.ident),
             other => {
-                self.diagnostics.push(format!(
-                    "expected identifier, found: {:?}",
-                    other
-                ));
+                self.diagnostics
+                    .push(format!("expected identifier, found: {:?}", other));
                 Err(ParseError::Diagnostics(self.collect_diagnostics().into()))
             }
         }

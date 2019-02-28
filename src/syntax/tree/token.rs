@@ -109,6 +109,15 @@ pub enum TokenKind {
     End,
 }
 
+impl fmt::Display for Literal {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Literal::RawString(s) => write!(f, "'{}'", s),
+            Literal::Number(n) => write!(f, "{}", n),
+        }
+    }
+}
+
 impl fmt::Display for TokenKind {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
@@ -119,7 +128,7 @@ impl fmt::Display for TokenKind {
                     Ident::Unknown(_) => "identifier",
                     _ => "keyword",
                 },
-                TokenKind::Literal(_) => "literal value",
+                TokenKind::Literal(lit) => return write!(f, "literal value {}", lit)cargo q,
                 TokenKind::Equals => "'='",
                 TokenKind::DoubleEquals => "'=='",
                 TokenKind::Bang => "'!'",
