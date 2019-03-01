@@ -92,11 +92,18 @@ impl<'a> Parser<'a> {
 
     /// Attempt to parse an identifier
     fn identifier(&mut self) -> ParseResult<Ident> {
-        match self.expression(100)? {
-            Expression::Identifier(id) => Ok(id.ident),
-            other => {
-                self.diagnostics
-                    .push(format!("expected identifier, found: {:?}", other));
+        let current = self.current();
+        match &current.kind {
+            TokenKind::Word(id) =>
+            {
+                let id = id.clone();
+                // FIXME: We discard the token for the identifier here!
+                let _fixme = self.advance();
+                Ok(id)
+            },
+            kind => {
+                let err = format!("expected identifier, found: {:}", kind);
+                self.diagnostics.push(err);
                 Err(ParseError::Diagnostics(self.collect_diagnostics().into()))
             }
         }

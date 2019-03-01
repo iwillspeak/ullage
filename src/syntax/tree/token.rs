@@ -128,7 +128,7 @@ impl fmt::Display for TokenKind {
                     Ident::Unknown(_) => "identifier",
                     _ => "keyword",
                 },
-                TokenKind::Literal(lit) => return write!(f, "literal value {}", lit)cargo q,
+                TokenKind::Literal(lit) => return write!(f, "literal value {}", lit),
                 TokenKind::Equals => "'='",
                 TokenKind::DoubleEquals => "'=='",
                 TokenKind::Bang => "'!'",
