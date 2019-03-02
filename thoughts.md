@@ -54,6 +54,35 @@ allows building more complex trees part by part and stubs in tokens
 when trees are not being directly backed by source. This would be
 useful when creating replacement trees in a syntax transformation.
 
+## Full Fidelity Trees
+
+There are a few other parsers which construct full fidelity trees:
+
+ * Roslyn - For C#
+ * [swift/Syntax][libsyntax] - for Swift. Based on Roslyn
+ * [Rust-analyzer][rust_analyzer] - Based on swift/Syntax. Stores tree nodes in arenas
+   and uses Salsa.
+
+These always produce _some_ parse tree for every file. Invalid tokens
+are collected into trivia or skipped. Allowing missing portions of
+each node in the tree factors into the builder API. Both Roslyn and
+swift/Syntax have a `SyntaxFactory` which builds nodes. Nodes can
+either have all of their parts provided up front or a base empty node
+created and tokens attached as parsing commences.
+
+This style of parsing relies on the transformation from syntax to
+semantic model being tolerant of some levels of invalid input. Some
+semantic analysis is still possible for broken source.
+
+The parser isn't directly exposed either. The main entry point to the
+API is the `SyntaxTree`. This is a representation of a single
+'compilation unit' or source file. Typically a `SyntaxTree` provides a
+`parse()` method to take an input text and covert it to a tree of some
+kind. Trees have a collection of 'diagnostics' and the root of the
+tree. Each node in the tree implements `SyntaxNode`. This allows
+traversal of the tree without knowledge of the types of each node. Not
+sure if this will be some kind of trait or should be an `enum`.
+
 ## Defining a Parser API
 
 It would be nice if the different areas of the compiler lived in
@@ -83,4 +112,5 @@ E.g.
    expression.
 
  [roslyn_quoter]: https://roslynquoter.azurewebsites.net/
-
+ [rust_analyzer]: https://github.com/rust-analyzer/rust-analyzer
+ [libsyntax]: https://github.com/apple/swift/tree/master/lib/Syntax
