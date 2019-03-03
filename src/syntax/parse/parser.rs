@@ -59,6 +59,15 @@ impl<'a> Parser<'a> {
         diagnostics
     }
 
+    /// Build a daignostics parse error
+    ///
+    /// Collects the diagnostics from the parser and builds a parser
+    /// error from them.
+    fn build_diagnostics_err(&mut self) -> ParseError {
+        let errs = self.collect_diagnostics();
+        ParseError::Diagnostics(errs.into())
+    }
+
     /// Peek at the current token
     ///
     /// Buffers a token if one is not buffered and returns a reference
@@ -141,7 +150,9 @@ impl<'a> Parser<'a> {
 
     /// Attempt to Parse a Single Expression
     ///
-    /// Used to parse 'top-level' expressions.
+    /// Used to parse 'top-level' expressions. This can be a root
+    /// production in the grammar if attempting to parse a single
+    /// item. e.g. for scripting or testing purposes.
     pub fn expression(&mut self) -> ParseResult<Expression> {
         let expression = self.top_level_expression()?;
         let errors = self.collect_diagnostics();
@@ -181,19 +192,20 @@ impl<'a> Parser<'a> {
     }
 
     /// Attempt to parse an identifier
-    fn identifier(&mut self) -> ParseResult<Ident> {
+    fn identifier(&mut self) -> (Token, Ident) {
         let current = self.current();
         match &current.kind {
             TokenKind::Word(id) => {
                 let id = id.clone();
-                // FIXME: We discard the token for the identifier here!
-                let _fixme = self.advance();
-                Ok(id)
+                (self.advance(), id)
             }
             kind => {
                 let err = format!("expected identifier, found: {:}", kind);
                 self.diagnostics.push(err);
-                Err(ParseError::Diagnostics(self.collect_diagnostics().into()))
+                // by starting this with an invalid character we make
+                // sure we don't clash with a real identifier.
+                let stub_id = self.source.intern("0invalid_ident0");
+                (Token::new(TokenKind::Word(stub_id.clone())), stub_id)
             }
         }
     }
@@ -257,7 +269,7 @@ impl<'a> Parser<'a> {
 
     /// Parse an identifier, with an optional type
     fn typed_id(&mut self) -> ParseResult<TypedId> {
-        let id = self.identifier()?;
+        let (_fixme, id) = self.identifier();
         let typ = self.optional_type_anno();
         Ok(TypedId { id, typ })
     }
@@ -267,7 +279,7 @@ impl<'a> Parser<'a> {
     /// Parses the body of a local variable delcaration (`let` or
     /// `var`).
     fn declaration(&mut self, var_tok: Token) -> ParseResult<Expression> {
-        let id = self.identifier()?;
+        let (_fixme, id) = self.identifier();
         let typ = self.optional_type_anno();
         let assign_tok = self.expect(&TokenKind::Equals);
         let rhs = self.top_level_expression()?;
@@ -422,7 +434,7 @@ impl<'a> Parser<'a> {
         match token.kind {
             TokenKind::Word(Ident::Fn) => {
                 let fn_kw = token;
-                let identifier = self.identifier()?;
+                let (_fixme, identifier) = self.identifier();
                 let params_open = self.expect(&TokenKind::OpenBracket);
                 let params = self.delimited(TokenKind::Comma, TokenKind::CloseBracket)?;
                 let params_close = self.expect(&TokenKind::CloseBracket);
@@ -472,11 +484,11 @@ impl<'a> Parser<'a> {
             _ => {
                 let pos = self.source.line_pos(token.span().start());
                 let err = format!(
-                    "expected expression but found {} at {}:{}",
+                    "unexpected token: expected expression but found {} at {}:{}",
                     token.kind, pos.0, pos.1
                 );
                 self.diagnostics.push(err.clone());
-                Err(ParseError::Unexpected(err))
+                Err(self.build_diagnostics_err())
             }
         }
     }

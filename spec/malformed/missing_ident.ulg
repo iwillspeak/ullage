@@ -1,0 +1,5 @@
+# !> error: expected identifier, found: '('
+fn (expr: Number): Number 
+  # !> unexpected token: expected expression but found ')' at 4:6
+  100 )
+end

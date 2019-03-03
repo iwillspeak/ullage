@@ -22,7 +22,7 @@ impl From<Vec<String>> for DiagnosticsList {
 impl fmt::Display for DiagnosticsList {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         for error in self.0.iter() {
-            write!(f, "error: {}", error)?;
+            writeln!(f, "error: {}", error)?;
         }
         Ok(())
     }
