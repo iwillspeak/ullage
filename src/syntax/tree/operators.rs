@@ -7,6 +7,13 @@
 /// Represents an AST prefix operator.
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub enum PrefixOp {
+    /// Arithmetic Identity
+    ///
+    /// Represents the application of the `+` operator to an
+    /// expression. This doesn't affect the inner expression at all,
+    /// but is accepted for orthogonality with `-`..
+    Identity,
+
     /// Unary Airthmetic Negation
     ///
     /// Represents the application of the `-` operator to an

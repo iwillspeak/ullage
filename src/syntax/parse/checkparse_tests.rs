@@ -165,7 +165,11 @@ fn parse_prefix_expressions() {
         "+1 * -2 + +3",
         Expression::infix(
             Expression::infix(
-                Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(1))), 1),
+                Expression::prefix(
+                    Token::new(TokenKind::Plus),
+                    PrefixOp::Identity,
+                    Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(1))), 1)
+                ),
                 Token::new(TokenKind::Star),
                 InfixOp::Mul,
                 Expression::prefix(
@@ -176,7 +180,11 @@ fn parse_prefix_expressions() {
             ),
             Token::new(TokenKind::Plus),
             InfixOp::Add,
-            Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(3))), 3),
+            Expression::prefix(
+                Token::new(TokenKind::Plus),
+                PrefixOp::Identity,
+                Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(3))), 3)
+            )
         )
     );
     check_parse!("!a", |s| Expression::prefix(

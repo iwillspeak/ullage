@@ -403,7 +403,7 @@ impl<'a> Parser<'a> {
                     Ok(Expression::constant_string(token, string_value))
                 }
             },
-            TokenKind::Plus => self.expression(100),
+            TokenKind::Plus => self.prefix_op(token, PrefixOp::Identity),
             TokenKind::Minus => self.prefix_op(token, PrefixOp::Negate),
             TokenKind::Bang => self.prefix_op(token, PrefixOp::Not),
             TokenKind::OpenBracket => {

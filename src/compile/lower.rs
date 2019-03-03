@@ -148,6 +148,7 @@ pub fn lower_internal(
         ExpressionKind::Prefix(op, inner) => {
             let val = lower_internal(ctx, fun, builder, vars, *inner)?;
             Ok(match op {
+                PrefixOp::Identity => val,
                 PrefixOp::Negate => builder.build_neg(val),
                 PrefixOp::Not => builder.build_not(val),
             })
