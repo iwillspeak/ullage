@@ -77,6 +77,14 @@ impl<'a> Parser<'a> {
         self.current().kind == *expected
     }
 
+    /// Check the binding power of the current token
+    ///
+    /// Returns true if the current token's lbp is greater than the
+    /// given rbp.
+    fn current_binds_tighter_than(&mut self, rbp: u32) -> bool {
+        self.current().lbp() > rbp
+    }
+
     /// Advance the token stream
     ///
     /// Moves the token stream on by a single token. The curren token
@@ -158,7 +166,7 @@ impl<'a> Parser<'a> {
     ///    right hand side of an infix expression.
     fn expression_with_rbp(&mut self, rbp: u32) -> ParseResult<Expression> {
         let mut left = self.parse_nud()?;
-        while self.next_binds_tighter_than(rbp) {
+        while self.current_binds_tighter_than(rbp) {
             left = self.parse_led(left)?;
         }
         Ok(left)
@@ -277,7 +285,11 @@ impl<'a> Parser<'a> {
         ))
     }
 
-    /// Attempt to parse a block of expressions
+    /// Parse the contents of a block expression.
+    ///
+    /// Block expressions are the bodies of functions and loops. They
+    /// consist of a seuqence of expressions followed by a closing
+    /// `end` token.
     fn block(&mut self) -> ParseResult<BlockBody> {
         let mut expressions = Vec::new();
         while !self.current_is(&TokenKind::Word(Ident::End)) {
@@ -287,11 +299,6 @@ impl<'a> Parser<'a> {
             contents: Box::new(Expression::sequence(expressions)),
             close: Box::new(self.expect(&TokenKind::Word(Ident::End))),
         })
-    }
-
-    /// Returns true if the next token's lbp is > the given rbp
-    fn next_binds_tighter_than(&mut self, rbp: u32) -> bool {
-        self.current().lbp() > rbp
     }
 
     /// Prefix Operator
