@@ -16,3 +16,10 @@ const VERSION: Option<&'static str> = option_env!("CARGO_PKG_VERSION");
 pub fn version() -> &'static str {
     VERSION.unwrap_or("unknown")
 }
+
+/// Retrieve the descriptive version
+///
+/// This is the program name concatenated with the version number
+pub fn descriptive_version() -> String {
+    format!("ullage {}", version())
+}

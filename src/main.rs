@@ -141,7 +141,7 @@ fn main() {
     let args: Args = Docopt::new(USAGE)
         .and_then(|d| {
             d.help(true)
-                .version(Some(format!("ullage {}", meta::version())))
+                .version(Some(meta::descriptive_version()))
                 .deserialize()
         })
         .unwrap_or_else(|e| e.exit());
