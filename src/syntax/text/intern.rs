@@ -5,14 +5,13 @@
 //! contents of the string can't be accessed without the `Interner`,
 //! but interned strings can be compared for equality quickly.
 
-use std::collections::HashMap;
+use indexmap::IndexSet;
 
 /// Interner
 ///
 /// Keeps a list of intered strings and a map to look them up.
 pub struct Interner {
-    lookup: HashMap<String, Ident>,
-    next: u32,
+    lookup: IndexSet<String>,
 }
 
 /// Interned String
@@ -46,7 +45,7 @@ pub enum Ident {
     /// the `while` keyword
     While,
     /// Other unknown identifier values.
-    Unknown(u32),
+    Unknown(usize),
 }
 
 impl Interner {
@@ -79,13 +78,8 @@ impl Interner {
     /// can be used to create a new `Ident::Unknown` entry in the
     /// table.
     fn intern_unknown(&mut self, value: &str) -> Ident {
-        if let Some(found) = self.lookup.get(value) {
-            return *found;
-        }
-        let ident = Ident::Unknown(self.next);
-        self.next += 1;
-        self.lookup.insert(value.into(), ident);
-        ident
+        let (index, _) = self.lookup.insert_full(value.into());
+        Ident::Unknown(index)
     }
 
     /// Borrow the Interned value
@@ -105,12 +99,7 @@ impl Interner {
             Ident::Until => "until",
             Ident::Var => "var",
             Ident::While => "while",
-            _ => self
-                .lookup
-                .iter()
-                .find(|(_, v)| **v == ident)
-                .map(|(k, _)| &k[..])
-                .unwrap_or(""),
+            Ident::Unknown(index) => self.lookup.get_index(index).map(|s| &s[..]).unwrap_or(""),
         }
     }
 }
@@ -118,8 +107,7 @@ impl Interner {
 impl Default for Interner {
     fn default() -> Self {
         Interner {
-            lookup: HashMap::default(),
-            next: 1,
+            lookup: IndexSet::default(),
         }
     }
 }
