@@ -32,5 +32,5 @@ pub fn parse_tree(source: &SourceText) -> ParseResult<Expression> {
 /// the first expression parsed.
 pub fn parse_single(source: &SourceText) -> ParseResult<Expression> {
     let mut p = Parser::new(source);
-    p.single_expression()
+    p.expression()
 }

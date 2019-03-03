@@ -203,9 +203,23 @@ impl Token {
             // Index/Call operators
             TokenKind::OpenBracket | TokenKind::OpenSqBracket => 80,
 
-            _ => 0,
+            _ => Self::MIN_LBP,
         }
     }
+
+    /// The minimum binding power of any token. This is used by the
+    /// parser to parse root level expressions.
+    ///
+    /// For any token `MIN_LBP` is less than or equal to the token's
+    /// binding power.
+    pub const MIN_LBP: u32 = 0;
+
+    /// The maximum binding power of any token. This is used by the
+    /// parser to parse right-associative expressions.
+    ///
+    /// For any token `MAX_LBP` is strictly greatre than the token's
+    /// binding power.
+    pub const MAX_LBP: u32 = 100;
 }
 
 impl PartialEq for Token {

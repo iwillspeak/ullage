@@ -22,8 +22,13 @@ use super::super::{
 use super::error::*;
 use super::tokeniser::{TokenStream, Tokeniser};
 
-/// Expression parser. Given a stream of tokens this will produce an
-/// expression tree, or a parse error.
+/// Parser state structure
+///
+/// The parser object holds on to the source text and token stream
+/// while parsing takes place. It's used to buffer up the current
+/// token that the parser is looking at. Internally the parser also
+/// buffers up the diagnostics which will be emitted at the end of a
+/// parse.
 pub struct Parser<'a> {
     source: &'a SourceText,
     lexer: Tokeniser<'a>,
@@ -43,21 +48,15 @@ impl<'a> Parser<'a> {
     }
 
     /// Collect the Parser and Lexer Diagnostics
+    ///
+    /// This transfers the ownership of the buffered diagnostics from
+    /// the parser and lexer to a new `Vec`. After calling this the
+    /// parser and lexer diagnostics will be empty.
     fn collect_diagnostics(&mut self) -> Vec<String> {
         let mut diagnostics = Vec::new();
         diagnostics.append(&mut self.diagnostics);
         diagnostics.append(self.lexer.diagnostics_mut());
         diagnostics
-    }
-
-    /// Moves the token stream on by a single token. The curren token
-    /// is returned.
-    #[must_use]
-    fn advance(&mut self) -> Token {
-        match self.current.take() {
-            Some(maybe_token) => maybe_token,
-            None => self.lexer.next_token(),
-        }
     }
 
     /// Peek at the current token
@@ -71,8 +70,36 @@ impl<'a> Parser<'a> {
         current.get_or_insert_with(|| lexer.next_token())
     }
 
-    /// Moves the token stream on by a single token, if the
-    /// token's lexeme is of the given type.
+    /// Check the type of the current token
+    ///
+    /// Buffers a token with `current` and inspects the type.
+    fn current_is(&mut self, expected: &TokenKind) -> bool {
+        self.current().kind == *expected
+    }
+
+    /// Advance the token stream
+    ///
+    /// Moves the token stream on by a single token. The curren token
+    /// is returned. This will always return _some_ token. Reads past
+    /// the end of the lexer's underlyint tokens will retrurn
+    /// syntasized `TokenKind::End` tokens.
+    #[must_use]
+    fn advance(&mut self) -> Token {
+        match self.current.take() {
+            Some(maybe_token) => maybe_token,
+            None => self.lexer.next_token(),
+        }
+    }
+
+    /// Check for expected current token kind
+    ///
+    /// Moves the token stream on by a single token, if the token's
+    /// kind matches the expected. This will stub out a syntasized
+    /// token and buffer a diagnostic if the wrong kind of token was
+    /// encountered.
+    ///
+    /// To check the kind of a token and conditionally parse
+    /// `current_is` should be used rather than calling expect.
     #[must_use]
     fn expect(&mut self, expected: &TokenKind) -> Token {
         match self.current() {
@@ -85,47 +112,16 @@ impl<'a> Parser<'a> {
         }
     }
 
-    /// Checks that the next token is of the given type
-    fn next_is(&mut self, expected: &TokenKind) -> bool {
-        self.current().kind == *expected
-    }
-
-    /// Attempt to parse an identifier
-    fn identifier(&mut self) -> ParseResult<Ident> {
-        let current = self.current();
-        match &current.kind {
-            TokenKind::Word(id) =>
-            {
-                let id = id.clone();
-                // FIXME: We discard the token for the identifier here!
-                let _fixme = self.advance();
-                Ok(id)
-            },
-            kind => {
-                let err = format!("expected identifier, found: {:}", kind);
-                self.diagnostics.push(err);
-                Err(ParseError::Diagnostics(self.collect_diagnostics().into()))
-            }
-        }
-    }
-
-    /// Attempt to parse a single expression
-    ///
-    /// Parses a expresison with the given precedence. To parse a
-    /// single expression use `single_expression`.
-    fn expression(&mut self, rbp: u32) -> ParseResult<Expression> {
-        let mut left = self.parse_nud()?;
-        while self.next_binds_tighter_than(rbp) {
-            left = self.parse_led(left)?;
-        }
-        Ok(left)
-    }
-
     /// Atttempt to parse a list of expressions
+    ///
+    /// This is the root production of the grammar. Each compilation
+    /// unit consists of a series of expressions. This loops until it
+    /// finds the end of file producing a list of the expressions it
+    /// parsed.
     pub fn expressions(&mut self) -> ParseResult<Vec<Expression>> {
         let mut expressions = Vec::new();
-        while !self.next_is(&TokenKind::End) {
-            expressions.push(self.single_expression()?);
+        while !self.current_is(&TokenKind::End) {
+            expressions.push(self.top_level_expression()?);
         }
         let errors = self.collect_diagnostics();
         if !errors.is_empty() {
@@ -138,8 +134,60 @@ impl<'a> Parser<'a> {
     /// Attempt to Parse a Single Expression
     ///
     /// Used to parse 'top-level' expressions.
-    pub fn single_expression(&mut self) -> ParseResult<Expression> {
-        self.expression(0)
+    pub fn expression(&mut self) -> ParseResult<Expression> {
+        let expression = self.top_level_expression()?;
+        let errors = self.collect_diagnostics();
+        if !errors.is_empty() {
+            Err(ParseError::Diagnostics(errors.into()))
+        } else {
+            Ok(expression)
+        }
+    }
+
+    /// Attempt to parse a single expression
+    ///
+    /// Parses a expresison with the given precedence. This is really
+    /// the main production in the grammar. It's called by the
+    /// higher-level grammar entry points `expression` and
+    /// `expressions`. This will be called in three different variations:
+    ///
+    ///  * With `Token::MAX_LBP` - to parse the expression for a right
+    ///    associative operator.
+    ///  * With `Token::MIN_LPB` - To parse a root leve expression.
+    ///  * With the binding power taken from a token to parse the
+    ///    right hand side of an infix expression.
+    fn expression_with_rbp(&mut self, rbp: u32) -> ParseResult<Expression> {
+        let mut left = self.parse_nud()?;
+        while self.next_binds_tighter_than(rbp) {
+            left = self.parse_led(left)?;
+        }
+        Ok(left)
+    }
+
+    /// Top level expression helper
+    ///
+    /// Parses a single expression with the binding power set to
+    /// `Token::MIN_LBP`.
+    fn top_level_expression(&mut self) -> ParseResult<Expression> {
+        self.expression_with_rbp(Token::MIN_LBP)
+    }
+
+    /// Attempt to parse an identifier
+    fn identifier(&mut self) -> ParseResult<Ident> {
+        let current = self.current();
+        match &current.kind {
+            TokenKind::Word(id) => {
+                let id = id.clone();
+                // FIXME: We discard the token for the identifier here!
+                let _fixme = self.advance();
+                Ok(id)
+            }
+            kind => {
+                let err = format!("expected identifier, found: {:}", kind);
+                self.diagnostics.push(err);
+                Err(ParseError::Diagnostics(self.collect_diagnostics().into()))
+            }
+        }
     }
 
     /// Parse Type Annotation
@@ -167,10 +215,10 @@ impl<'a> Parser<'a> {
             TokenKind::OpenBracket => {
                 let open = self.advance();
                 let mut types = Vec::new();
-                if !self.next_is(&TokenKind::CloseBracket) {
+                if !self.current_is(&TokenKind::CloseBracket) {
                     types.push(self.ty()?);
                 }
-                while !self.next_is(&TokenKind::CloseBracket) {
+                while !self.current_is(&TokenKind::CloseBracket) {
                     // FIXME: Separated lists
                     let _delim = self.expect(&TokenKind::Comma);
                     types.push(self.ty()?);
@@ -192,7 +240,7 @@ impl<'a> Parser<'a> {
     /// If there is a type refernece then parse it and return it. If
     /// there is no type we may have to infer it later.
     fn optional_type_anno(&mut self) -> Option<TypeAnno> {
-        if self.next_is(&TokenKind::Colon) {
+        if self.current_is(&TokenKind::Colon) {
             self.type_anno().ok()
         } else {
             None
@@ -214,7 +262,7 @@ impl<'a> Parser<'a> {
         let id = self.identifier()?;
         let typ = self.optional_type_anno();
         let assign_tok = self.expect(&TokenKind::Equals);
-        let rhs = self.single_expression()?;
+        let rhs = self.top_level_expression()?;
         let style = if let TokenKind::Word(Ident::Var) = var_tok.kind {
             VarStyle::Mutable
         } else {
@@ -232,8 +280,8 @@ impl<'a> Parser<'a> {
     /// Attempt to parse a block of expressions
     fn block(&mut self) -> ParseResult<BlockBody> {
         let mut expressions = Vec::new();
-        while !self.next_is(&TokenKind::Word(Ident::End)) {
-            expressions.push(self.single_expression()?);
+        while !self.current_is(&TokenKind::Word(Ident::End)) {
+            expressions.push(self.top_level_expression()?);
         }
         Ok(BlockBody {
             contents: Box::new(Expression::sequence(expressions)),
@@ -250,7 +298,7 @@ impl<'a> Parser<'a> {
     ///
     /// Parses the trailing expression for a prefix operator.
     fn prefix_op(&mut self, op_token: Token, op: PrefixOp) -> ParseResult<Expression> {
-        let rhs = self.expression(100)?;
+        let rhs = self.expression_with_rbp(Token::MAX_LBP)?;
         Ok(Expression::prefix(op_token, op, rhs))
     }
 
@@ -258,9 +306,9 @@ impl<'a> Parser<'a> {
     ///
     /// The condition and fallback part of a ternary expression.
     fn ternary_body(&mut self) -> ParseResult<(Expression, Token, Expression)> {
-        let condition = self.single_expression()?;
+        let condition = self.top_level_expression()?;
         let else_tok = self.expect(&TokenKind::Word(Ident::Else));
-        let fallback = self.single_expression()?;
+        let fallback = self.top_level_expression()?;
         Ok((condition, else_tok, fallback))
     }
 
@@ -289,7 +337,7 @@ impl<'a> Parser<'a> {
             // array indexing
             TokenKind::OpenSqBracket => {
                 let open = token;
-                let index = self.single_expression()?;
+                let index = self.top_level_expression()?;
                 let close = self.expect(&TokenKind::CloseSqBracket);
                 Ok(Expression::index(lhs, open, index, close))
             }
@@ -298,10 +346,10 @@ impl<'a> Parser<'a> {
             TokenKind::OpenBracket => {
                 let open = token;
                 let mut params = Vec::new();
-                while !self.next_is(&TokenKind::CloseBracket) {
-                    let param = self.single_expression()?;
+                while !self.current_is(&TokenKind::CloseBracket) {
+                    let param = self.top_level_expression()?;
                     params.push(param);
-                    if !self.next_is(&TokenKind::CloseBracket) {
+                    if !self.current_is(&TokenKind::CloseBracket) {
                         // FIXME: Separated lists. Ties in with tuples
                         let _delim = self.expect(&TokenKind::Comma);
                     }
@@ -345,10 +393,10 @@ impl<'a> Parser<'a> {
         close: TokenKind,
     ) -> ParseResult<Vec<DelimItem<TypedId>>> {
         let mut res = Vec::new();
-        if !self.next_is(&close) {
+        if !self.current_is(&close) {
             res.push(DelimItem::First(self.typed_id()?));
         }
-        while !self.next_is(&close) {
+        while !self.current_is(&close) {
             let delim = self.expect(&delimiter);
             res.push(DelimItem::Follow(delim, self.typed_id()?));
         }
@@ -384,13 +432,13 @@ impl<'a> Parser<'a> {
                 ))
             }
             TokenKind::Word(Ident::While) | TokenKind::Word(Ident::Until) => {
-                let condition = self.single_expression()?;
+                let condition = self.top_level_expression()?;
                 let block = self.block()?;
                 Ok(Expression::loop_while(token, condition, block))
             }
             TokenKind::Word(Ident::Let) | TokenKind::Word(Ident::Var) => self.declaration(token),
             TokenKind::Word(Ident::Print) => {
-                let to_print = self.single_expression()?;
+                let to_print = self.top_level_expression()?;
                 Ok(Expression::print(token, to_print))
             }
             TokenKind::Word(Ident::True) => Ok(Expression::constant_bool(token, true)),
@@ -407,7 +455,7 @@ impl<'a> Parser<'a> {
             TokenKind::Minus => self.prefix_op(token, PrefixOp::Negate),
             TokenKind::Bang => self.prefix_op(token, PrefixOp::Not),
             TokenKind::OpenBracket => {
-                let expr = self.single_expression()?;
+                let expr = self.top_level_expression()?;
                 let closing = self.expect(&TokenKind::CloseBracket);
                 Ok(Expression::grouping(token, expr, closing))
             }
@@ -429,9 +477,10 @@ impl<'a> Parser<'a> {
     /// Attempt to Parse an Infix Expression
     ///
     /// Given a parsed left hand expression and infix operator parse
-    /// the
+    /// the right hand side of that expression. Returns the compound
+    /// infix expression.
     fn infix(&mut self, lhs: Expression, token: Token, op: InfixOp) -> ParseResult<Expression> {
-        let rhs = self.expression(token.lbp())?;
+        let rhs = self.expression_with_rbp(token.lbp())?;
         Ok(Expression::infix(lhs, token, op, rhs))
     }
 }
