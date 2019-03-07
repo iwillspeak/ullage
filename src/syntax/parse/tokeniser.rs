@@ -10,7 +10,8 @@
 //! appropriate syntax token.
 
 use super::super::text::{Pos, SourceText, Span};
-use super::super::tree::{Literal, Token, TokenKind, TriviaTokenKind};
+use super::super::tree::{Literal, Token, TokenKind, TriviaToken, TriviaTokenKind};
+use std::iter::Peekable;
 
 /// Token Stream Trait
 ///
@@ -23,6 +24,11 @@ pub trait TokenStream {
 }
 
 /// The Raw Token Structure
+///
+/// Raw tokens are the underlying values proudced by lexical analysis
+/// of the source text. Raw tokens could be high-level tokens tokens
+/// like identifiers or brackets, or trivia tokens like whitepsace or
+/// comments.
 #[derive(Debug, PartialEq)]
 struct RawToken {
     // The span of this token in the source text
@@ -201,7 +207,7 @@ impl<'t> Iterator for RawTokeniser<'t> {
                     TokenKind::Word(ident).into()
                 }
                 c if c.is_whitespace() => {
-                    self.skip_over(&mut chars, |c| c.is_whitespace());
+                    self.skip_over(&mut chars, |c| c != '\r' && c != '\n' && c.is_whitespace());
                     TriviaTokenKind::Whitespace.into()
                 }
                 _ => TriviaTokenKind::Junk.into(),
@@ -224,7 +230,7 @@ impl<'t> Iterator for RawTokeniser<'t> {
 /// first plain token. Trivia after a token up to the end of line or
 /// next plain token is attached as trailing trivia.
 pub struct Tokeniser<'t> {
-    inner: RawTokeniser<'t>,
+    inner: Peekable<RawTokeniser<'t>>,
     diagnostics: Vec<String>,
 }
 
@@ -232,7 +238,7 @@ impl<'t> Tokeniser<'t> {
     /// Construct a new Tokeniser for the given source text
     pub fn new(source: &'t SourceText) -> Self {
         Tokeniser {
-            inner: RawTokeniser::new(source),
+            inner: RawTokeniser::new(source).peekable(),
             diagnostics: Vec::new(),
         }
     }
@@ -240,26 +246,65 @@ impl<'t> Tokeniser<'t> {
     pub fn diagnostics_mut(&mut self) -> &mut Vec<String> {
         &mut self.diagnostics
     }
+
+    fn collect_leading(&mut self) -> Option<Token> {
+        let mut leading = Vec::new();
+        while let Some(token) = self.inner.next() {
+            match token.kind {
+                RawTokenKind::Trivia(trivia_kind) => {
+                    // TODO: Remove this duplication for junk detection
+                    if trivia_kind == TriviaTokenKind::Junk {
+                        self.diagnostics
+                            .push(format!("unrecognised character at {:?}", token.span));
+                    }
+                    leading.push(TriviaToken::with_span(token.span, trivia_kind));
+                }
+                RawTokenKind::Plain(plain_kind) => {
+                    return Some(
+                        Token::with_span(token.span, plain_kind).with_leading_trivia(leading),
+                    );
+                }
+            }
+        }
+        if leading.is_empty() {
+            None
+        } else {
+            Some(Token::new(TokenKind::End).with_leading_trivia(leading))
+        }
+    }
+
+    fn collect_trailing(&mut self) -> Vec<TriviaToken> {
+        let mut trailing = Vec::new();
+        while let Some(next) = self.inner.peek() {
+            match next.kind {
+                RawTokenKind::Plain(_) => break,
+                RawTokenKind::Trivia(trivia_kind) => {
+                    if trivia_kind == TriviaTokenKind::Newline {
+                        break;
+                    }
+                    // TODO: Remove this duplication for junk detection
+                    if trivia_kind == TriviaTokenKind::Junk {
+                        self.diagnostics
+                            .push(format!("unrecognised character at {:?}", next.span));
+                    }
+                    trailing.push(TriviaToken::with_span(next.span, trivia_kind));
+                    self.inner.next();
+                }
+            }
+        }
+        return trailing;
+    }
 }
 
 impl<'t> Iterator for Tokeniser<'t> {
     type Item = Token;
 
     fn next(&mut self) -> Option<Self::Item> {
-        while let Some(raw) = self.inner.next() {
-            match raw.kind {
-                RawTokenKind::Plain(plain_kind) => {
-                    return Some(Token::with_span(raw.span, plain_kind));
-                }
-                RawTokenKind::Trivia(TriviaTokenKind::Junk) => {
-                    self.diagnostics
-                        .push(format!("unrecognised character at {:?}", raw.span));
-                }
-                // FIXME: This just discards trivia tokens...
-                _ => (),
-            }
+        if let Some(token) = self.collect_leading() {
+            Some(token.with_trailing_trivia(self.collect_trailing()))
+        } else {
+            None
         }
-        None
     }
 }
 
@@ -413,6 +458,24 @@ mod test {
     }
 
     #[test]
+    fn newlines_break_whitespace() {
+        for line in [" \n ", " \r ", " \r\n "].iter() {
+            let src = SourceText::new(*line);
+            let tokeniser = RawTokeniser::new(&src);
+            let tokens = tokeniser.map(|t| t.kind).collect::<Vec<_>>();
+
+            assert_eq!(
+                vec![
+                    RawTokenKind::Trivia(TriviaTokenKind::Whitespace),
+                    RawTokenKind::Trivia(TriviaTokenKind::Newline),
+                    RawTokenKind::Trivia(TriviaTokenKind::Whitespace),
+                ],
+                tokens
+            );
+        }
+    }
+
+    #[test]
     fn newlines_are_not_attached_to_comments() {
         let src = SourceText::new("# comment\n#another comment\n1");
         let tokeniser = RawTokeniser::new(&src);
@@ -505,5 +568,147 @@ mod test {
         assert_eq!(TokenKind::End, token_stream.next_token().kind);
         assert_eq!(TokenKind::End, token_stream.next_token().kind);
         assert_eq!(TokenKind::End, token_stream.next_token().kind);
+    }
+
+    #[test]
+    fn test_trivia_grouping() {
+        let src = SourceText::new("fn foo() \n  var x = 2\nend");
+        let tokeniser = Tokeniser::new(&src);
+        let tokens = tokeniser.collect::<Vec<_>>();
+
+        assert_eq!(
+            Token::with_span(
+                Span::new(Pos::from(0), Pos::from(2)),
+                TokenKind::Word(src.intern("fn"))
+            ),
+            tokens[0]
+        );
+        assert!(tokens[0].leading().is_empty());
+        assert_eq!(
+            &[TriviaToken::with_span(
+                Span::new(Pos::from(2), Pos::from(3)),
+                TriviaTokenKind::Whitespace
+            )],
+            tokens[0].trailing()
+        );
+
+        assert_eq!(
+            Token::with_span(
+                Span::new(Pos::from(3), Pos::from(6)),
+                TokenKind::Word(src.intern("foo"))
+            ),
+            tokens[1]
+        );
+        assert!(tokens[1].leading().is_empty());
+        assert!(tokens[1].trailing().is_empty());
+
+        assert_eq!(
+            Token::with_span(
+                Span::new(Pos::from(6), Pos::from(7)),
+                TokenKind::OpenBracket
+            ),
+            tokens[2]
+        );
+        assert!(tokens[2].leading().is_empty());
+        assert!(tokens[2].trailing().is_empty());
+
+        assert_eq!(
+            Token::with_span(
+                Span::new(Pos::from(7), Pos::from(8)),
+                TokenKind::CloseBracket
+            ),
+            tokens[3]
+        );
+        assert!(tokens[3].leading().is_empty());
+        assert_eq!(
+            &[TriviaToken::with_span(
+                Span::new(Pos::from(8), Pos::from(9)),
+                TriviaTokenKind::Whitespace
+            )],
+            tokens[3].trailing()
+        );
+
+        assert_eq!(
+            Token::with_span(
+                Span::new(Pos::from(12), Pos::from(15)),
+                TokenKind::Word(src.intern("var"))
+            ),
+            tokens[4]
+        );
+        assert_eq!(
+            &[
+                TriviaToken::with_span(
+                    Span::new(Pos::from(9), Pos::from(10)),
+                    TriviaTokenKind::Newline
+                ),
+                TriviaToken::with_span(
+                    Span::new(Pos::from(10), Pos::from(12)),
+                    TriviaTokenKind::Whitespace
+                )
+            ],
+            tokens[4].leading()
+        );
+        assert_eq!(
+            &[TriviaToken::with_span(
+                Span::new(Pos::from(15), Pos::from(16)),
+                TriviaTokenKind::Whitespace
+            )],
+            tokens[4].trailing()
+        );
+
+        assert_eq!(
+            Token::with_span(
+                Span::new(Pos::from(16), Pos::from(17)),
+                TokenKind::Word(src.intern("x"))
+            ),
+            tokens[5]
+        );
+        assert!(tokens[5].leading().is_empty());
+        assert_eq!(
+            &[TriviaToken::with_span(
+                Span::new(Pos::from(17), Pos::from(18)),
+                TriviaTokenKind::Whitespace
+            )],
+            tokens[5].trailing()
+        );
+
+        assert_eq!(
+            Token::with_span(Span::new(Pos::from(18), Pos::from(19)), TokenKind::Equals),
+            tokens[6]
+        );
+        assert!(tokens[6].leading().is_empty());
+        assert_eq!(
+            &[TriviaToken::with_span(
+                Span::new(Pos::from(19), Pos::from(20)),
+                TriviaTokenKind::Whitespace
+            )],
+            tokens[6].trailing()
+        );
+
+        assert_eq!(
+            Token::with_span(
+                Span::new(Pos::from(20), Pos::from(21)),
+                TokenKind::Literal(Literal::Number(2))
+            ),
+            tokens[7]
+        );
+        assert!(tokens[7].leading().is_empty());
+        assert!(tokens[7].trailing().is_empty());
+
+        assert_eq!(
+            Token::with_span(
+                Span::new(Pos::from(22), Pos::from(25)),
+                TokenKind::Word(src.intern("end"))
+            ),
+            tokens[8]
+        );
+        assert_eq!(
+            &[TriviaToken::with_span(
+                Span::new(Pos::from(21), Pos::from(22)),
+                TriviaTokenKind::Newline
+            )],
+            tokens[8].leading()
+        );
+        assert!(tokens[8].trailing().is_empty());
     }
 }

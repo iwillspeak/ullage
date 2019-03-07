@@ -1,0 +1,7 @@
+# the whitespace in this ensure the junk token is shoud be attached to
+# the trailing trivia of the first number literal
+
+# !> could not parse source: one or more errors:
+# !> error: unrecognised character
+0'
+0

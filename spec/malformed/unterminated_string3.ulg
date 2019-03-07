@@ -1,0 +1,7 @@
+# the whitespace in this ensure the junk token is shoud be attached to
+# the end of file token.
+
+# !> could not parse source: one or more errors:
+# !> error: unrecognised character
+0
+'

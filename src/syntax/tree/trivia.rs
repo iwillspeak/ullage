@@ -34,3 +34,10 @@ pub enum TriviaTokenKind {
     /// A newline character
     Newline,
 }
+
+impl TriviaToken {
+    /// Create a new triva token
+    pub fn with_span(span: Span, kind: TriviaTokenKind) -> Self {
+        TriviaToken { span, kind }
+    }
+}

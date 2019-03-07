@@ -174,6 +174,26 @@ impl Token {
         self.span
     }
 
+    /// Inspect the leading trivia
+    pub fn leading(&self) -> &[TriviaToken] {
+        &self.leading[..]
+    }
+
+    /// Inspect the trailing trivia
+    pub fn trailing(&self) -> &[TriviaToken] {
+        &self.trailing[..]
+    }
+
+    /// Set leading trivia
+    pub fn with_leading_trivia(self, leading: Vec<TriviaToken>) -> Self {
+        Token { leading, ..self }
+    }
+
+    /// Set trailing trivia
+    pub fn with_trailing_trivia(self, trailing: Vec<TriviaToken>) -> Self {
+        Token { trailing, ..self }
+    }
+
     /// Left binding power. This controls the precedence of
     /// the symbol when being parsed as an infix operator.
     ///
@@ -226,5 +246,51 @@ impl PartialEq for Token {
     fn eq(&self, other: &Token) -> bool {
         self.kind == other.kind
             && (self.span == DUMMY_SPAN || other.span == DUMMY_SPAN || self.span == other.span)
+    }
+}
+
+#[cfg(test)]
+mod test {
+
+    use super::super::super::text::Pos;
+    use super::super::TriviaTokenKind;
+    use super::*;
+
+    #[test]
+    fn test_token_equality_ignores_dummy_span() {
+        assert_eq!(
+            Token::new(TokenKind::OpenBracket),
+            Token::new(TokenKind::OpenBracket)
+        );
+        assert_eq!(
+            Token::new(TokenKind::CloseBracket),
+            Token::with_span(DUMMY_SPAN, TokenKind::CloseBracket)
+        );
+        assert_eq!(
+            Token::new(TokenKind::Comma),
+            Token::with_span(Span::new(Pos::from(0), Pos::from(1)), TokenKind::Comma)
+        );
+        assert_ne!(
+            Token::with_span(Span::new(Pos::from(1), Pos::from(2)), TokenKind::LessThan),
+            Token::with_span(Span::new(Pos::from(0), Pos::from(1)), TokenKind::LessThan)
+        );
+    }
+
+    #[test]
+    fn test_token_equality_ignores_trivia() {
+        assert_eq!(
+            Token::new(TokenKind::Bang),
+            Token::new(TokenKind::Bang).with_leading_trivia(vec![TriviaToken::with_span(
+                Span::new(Pos::from(0), Pos::from(1)),
+                TriviaTokenKind::Newline
+            )])
+        );
+        assert_eq!(
+            Token::new(TokenKind::Equals).with_trailing_trivia(vec![TriviaToken::with_span(
+                Span::new(Pos::from(0), Pos::from(1)),
+                TriviaTokenKind::Whitespace
+            )]),
+            Token::new(TokenKind::Equals)
+        );
     }
 }
