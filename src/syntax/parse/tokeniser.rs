@@ -243,21 +243,42 @@ impl<'t> Tokeniser<'t> {
         }
     }
 
+    /// Get mutable access to the `Tokeniser`'s diagnostics
+    ///
+    /// This converts a mutable reference to the tokeniser to a
+    /// reference to the internal diagnostics collection. Used when
+    /// parsing to join together parser and tokeniser diagnostics.
+    ///
+    /// TODO: We should pass some form of diagnostics 'sink' to the
+    /// tokeniser rather than pulling diagnostics from it.
     pub fn diagnostics_mut(&mut self) -> &mut Vec<String> {
         &mut self.diagnostics
     }
 
+    /// Append a new trivia token to the trivia list
+    ///
+    /// Creates a new trivai token for the given kind and span and
+    /// adds it to the list. If a diagnostic needs to be emittied
+    /// about the new token then one is created.
+    fn buffer_trivia(kind: TriviaTokenKind, span: Span, trivia: &mut Vec<TriviaToken>, diagnostics: &mut Vec<String>) {
+        if kind == TriviaTokenKind::Junk {
+            diagnostics
+                .push(format!("unrecognised character at {:?}", span));
+        }
+        trivia.push(TriviaToken::with_span(span, kind));
+    }
+
+    /// Collect leading trivia
+    ///
+    /// Buffer all of theleading trivia and create a new token with
+    /// that trivia. This is called from `Iterator::next` to create
+    /// tokens.
     fn collect_leading(&mut self) -> Option<Token> {
         let mut leading = Vec::new();
         while let Some(token) = self.inner.next() {
             match token.kind {
                 RawTokenKind::Trivia(trivia_kind) => {
-                    // TODO: Remove this duplication for junk detection
-                    if trivia_kind == TriviaTokenKind::Junk {
-                        self.diagnostics
-                            .push(format!("unrecognised character at {:?}", token.span));
-                    }
-                    leading.push(TriviaToken::with_span(token.span, trivia_kind));
+                    Self::buffer_trivia(trivia_kind, token.span, &mut leading, &mut self.diagnostics);
                 }
                 RawTokenKind::Plain(plain_kind) => {
                     return Some(
@@ -269,10 +290,17 @@ impl<'t> Tokeniser<'t> {
         if leading.is_empty() {
             None
         } else {
+            // FIXME: This token lacks a span
             Some(Token::new(TokenKind::End).with_leading_trivia(leading))
         }
     }
 
+    /// Collect trailing trivia
+    ///
+    /// This method returns a list of trivia from the current position
+    /// to the end of the line or next plain token, whichever comes
+    /// first. It is called from `Iterator::next` to attach trailing
+    /// trivia to each token.
     fn collect_trailing(&mut self) -> Vec<TriviaToken> {
         let mut trailing = Vec::new();
         while let Some(next) = self.inner.peek() {
@@ -282,12 +310,7 @@ impl<'t> Tokeniser<'t> {
                     if trivia_kind == TriviaTokenKind::Newline {
                         break;
                     }
-                    // TODO: Remove this duplication for junk detection
-                    if trivia_kind == TriviaTokenKind::Junk {
-                        self.diagnostics
-                            .push(format!("unrecognised character at {:?}", next.span));
-                    }
-                    trailing.push(TriviaToken::with_span(next.span, trivia_kind));
+                    Self::buffer_trivia(trivia_kind, next.span, &mut trailing, &mut self.diagnostics);
                     self.inner.next();
                 }
             }
@@ -300,11 +323,8 @@ impl<'t> Iterator for Tokeniser<'t> {
     type Item = Token;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if let Some(token) = self.collect_leading() {
-            Some(token.with_trailing_trivia(self.collect_trailing()))
-        } else {
-            None
-        }
+        self.collect_leading()
+            .map(|t| t.with_trailing_trivia(self.collect_trailing()))
     }
 }
 
