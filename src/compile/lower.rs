@@ -141,7 +141,9 @@ pub fn lower_internal(
                 ]);
                 let global = ctx.module.add_global(initialiser, "s_const");
 
-                let string_ty = ctx.llvm_type(expr.typ.unwrap()).unwrap();
+                let string_ty = ctx
+                    .llvm_type(expr.typ.unwrap())
+                    .expect("no type in context for string literal");
                 Ok(builder.build_bitcast(global, string_ty, "string_const"))
             }
         },
@@ -251,13 +253,9 @@ pub fn lower_internal(
                 .into_iter()
                 .enumerate()
                 .map(|(i, p)| {
-                    // TODO: This is a bit unwrappy. Can we go back to
-                    // immutable parmeters again? It could be up to
-                    // the `sem` phase to translate those that need to
-                    // be mutable.
                     let typ = ctx
                         .llvm_type(p.ty.unwrap_or(Typ::Builtin(BuiltinType::Number)))
-                        .unwrap();
+                        .expect("no type in context for function parameter");
                     let param = builder.build_alloca(typ, &p.ident);
                     builder.build_store(fun.get_param(i as u32), param);
                     (p.ident, (true, param))
@@ -319,7 +317,10 @@ pub fn lower_internal(
             let value = if is_mut {
                 let typ = decl.ty.map_or_else(
                     || ctx.llvm_ctx.get_type(initialiser),
-                    |ty| ctx.llvm_type(ty).expect("Can't find LLVM type for Typ"),
+                    |ty| {
+                        ctx.llvm_type(ty)
+                            .expect("no type in context for declaration")
+                    },
                 );
 
                 let stackloc = builder.build_alloca(typ, &decl.ident);
@@ -356,7 +357,8 @@ fn build_string_concat(
     let res = builder.build_malloc(i8ty, Some(size), "concat");
     let res = builder.build_bitcast(
         res,
-        ctx.llvm_type(Typ::Builtin(BuiltinType::String)).unwrap(),
+        ctx.llvm_type(Typ::Builtin(BuiltinType::String))
+            .expect("no type in context for string concat"),
         "catenated",
     );
 
