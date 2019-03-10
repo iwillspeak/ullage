@@ -332,7 +332,7 @@ impl<'t> Tokeniser<'t> {
                 }
             }
         }
-        return trailing;
+        trailing
     }
 }
 

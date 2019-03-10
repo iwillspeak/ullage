@@ -32,7 +32,7 @@ impl<'a> SemCtx<'a> {
                 (source.intern("Bool"), Typ::Builtin(BuiltinType::Bool)),
                 (source.intern("Number"), Typ::Builtin(BuiltinType::Number)),
             ]
-            .into_iter()
+            .iter()
             .cloned()
             .collect(),
             source,

@@ -200,7 +200,7 @@ impl<'a> Parser<'a> {
         let current = self.current();
         match &current.kind {
             TokenKind::Word(id) => {
-                let id = id.clone();
+                let id = *id;
                 (self.advance(), id)
             }
             kind => {
@@ -209,7 +209,7 @@ impl<'a> Parser<'a> {
                 // by starting this with an invalid character we make
                 // sure we don't clash with a real identifier.
                 let stub_id = self.source.intern("0invalid_ident0");
-                (Token::new(TokenKind::Word(stub_id.clone())), stub_id)
+                (Token::new(TokenKind::Word(stub_id)), stub_id)
             }
         }
     }
