@@ -56,6 +56,7 @@ impl<'a> SemCtx<'a> {
             // TODO: array and tuple types
             TypeRef::Array(..) => unimplemented!("array types are not yet supported"),
             TypeRef::Tuple(..) => unimplemented!("tuple types are not yet supported"),
+            TypeRef::Missing => panic!("Can't lower missing type"),
         })
     }
 

@@ -214,47 +214,49 @@ impl<'a> Parser<'a> {
     ///
     /// Attempt to parse a type reference, this is a single
     /// `:` followed by a type name.
-    fn type_anno(&mut self) -> ParseResult<TypeAnno> {
+    fn type_anno(&mut self) -> TypeAnno {
         let anno_tok = self.expect(&TokenKind::Colon);
-        Ok(TypeAnno::new(anno_tok, self.ty()?))
+        TypeAnno::new(anno_tok, self.ty())
     }
 
-    /// Parse Type
+    /// Parse type reference
     ///
     /// Attempt to parse a type. This could be a simple type name, or
     /// it could be a more complex one such as an array type or tuple.
-    fn ty(&mut self) -> ParseResult<TypeRef> {
+    ///
+    /// If no type reference can be found at the current point in the
+    /// token stream then a `TypeRef::Missing` is returned.
+    fn ty(&mut self) -> TypeRef {
         let current = self.current();
-        Ok(match &current.kind {
+        match &current.kind {
             TokenKind::Word(_) => TypeRef::simple(self.advance()),
             TokenKind::OpenSqBracket => TypeRef::array(
                 self.advance(),
-                self.ty()?,
+                self.ty(),
                 self.expect(&TokenKind::CloseSqBracket),
             ),
             TokenKind::OpenBracket => {
                 let open = self.advance();
                 let mut types = Vec::new();
                 if !self.current_is(&TokenKind::CloseBracket) {
-                    types.push(self.ty()?);
+                    types.push(self.ty());
                 }
                 while !self.current_is(&TokenKind::CloseBracket) {
                     // FIXME: This needs to be a delimited list
                     // currently this comma token is getting lost in
                     // the parse tree.
                     let _delim = self.expect(&TokenKind::Comma);
-                    types.push(self.ty()?);
+                    types.push(self.ty());
                 }
                 let close = self.expect(&TokenKind::CloseBracket);
                 TypeRef::tuple(open, types, close)
             }
             t => {
-                return Err(ParseError::Unexpected(format!(
-                    "expected type, found: {:?}",
-                    t
-                )));
+                let err = format!("expected type, found: {:?}", t);
+                self.diagnostics.push(err);
+                TypeRef::missing()
             }
-        })
+        }
     }
 
     /// Parse an optional type annotation
@@ -263,7 +265,7 @@ impl<'a> Parser<'a> {
     /// there is no type we may have to infer it later.
     fn optional_type_anno(&mut self) -> Option<TypeAnno> {
         if self.current_is(&TokenKind::Colon) {
-            self.type_anno().ok()
+            Some(self.type_anno())
         } else {
             None
         }
@@ -442,7 +444,7 @@ impl<'a> Parser<'a> {
                 let params_open = self.expect(&TokenKind::OpenBracket);
                 let params = self.delimited(TokenKind::Comma, TokenKind::CloseBracket)?;
                 let params_close = self.expect(&TokenKind::CloseBracket);
-                let return_type = self.type_anno()?;
+                let return_type = self.type_anno();
                 let body = self.block()?;
                 Ok(Expression::function(
                     fn_kw,

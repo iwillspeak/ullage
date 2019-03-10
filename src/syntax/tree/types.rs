@@ -19,6 +19,9 @@ pub enum TypeRef {
     Tuple(Box<Token>, Vec<TypeRef>, Box<Token>),
     /// An Array Type
     Array(Box<Token>, Box<TypeRef>, Box<Token>),
+    /// Missing type. Used to represent type information being missing
+    /// at a given location.
+    Missing,
 }
 
 /// Type Annotation
@@ -70,6 +73,11 @@ impl TypeRef {
     /// type.
     pub fn array(open: Token, inner: TypeRef, close: Token) -> Self {
         TypeRef::Array(Box::new(open), Box::new(inner), Box::new(close))
+    }
+
+    /// Create a missing type
+    pub fn missing() -> Self {
+        TypeRef::Missing
     }
 }
 
