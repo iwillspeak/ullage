@@ -83,6 +83,16 @@ impl Span {
     pub fn new(start: Pos, end: Pos) -> Self {
         Span { start, end }
     }
+
+    /// Create a zero-width span at a given position
+    ///
+    /// The retunred span has the same start and end position.
+    pub fn new_at(pos: Pos) -> Self {
+        Span {
+            start: pos,
+            end: pos,
+        }
+    }
 }
 
 impl Location for Span {

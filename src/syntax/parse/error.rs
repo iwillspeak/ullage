@@ -33,13 +33,8 @@ impl fmt::Display for DiagnosticsList {
 /// This distinguishes between the different
 /// kinds of errors that the `Parser` can encounter.
 ///
-/// TODO: Both variants of this type should have more data
-/// attached. It would be nice to know _what_ token was unexpected or
-/// what the incomplete expression could have continued with (for
-/// error recovery). It probably makes sense to roll this in with
-/// adding position information to the parser tokens and errors
-/// though. Not sure if we want to have information in these error
-/// return types. Instead we could just return a list of diagnostics.
+/// TODO: Trying to phase this type out. Ideally parses won't need any
+/// error type.
 #[derive(Fail, Debug, PartialEq)]
 pub enum ParseError {
     /// Unexpected token.
@@ -51,9 +46,6 @@ pub enum ParseError {
     Incomplete,
 
     /// Diagnostics were collected
-    ///
-    /// TODO: Is this the best way to model parse failure due to
-    /// diagnostics being collected?
     #[fail(display = "one or more errors:\n{}", _0)]
     Diagnostics(DiagnosticsList),
 }

@@ -104,8 +104,7 @@ pub fn transform_expression(ctx: &mut SemCtx, expr: SyntaxExpr) -> CompResult<Ex
             let cond = transform_expression(ctx, *expr.cond)?;
             let if_true = transform_expression(ctx, *expr.if_true)?;
             let if_false = transform_expression(ctx, *expr.if_false)?;
-            // FIXME: Check that the type of the then and else
-            // branches match up.
+            // FIXME: Check that the `then` and `else` types match
             let typ = if_true.typ;
             Ok(Expression::new(
                 ExpressionKind::IfThenElse(Box::new(cond), Box::new(if_true), Box::new(if_false)),

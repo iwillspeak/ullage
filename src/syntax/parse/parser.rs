@@ -239,7 +239,9 @@ impl<'a> Parser<'a> {
                     types.push(self.ty()?);
                 }
                 while !self.current_is(&TokenKind::CloseBracket) {
-                    // FIXME: Separated lists
+                    // FIXME: This needs to be a delimited list
+                    // currently this comma token is getting lost in
+                    // the parse tree.
                     let _delim = self.expect(&TokenKind::Comma);
                     types.push(self.ty()?);
                 }
@@ -369,7 +371,9 @@ impl<'a> Parser<'a> {
                     let param = self.top_level_expression()?;
                     params.push(param);
                     if !self.current_is(&TokenKind::CloseBracket) {
-                        // FIXME: Separated lists. Ties in with tuples
+                        // FIXME: Delimited lists. Should fit in with
+                        // tuple parsing. Currently this delimiter
+                        // token is getting lost.
                         let _delim = self.expect(&TokenKind::Comma);
                     }
                 }

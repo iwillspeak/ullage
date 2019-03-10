@@ -9,7 +9,7 @@
 //! into structured syntax tokens by grouping trivia tokens to their
 //! appropriate syntax token.
 
-use super::super::text::{Pos, SourceText, Span};
+use super::super::text::{Location, Pos, SourceText, Span};
 use super::super::tree::{Literal, Token, TokenKind, TriviaToken, TriviaTokenKind};
 use std::iter::Peekable;
 
@@ -260,10 +260,14 @@ impl<'t> Tokeniser<'t> {
     /// Creates a new trivai token for the given kind and span and
     /// adds it to the list. If a diagnostic needs to be emittied
     /// about the new token then one is created.
-    fn buffer_trivia(kind: TriviaTokenKind, span: Span, trivia: &mut Vec<TriviaToken>, diagnostics: &mut Vec<String>) {
+    fn buffer_trivia(
+        kind: TriviaTokenKind,
+        span: Span,
+        trivia: &mut Vec<TriviaToken>,
+        diagnostics: &mut Vec<String>,
+    ) {
         if kind == TriviaTokenKind::Junk {
-            diagnostics
-                .push(format!("unrecognised character at {:?}", span));
+            diagnostics.push(format!("unrecognised character at {:?}", span));
         }
         trivia.push(TriviaToken::with_span(span, kind));
     }
@@ -278,7 +282,12 @@ impl<'t> Tokeniser<'t> {
         while let Some(token) = self.inner.next() {
             match token.kind {
                 RawTokenKind::Trivia(trivia_kind) => {
-                    Self::buffer_trivia(trivia_kind, token.span, &mut leading, &mut self.diagnostics);
+                    Self::buffer_trivia(
+                        trivia_kind,
+                        token.span,
+                        &mut leading,
+                        &mut self.diagnostics,
+                    );
                 }
                 RawTokenKind::Plain(plain_kind) => {
                     return Some(
@@ -290,8 +299,11 @@ impl<'t> Tokeniser<'t> {
         if leading.is_empty() {
             None
         } else {
-            // FIXME: This token lacks a span
-            Some(Token::new(TokenKind::End).with_leading_trivia(leading))
+            let last_pos = leading.last().unwrap().end();
+            Some(
+                Token::with_span(Span::new_at(last_pos), TokenKind::End)
+                    .with_leading_trivia(leading),
+            )
         }
     }
 
@@ -310,7 +322,12 @@ impl<'t> Tokeniser<'t> {
                     if trivia_kind == TriviaTokenKind::Newline {
                         break;
                     }
-                    Self::buffer_trivia(trivia_kind, next.span, &mut trailing, &mut self.diagnostics);
+                    Self::buffer_trivia(
+                        trivia_kind,
+                        next.span,
+                        &mut trailing,
+                        &mut self.diagnostics,
+                    );
                     self.inner.next();
                 }
             }
