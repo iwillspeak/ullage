@@ -272,10 +272,10 @@ impl<'a> Parser<'a> {
     }
 
     /// Parse an identifier, with an optional type
-    fn typed_id(&mut self) -> ParseResult<TypedId> {
+    fn typed_id(&mut self) -> TypedId {
         let (_fixme, id) = self.identifier();
         let typ = self.optional_type_anno();
-        Ok(TypedId { id, typ })
+        TypedId { id, typ }
     }
 
     /// Attempt to parse a local declaration
@@ -412,20 +412,16 @@ impl<'a> Parser<'a> {
     /// Returns a list of zero or more elemnets delimited by the given
     /// tokens. Used to parse the parameter list for a function and
     /// the argument list for a call site.
-    fn delimited(
-        &mut self,
-        delimiter: TokenKind,
-        close: TokenKind,
-    ) -> ParseResult<Vec<DelimItem<TypedId>>> {
+    fn delimited(&mut self, delimiter: TokenKind, close: TokenKind) -> Vec<DelimItem<TypedId>> {
         let mut res = Vec::new();
         if !self.current_is(&close) {
-            res.push(DelimItem::First(self.typed_id()?));
+            res.push(DelimItem::First(self.typed_id()));
         }
         while !self.current_is(&close) {
             let delim = self.expect(&delimiter);
-            res.push(DelimItem::Follow(delim, self.typed_id()?));
+            res.push(DelimItem::Follow(delim, self.typed_id()));
         }
-        Ok(res)
+        res
     }
 
     /// Parse Null Denotation
@@ -442,7 +438,7 @@ impl<'a> Parser<'a> {
                 let fn_kw = token;
                 let (_fixme, identifier) = self.identifier();
                 let params_open = self.expect(&TokenKind::OpenBracket);
-                let params = self.delimited(TokenKind::Comma, TokenKind::CloseBracket)?;
+                let params = self.delimited(TokenKind::Comma, TokenKind::CloseBracket);
                 let params_close = self.expect(&TokenKind::CloseBracket);
                 let return_type = self.type_anno();
                 let body = self.block()?;
