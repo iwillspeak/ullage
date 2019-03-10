@@ -14,13 +14,14 @@
 //! the syntax take a look at the Syntax documentation in the `docs/`
 //! folder.
 
-use super::super::text::{Ident, Location, SourceText};
+use super::super::text::{Ident, Location, SourceText, DUMMY_SPAN};
 use super::super::tree::{Literal, Token, TokenKind};
 use super::super::{
     BlockBody, DelimItem, Expression, InfixOp, PrefixOp, TypeAnno, TypeRef, TypedId, VarStyle,
 };
 use super::error::*;
 use super::tokeniser::{TokenStream, Tokeniser};
+use std::iter::Iterator;
 
 /// Parser state structure
 ///
@@ -59,15 +60,6 @@ impl<'a> Parser<'a> {
         diagnostics
     }
 
-    /// Build a daignostics parse error
-    ///
-    /// Collects the diagnostics from the parser and builds a parser
-    /// error from them.
-    fn build_diagnostics_err(&mut self) -> ParseError {
-        let errs = self.collect_diagnostics();
-        ParseError::Diagnostics(errs.into())
-    }
-
     /// Peek at the current token
     ///
     /// Buffers a token if one is not buffered and returns a reference
@@ -81,9 +73,21 @@ impl<'a> Parser<'a> {
 
     /// Check the type of the current token
     ///
-    /// Buffers a token with `current` and inspects the type.
+    /// Buffers a token with `current` and inspects the kind.
     fn current_is(&mut self, expected: &TokenKind) -> bool {
         self.current().kind == *expected
+    }
+
+    /// Check if the current token is one of many kinds of tokens.
+    ///
+    /// Buffers a token with `current` and inspects the kind. Returns
+    /// true if it matches any of the input token kinds.
+    fn current_is_any<'i, T>(&mut self, expected: T) -> bool
+    where
+        T: IntoIterator<Item = &'i TokenKind>,
+    {
+        let current_kind = &self.current().kind;
+        expected.into_iter().any(|e| e == current_kind)
     }
 
     /// Check the binding power of the current token
@@ -122,7 +126,7 @@ impl<'a> Parser<'a> {
         match self.current() {
             token if token.kind == *expected => self.advance(),
             other => {
-                let diagnostic = format!("expecting: {:?}, found: {:?}", other, expected);
+                let diagnostic = format!("expecting: {}, found: {}", expected, other.kind);
                 self.diagnostics.push(diagnostic.clone());
                 Token::new(expected.clone())
             }
@@ -308,7 +312,7 @@ impl<'a> Parser<'a> {
     /// `end` token.
     fn block(&mut self) -> ParseResult<BlockBody> {
         let mut expressions = Vec::new();
-        while !self.current_is(&TokenKind::Word(Ident::End)) {
+        while !self.current_is_any(&[TokenKind::Word(Ident::End), TokenKind::End]) {
             expressions.push(self.top_level_expression()?);
         }
         Ok(BlockBody {
@@ -480,17 +484,29 @@ impl<'a> Parser<'a> {
                 let closing = self.expect(&TokenKind::CloseBracket);
                 Ok(Expression::grouping(token, expr, closing))
             }
-            TokenKind::End => Err(ParseError::Incomplete),
             // This covers things which can't start expressions, like
             // whitespace and non-prefix operator tokens
             _ => {
-                let pos = self.source.line_pos(token.span().start());
-                let err = format!(
-                    "unexpected token: expected expression but found {} at {}:{}",
-                    token.kind, pos.0, pos.1
-                );
-                self.diagnostics.push(err.clone());
-                Err(self.build_diagnostics_err())
+                let span = token.span();
+                if span != DUMMY_SPAN {
+                    let pos = self.source.line_pos(span.start());
+                    let err = if token.kind == TokenKind::End {
+                        format!("unexpected end of file at {}:{}. Expected expression but found end of file.", pos.0, pos.1)
+                    } else {
+                        format!(
+                            "unexpected token: expected expression but found {} at {}:{}",
+                            token.kind, pos.0, pos.1
+                        )
+                    };
+                    self.diagnostics.push(err);
+                }
+
+                // TODO: Unify this with ID stubbing in identifier.
+                let stub_id = self.source.intern("0invalid_ident0");
+                Ok(Expression::identifier(
+                    Token::new(TokenKind::Word(stub_id.clone())),
+                    stub_id,
+                ))
             }
         }
     }

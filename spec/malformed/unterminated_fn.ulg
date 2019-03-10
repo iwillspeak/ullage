@@ -1,3 +1,2 @@
 fn foo(): Number
-# !> incomplete expression
-
+# !> expecting: keyword, found: end of file

@@ -1,1 +1,2 @@
-0 if # !> could not parse source: incomplete expression
+0 if # !> unexpected end of file at 3:0. Expected expression but found end of file
+# !> expecting: keyword, found: end of file
