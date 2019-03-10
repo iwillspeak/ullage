@@ -7,6 +7,7 @@ import subprocess
 import re
 import collections
 import itertools
+import threading
 
 Expectations = collections.namedtuple('Expectations', ['expects', 'failure_expects', 'skip_run'])
 
@@ -93,10 +94,22 @@ def run_spec(path):
     expectations = parse_spec(path)
     out = "specbin/{}".format(os.path.basename(path).split('.')[0])
     compile_cmd = subprocess.Popen(["target/release/ullage", path, "-o", out], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    output = compile_cmd.communicate()
-    if compile_cmd.returncode != 0:
-        check_compilation_failure(output, expectations)
-        return
+
+    # Give the compiler 5 seconds to run, and return an error on timeout
+    timer = threading.Timer(5, compile_cmd.kill)
+    try:
+        timer.start()
+        output = compile_cmd.communicate()
+        exit_code = compile_cmd.returncode
+        if exit_code < 0:
+            raise ExitCodeMismatchError(
+                "compilation process was terminated with code '{}'".format(exit_code))
+        if exit_code != 0:
+            check_compilation_failure(output, expectations)
+            return
+    finally:
+        timer.cancel()
+
     if expectations.failure_expects:
         raise ExitCodeMismatchError("Expected failure but compilation succeeded")
     if expectations.skip_run:
