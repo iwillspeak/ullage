@@ -142,7 +142,7 @@ impl<'a> Parser<'a> {
     pub fn expressions(&mut self) -> ParseResult<Vec<Expression>> {
         let mut expressions = Vec::new();
         while !self.current_is(&TokenKind::End) {
-            expressions.push(self.top_level_expression()?);
+            expressions.push(self.top_level_expression());
         }
         let errors = self.collect_diagnostics();
         if !errors.is_empty() {
@@ -158,7 +158,7 @@ impl<'a> Parser<'a> {
     /// production in the grammar if attempting to parse a single
     /// item. e.g. for scripting or testing purposes.
     pub fn expression(&mut self) -> ParseResult<Expression> {
-        let expression = self.top_level_expression()?;
+        let expression = self.top_level_expression();
         let errors = self.collect_diagnostics();
         if !errors.is_empty() {
             Err(ParseError::Diagnostics(errors.into()))
@@ -179,19 +179,19 @@ impl<'a> Parser<'a> {
     ///  * With `Token::MIN_LPB` - To parse a root leve expression.
     ///  * With the binding power taken from a token to parse the
     ///    right hand side of an infix expression.
-    fn expression_with_rbp(&mut self, rbp: u32) -> ParseResult<Expression> {
-        let mut left = self.parse_nud()?;
+    fn expression_with_rbp(&mut self, rbp: u32) -> Expression {
+        let mut left = self.parse_nud();
         while self.current_binds_tighter_than(rbp) {
-            left = self.parse_led(left)?;
+            left = self.parse_led(left);
         }
-        Ok(left)
+        left
     }
 
     /// Top level expression helper
     ///
     /// Parses a single expression with the binding power set to
     /// `Token::MIN_LBP`.
-    fn top_level_expression(&mut self) -> ParseResult<Expression> {
+    fn top_level_expression(&mut self) -> Expression {
         self.expression_with_rbp(Token::MIN_LBP)
     }
 
@@ -286,23 +286,23 @@ impl<'a> Parser<'a> {
     ///
     /// Parses the body of a local variable delcaration (`let` or
     /// `var`).
-    fn declaration(&mut self, var_tok: Token) -> ParseResult<Expression> {
+    fn declaration(&mut self, var_tok: Token) -> Expression {
         let (_fixme, id) = self.identifier();
         let typ = self.optional_type_anno();
         let assign_tok = self.expect(&TokenKind::Equals);
-        let rhs = self.top_level_expression()?;
+        let rhs = self.top_level_expression();
         let style = if let TokenKind::Word(Ident::Var) = var_tok.kind {
             VarStyle::Mutable
         } else {
             VarStyle::Immutable
         };
-        Ok(Expression::declaration(
+        Expression::declaration(
             var_tok,
             TypedId::from_parts(id, typ),
             style,
             assign_tok,
             rhs,
-        ))
+        )
     }
 
     /// Parse the contents of a block expression.
@@ -310,33 +310,33 @@ impl<'a> Parser<'a> {
     /// Block expressions are the bodies of functions and loops. They
     /// consist of a seuqence of expressions followed by a closing
     /// `end` token.
-    fn block(&mut self) -> ParseResult<BlockBody> {
+    fn block(&mut self) -> BlockBody {
         let mut expressions = Vec::new();
         while !self.current_is_any(&[TokenKind::Word(Ident::End), TokenKind::End]) {
-            expressions.push(self.top_level_expression()?);
+            expressions.push(self.top_level_expression());
         }
-        Ok(BlockBody {
+        BlockBody {
             contents: Box::new(Expression::sequence(expressions)),
             close: Box::new(self.expect(&TokenKind::Word(Ident::End))),
-        })
+        }
     }
 
     /// Prefix Operator
     ///
     /// Parses the trailing expression for a prefix operator.
-    fn prefix_op(&mut self, op_token: Token, op: PrefixOp) -> ParseResult<Expression> {
-        let rhs = self.expression_with_rbp(Token::MAX_LBP)?;
-        Ok(Expression::prefix(op_token, op, rhs))
+    fn prefix_op(&mut self, op_token: Token, op: PrefixOp) -> Expression {
+        let rhs = self.expression_with_rbp(Token::MAX_LBP);
+        Expression::prefix(op_token, op, rhs)
     }
 
     /// Ternay Body
     ///
     /// The condition and fallback part of a ternary expression.
-    fn ternary_body(&mut self) -> ParseResult<(Expression, Token, Expression)> {
-        let condition = self.top_level_expression()?;
+    fn ternary_body(&mut self) -> (Expression, Token, Expression) {
+        let condition = self.top_level_expression();
         let else_tok = self.expect(&TokenKind::Word(Ident::Else));
-        let fallback = self.top_level_expression()?;
-        Ok((condition, else_tok, fallback))
+        let fallback = self.top_level_expression();
+        (condition, else_tok, fallback)
     }
 
     /// Parse Left Denonation
@@ -344,7 +344,7 @@ impl<'a> Parser<'a> {
     /// This is the parse of the symbol when it has an expression to
     /// the left hand side of it. This is responsible for parsing
     /// infix operators and function calls.
-    fn parse_led(&mut self, lhs: Expression) -> ParseResult<Expression> {
+    fn parse_led(&mut self, lhs: Expression) -> Expression {
         let token = self.advance();
 
         match token.kind {
@@ -364,9 +364,9 @@ impl<'a> Parser<'a> {
             // array indexing
             TokenKind::OpenSqBracket => {
                 let open = token;
-                let index = self.top_level_expression()?;
+                let index = self.top_level_expression();
                 let close = self.expect(&TokenKind::CloseSqBracket);
-                Ok(Expression::index(lhs, open, index, close))
+                Expression::index(lhs, open, index, close)
             }
 
             // Function call
@@ -374,7 +374,7 @@ impl<'a> Parser<'a> {
                 let open = token;
                 let mut params = Vec::new();
                 while !self.current_is(&TokenKind::CloseBracket) {
-                    let param = self.top_level_expression()?;
+                    let param = self.top_level_expression();
                     params.push(param);
                     if !self.current_is(&TokenKind::CloseBracket) {
                         // FIXME: Delimited lists. Should fit in with
@@ -384,27 +384,27 @@ impl<'a> Parser<'a> {
                     }
                 }
                 let close = self.expect(&TokenKind::CloseBracket);
-                Ok(Expression::call(lhs, open, params, close))
+                Expression::call(lhs, open, params, close)
             }
 
             // Ternay statement:
             // <x> if <y> else <z>
             TokenKind::Word(Ident::If) => {
                 let if_tok = token;
-                let (condition, else_tok, fallback) = self.ternary_body()?;
-                Ok(Expression::if_then_else(
+                let (condition, else_tok, fallback) = self.ternary_body();
+                Expression::if_then_else(
                     if_tok, condition, lhs, else_tok, fallback,
-                ))
+                )
             }
 
             // Ternay statement:
             // <x> unless <y> else <z>
             TokenKind::Word(Ident::Unless) => {
                 let if_tok = token;
-                let (condition, else_tok, fallback) = self.ternary_body()?;
-                Ok(Expression::if_then_else(
+                let (condition, else_tok, fallback) = self.ternary_body();
+                Expression::if_then_else(
                     if_tok, condition, fallback, else_tok, lhs,
-                ))
+                )
             }
 
             _ => unreachable!("`parse_led` should only be called if looking at a token with a left binding power."),
@@ -434,7 +434,7 @@ impl<'a> Parser<'a> {
     /// expression to the left hand side of it. This is responsible
     /// for parsing literals and variable references into expressions,
     /// as well as parsing prefix expressions.
-    fn parse_nud(&mut self) -> ParseResult<Expression> {
+    fn parse_nud(&mut self) -> Expression {
         let token = self.advance();
 
         match token.kind {
@@ -445,8 +445,8 @@ impl<'a> Parser<'a> {
                 let params = self.delimited(TokenKind::Comma, TokenKind::CloseBracket);
                 let params_close = self.expect(&TokenKind::CloseBracket);
                 let return_type = self.type_anno();
-                let body = self.block()?;
-                Ok(Expression::function(
+                let body = self.block();
+                Expression::function(
                     fn_kw,
                     identifier,
                     params_open,
@@ -454,35 +454,35 @@ impl<'a> Parser<'a> {
                     params_close,
                     return_type,
                     body,
-                ))
+                )
             }
             TokenKind::Word(Ident::While) | TokenKind::Word(Ident::Until) => {
-                let condition = self.top_level_expression()?;
-                let block = self.block()?;
-                Ok(Expression::loop_while(token, condition, block))
+                let condition = self.top_level_expression();
+                let block = self.block();
+                Expression::loop_while(token, condition, block)
             }
             TokenKind::Word(Ident::Let) | TokenKind::Word(Ident::Var) => self.declaration(token),
             TokenKind::Word(Ident::Print) => {
-                let to_print = self.top_level_expression()?;
-                Ok(Expression::print(token, to_print))
+                let to_print = self.top_level_expression();
+                Expression::print(token, to_print)
             }
-            TokenKind::Word(Ident::True) => Ok(Expression::constant_bool(token, true)),
-            TokenKind::Word(Ident::False) => Ok(Expression::constant_bool(token, false)),
-            TokenKind::Word(word) => Ok(Expression::identifier(token, word)),
+            TokenKind::Word(Ident::True) => Expression::constant_bool(token, true),
+            TokenKind::Word(Ident::False) => Expression::constant_bool(token, false),
+            TokenKind::Word(word) => Expression::identifier(token, word),
             TokenKind::Literal(ref l) => match *l {
-                Literal::Number(i) => Ok(Expression::constant_num(token, i)),
+                Literal::Number(i) => Expression::constant_num(token, i),
                 Literal::RawString(ref s) => {
                     let string_value = s.clone();
-                    Ok(Expression::constant_string(token, string_value))
+                    Expression::constant_string(token, string_value)
                 }
             },
             TokenKind::Plus => self.prefix_op(token, PrefixOp::Identity),
             TokenKind::Minus => self.prefix_op(token, PrefixOp::Negate),
             TokenKind::Bang => self.prefix_op(token, PrefixOp::Not),
             TokenKind::OpenBracket => {
-                let expr = self.top_level_expression()?;
+                let expr = self.top_level_expression();
                 let closing = self.expect(&TokenKind::CloseBracket);
-                Ok(Expression::grouping(token, expr, closing))
+                Expression::grouping(token, expr, closing)
             }
             // This covers things which can't start expressions, like
             // whitespace and non-prefix operator tokens
@@ -503,10 +503,7 @@ impl<'a> Parser<'a> {
 
                 // TODO: Unify this with ID stubbing in identifier.
                 let stub_id = self.source.intern("0invalid_ident0");
-                Ok(Expression::identifier(
-                    Token::new(TokenKind::Word(stub_id.clone())),
-                    stub_id,
-                ))
+                Expression::identifier(Token::new(TokenKind::Word(stub_id)), stub_id)
             }
         }
     }
@@ -516,8 +513,8 @@ impl<'a> Parser<'a> {
     /// Given a parsed left hand expression and infix operator parse
     /// the right hand side of that expression. Returns the compound
     /// infix expression.
-    fn infix(&mut self, lhs: Expression, token: Token, op: InfixOp) -> ParseResult<Expression> {
-        let rhs = self.expression_with_rbp(token.lbp())?;
-        Ok(Expression::infix(lhs, token, op, rhs))
+    fn infix(&mut self, lhs: Expression, token: Token, op: InfixOp) -> Expression {
+        let rhs = self.expression_with_rbp(token.lbp());
+        Expression::infix(lhs, token, op, rhs)
     }
 }
