@@ -15,7 +15,7 @@
 //! folder.
 
 use super::super::text::{Ident, Location, SourceText, DUMMY_SPAN};
-use super::super::tree::{Literal, Token, TokenKind};
+use super::super::tree::{Literal, SyntaxTree, Token, TokenKind};
 use super::super::{
     BlockBody, DelimItem, Expression, InfixOp, PrefixOp, TypeAnno, TypeRef, TypedId, VarStyle,
 };
@@ -131,6 +131,17 @@ impl<'a> Parser<'a> {
                 Token::new(expected.clone())
             }
         }
+    }
+
+    /// Parse a syntax tree from the given source text
+    pub fn parse(&mut self) -> SyntaxTree {
+        let mut expressions = Vec::new();
+        while !self.current_is(&TokenKind::End) {
+            expressions.push(self.top_level_expression());
+        }
+        let end = self.expect(&TokenKind::End);
+        let errors = self.collect_diagnostics();
+        SyntaxTree::new(expressions, errors, end)
     }
 
     /// Atttempt to parse a list of expressions
