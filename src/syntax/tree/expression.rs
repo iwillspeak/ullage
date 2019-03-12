@@ -450,17 +450,11 @@ impl Expression {
     /// create a function expression.
     pub fn function(
         fn_kw: Token,
-
         identifier: Ident,
-
         params_open: Token,
-
         params: Vec<DelimItem<TypedId>>,
-
         params_close: Token,
-
         return_type: TypeAnno,
-
         body: BlockBody,
     ) -> Expression {
         Expression::Function(FunctionExpression {
@@ -511,6 +505,13 @@ impl Expression {
     /// other.
     pub fn sequence(exprs: Vec<Expression>) -> Self {
         Expression::Sequence(exprs)
+    }
+
+    /// Empty Expression
+    ///
+    /// Empty expressions have no value
+    pub fn empty() -> Self {
+        Expression::sequence(Vec::new())
     }
 
     /// Print Expression

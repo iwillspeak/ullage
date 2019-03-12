@@ -20,8 +20,8 @@ use expression::Expression;
 /// The syntax tree represents the parsed source of a given file. It
 /// contains multiple expressions followed by an end of file token.
 pub struct SyntaxTree {
-    /// The inner expressions
-    expressions: Vec<Expression>,
+    /// The root of the main expression tree
+    root: Expression,
     /// Diagnostics related to the given tree
     diagnostics: Vec<String>,
     /// End token
@@ -36,19 +36,34 @@ impl SyntaxTree {
     ///
     /// # Parameters
     ///
-    ///  * `expressions`: The body of the file. This could be empty if
-    ///  the file is empty
+    ///  * `root`: The body of the file. This could be an empty
+    ///  sequence if the file is empty
     ///  * `diagnostics`: Diagnostics raised in the parsing of the
     ///  source.
     ///  * `end`: The closing EOF token. This may have some leading
     ///  trivia attached and is therefore required for a full-fidelity
     ///  tree.
-    pub fn new(expressions: Vec<Expression>, diagnostics: Vec<String>, end: Token) -> Self {
+    pub fn new(root: Expression, diagnostics: Vec<String>, end: Token) -> Self {
         SyntaxTree {
-            expressions,
+            root,
             diagnostics,
             end,
         }
+    }
+
+    /// Get the root of the tree
+    pub fn root(&self) -> &Expression {
+        &self.root
+    }
+
+    /// Get the end token
+    pub fn end(&self) -> &Token {
+        &self.end
+    }
+
+    /// Get diagnostics
+    pub fn diagnostics(&self) -> &[String] {
+        &self.diagnostics
     }
 
     /// Check if the tree has buffered diagnostics
@@ -64,7 +79,7 @@ mod test {
 
     #[test]
     fn tree_without_diagnositcs_reports_false() {
-        let tree = SyntaxTree::new(Vec::new(), Vec::new(), Token::new(TokenKind::End));
+        let tree = SyntaxTree::new(Expression::empty(), Vec::new(), Token::new(TokenKind::End));
 
         assert_ne!(true, tree.has_diagnostics());
     }
@@ -72,7 +87,7 @@ mod test {
     #[test]
     fn tree_with_diagnostics_reports_true() {
         let tree = SyntaxTree::new(
-            Vec::new(),
+            Expression::empty(),
             vec![String::from("error: test")],
             Token::new(TokenKind::End),
         );

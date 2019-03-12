@@ -141,7 +141,7 @@ impl<'a> Parser<'a> {
         }
         let end = self.expect(&TokenKind::End);
         let errors = self.collect_diagnostics();
-        SyntaxTree::new(expressions, errors, end)
+        SyntaxTree::new(Expression::sequence(expressions), errors, end)
     }
 
     /// Atttempt to parse a list of expressions
