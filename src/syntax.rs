@@ -11,3 +11,4 @@ pub mod tree;
 pub use self::tree::expression::*;
 pub use self::tree::operators::*;
 pub use self::tree::types::*;
+pub use self::tree::*;

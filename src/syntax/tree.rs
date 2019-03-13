@@ -70,6 +70,14 @@ impl SyntaxTree {
     pub fn has_diagnostics(&self) -> bool {
         !self.diagnostics.is_empty()
     }
+
+    /// Returns the root of the expression tree and the EOF token
+    ///
+    /// FIXME: should root and token just be public and remove this,
+    /// `root()`, and `end()`?
+    pub fn into_parts(self) -> (Expression, Token) {
+        (self.root, self.end)
+    }
 }
 
 #[cfg(test)]

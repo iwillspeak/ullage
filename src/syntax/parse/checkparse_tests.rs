@@ -3,17 +3,19 @@
 //! Tests for the parser which check that a given input matches an
 //! exprexpected parse tree.
 
+use super::super::parse::Parser;
 use super::super::text::{Ident, SourceText};
 use super::super::tree::{Literal, Token, TokenKind};
 use super::super::*;
-use super::parse_single;
 
 macro_rules! check_parse {
     ($src:expr, |$source:ident| $expected:expr) => {
         let src: &str = $src;
         let $source = SourceText::new(src);
-        let actual = parse_single(&$source);
-        assert_eq!(Ok($expected), actual);
+        let mut parser = Parser::new(&$source);
+        let tree = parser.parse_single();
+        assert_eq!(false, tree.has_diagnostics());
+        assert_eq!(&$expected, tree.root());
     };
     ($src:expr, $expected:expr) => {
         check_parse!($src, |t| $expected);

@@ -19,7 +19,6 @@ use super::super::tree::{Literal, SyntaxTree, Token, TokenKind};
 use super::super::{
     BlockBody, DelimItem, Expression, InfixOp, PrefixOp, TypeAnno, TypeRef, TypedId, VarStyle,
 };
-use super::error::*;
 use super::tokeniser::{TokenStream, Tokeniser};
 use std::iter::Iterator;
 
@@ -134,6 +133,11 @@ impl<'a> Parser<'a> {
     }
 
     /// Parse a syntax tree from the given source text
+    ///
+    /// This is the root production of the grammar. Each compilation
+    /// unit consists of a series of expressions. This loops until it
+    /// finds the end of file producing a list of the expressions it
+    /// parsed.
     pub fn parse(&mut self) -> SyntaxTree {
         let mut expressions = Vec::new();
         while !self.current_is(&TokenKind::End) {
@@ -144,38 +148,16 @@ impl<'a> Parser<'a> {
         SyntaxTree::new(Expression::sequence(expressions), errors, end)
     }
 
-    /// Atttempt to parse a list of expressions
-    ///
-    /// This is the root production of the grammar. Each compilation
-    /// unit consists of a series of expressions. This loops until it
-    /// finds the end of file producing a list of the expressions it
-    /// parsed.
-    pub fn expressions(&mut self) -> ParseResult<Vec<Expression>> {
-        let mut expressions = Vec::new();
-        while !self.current_is(&TokenKind::End) {
-            expressions.push(self.top_level_expression());
-        }
-        let errors = self.collect_diagnostics();
-        if !errors.is_empty() {
-            Err(ParseError::Diagnostics(errors.into()))
-        } else {
-            Ok(expressions)
-        }
-    }
-
-    /// Attempt to Parse a Single Expression
+    /// Parse a single expression into a tree
     ///
     /// Used to parse 'top-level' expressions. This can be a root
     /// production in the grammar if attempting to parse a single
     /// item. e.g. for scripting or testing purposes.
-    pub fn expression(&mut self) -> ParseResult<Expression> {
+    pub fn parse_single(&mut self) -> SyntaxTree {
         let expression = self.top_level_expression();
+        let end = self.expect(&TokenKind::End);
         let errors = self.collect_diagnostics();
-        if !errors.is_empty() {
-            Err(ParseError::Diagnostics(errors.into()))
-        } else {
-            Ok(expression)
-        }
+        SyntaxTree::new(expression, errors, end)
     }
 
     /// Attempt to parse a single expression

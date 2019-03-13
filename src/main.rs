@@ -177,14 +177,18 @@ fn main() {
 
     // Parse the module
     let source = text::SourceText::new(source);
-    let tree = parse::parse_tree(&source).unwrap_or_else(|e| {
-        eprintln!("error: could not parse source: {}", e);
+    let tree = parse::Parser::new(&source).parse();
+    if tree.has_diagnostics() {
+        eprintln!("error: could not parse source: one or more errors:");
+        for error in tree.diagnostics().iter() {
+            eprintln!("error: {}", error);
+        }
         exit(1)
-    });
+    };
 
     // Are we just dumping the AST or compiling the whole thing?
     if args.flag_dumpast {
-        println!("parsed AST: {:#?}", tree);
+        println!("parsed AST: {:#?}", tree.root());
         exit(0);
     }
 
