@@ -184,8 +184,8 @@ The following grammar defines the language:
     
     ty = WORD
         | "[" ty "]"
-    	| "(" [(ty (, ty )*] ")"
-    	;
+        | "(" [(ty (, ty )*] ")"
+        ;
     
     optional_type_ref = [type_ref]
                       ;
