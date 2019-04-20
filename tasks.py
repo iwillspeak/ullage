@@ -38,7 +38,7 @@ def bench(ctx, opt_level=3):
             os.makedirs(os.path.dirname(output))
         except OSError:
             pass
-        print "bench={0}, output={1}, opt={2}".format(bench, output, opt_level)
+        print("bench={0}, output={1}, opt={2}".format(bench, output, opt_level))
         ctx.run("target/release/ullage {0} -O{1} -o {2}"
                 .format(bench, opt_level, output))
         ctx.run("time {0}".format(output))

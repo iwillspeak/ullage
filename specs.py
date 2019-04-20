@@ -61,7 +61,7 @@ def check_output(lines, expects):
     """
 
     lines = lines.strip().split('\n')
-    for actual, expected in itertools.izip_longest(lines, expects):
+    for actual, expected in itertools.zip_longest(lines, expects):
         if not actual or not expected:
             raise OutputMismatchError(expected, actual)
         if actual != expected:
@@ -77,11 +77,11 @@ def check_compilation_failure(output, expectations):
     if not expectations.failure_expects:
         raise ExitCodeMismatchError("Expected successfull exit code")
     fails = list(expectations.failure_expects)
-    for line in output[1].strip().split('\n'):
+    for line in output.strip().split('\n'):
         if fails and fails[0] in line:
             fails.pop(0)
     if fails:
-        raise OutputMissingError(output[1], fails)
+        raise OutputMissingError(output, fails)
 
 def run_spec(path):
     """Compile and Run the Given Spec
@@ -105,7 +105,7 @@ def run_spec(path):
             raise ExitCodeMismatchError(
                 "compilation process was terminated with code '{}'".format(exit_code))
         if exit_code != 0:
-            check_compilation_failure(output, expectations)
+            check_compilation_failure(output[1].decode('utf-8'), expectations)
             return
     finally:
         timer.cancel()
@@ -118,7 +118,7 @@ def run_spec(path):
     output = run_cmd.communicate()
     if run_cmd.returncode != 0:
         raise ExitCodeMismatchError("Expected successfull exit code")
-    check_output(output[0], expectations.expects)
+    check_output(output[0].decode('utf-8'), expectations.expects)
 
 
 def glob_for(path, extension):
@@ -147,16 +147,16 @@ def main(argv):
             sys.stdout.flush()
         except Error as e:
             err = '\n{}: {}: {}'.format(spec, type(e).__name__, e.error)
-            print >>sys.stderr, err
+            print(err, file=sys.stderr)
             failures += 1
 
     # newline follwing all those .s
-    print '\n'
-    print '-' * 40
+    print('\n')
+    print('-' * 40)
     if failures:
-        print '{} tests failed'.format(failures)
+        print('{} tests failed'.format(failures))
     else:
-        print 'All tests passed'
+        print('All tests passed')
     return failures
 
 if __name__ == '__main__':
