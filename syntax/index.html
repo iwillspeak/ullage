@@ -17,7 +17,7 @@
 <p>Examples of words are: <code>foo</code>, <code>fn</code>, <code>_1</code> and <code>∂</code>. Some words have special meanings in the grammar:</p>
 <pre><code>if unless else while until end fn var let print
 </code></pre>
-<h3 id="Punctuation"><a href="#Punctuation">Punctuation</a></h3><p>Punctuation characters, such as <code>-</code> and <code>!=</code> are used to represent operators in the language. Currently a handful of punctuation characters are recognised: <code>=</code>, <code>==</code>, <code>!</code>, <code>!=</code>, <code>+</code>, <code>-</code>, <code>*</code>, <code>/</code>, <code>(</code>, <code>)</code>, <code>[</code>, <code>]</code>, <code>,</code>, <code>:</code>, <code>&lt;</code>, and <code>&gt;</code>.</p>
+<h3 id="Punctuation"><a href="#Punctuation">Punctuation</a></h3><p>Punctuation characters, such as <code>-</code> and <code>!=</code> are used to represent operators in the language. Currently a handful of punctuation characters are recognised: <code>=</code>, <code>==</code>, <code>!</code>, <code>!=</code>, <code>+</code>, <code>-</code>, <code>*</code>, <code>/</code>, <code>(</code>, <code>)</code>, <code>[</code>, <code>]</code>, <code>,</code>, <code>:</code>, <code>&lt;</code>, and <code>&gt;</code>. </p>
 <h3 id="Literals"><a href="#Literals">Literals</a></h3><p>Literals are used to represent constant input values to the program. Literals can be used to specify values of any primitive type (<code>Number</code>, <code>Bool</code> and <code>String</code> so far). Numeric literals consist of one or more consecutive digits: <code>0</code>, <code>42</code>, <code>1337</code>. Although <code>-47</code> evaluates to a negative number the <code>-</code> isn't part of the literal; in fact it is an operator.</p>
 <h3 id="Whitespace"><a href="#Whitespace">Whitespace</a></h3><p>Whitespace tokens are made up of one or more <em>space</em> characters. These <em>space</em> characters are either Unicode whitespace, such as tabs &amp; spaces, or comments. Comments are introduced with a <code>#</code> and continue to the end of the line.</p>
 <pre><code># This is a comment!
@@ -91,12 +91,7 @@ end
 print add(add(1, 2), 3) # =&gt; 6
 </code></pre>
 <h2 id="Grammar"><a href="#Grammar">Grammar</a></h2><p>The following grammar defines the language:</p>
-<pre><code>def foo(bar):
-    pass
-</code></pre>
-<pre><code class="language-python
-">
-identifier = WORD
+<pre><code>identifier = WORD
            ;
 
 expression = nud [led]
