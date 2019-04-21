@@ -1,0 +1,30 @@
+# Sum all the multiples of 3 or 5 below 1000
+
+fn mod(n: Number, d: Number): Number
+    while n >= d
+   	    n = n - d
+    end
+	n
+end
+
+fn is_multiple(n: Number, d: Number): Bool
+    mod(n, d) == 0
+end
+
+fn sum_to(n: Number): Number
+   var i = 0
+   var s = 0
+   while i < n
+     s = ((s + i) if is_multiple(i, 3) else
+	 	  ((s + i) if is_multiple(i, 5) else s))
+     i = i + 1
+   end
+   s
+end
+
+print is_multiple(3, 3) #=> true
+print is_multiple(9, 3) #=> true
+print is_multiple(8, 3) #=> false
+
+print sum_to(10) #=> 23
+print sum_to(1000) # => 233168
