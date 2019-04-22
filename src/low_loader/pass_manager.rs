@@ -97,6 +97,7 @@ impl Default for PassManagerBuilder {
 impl PassManagerBuilder {
     /// Create a Pass Manager Builder
     pub fn new() -> Self {
+        super::context::ensure_initialised();
         let raw = unsafe { pm_builder::LLVMPassManagerBuilderCreate() };
         PassManagerBuilder(raw)
     }

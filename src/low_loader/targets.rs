@@ -171,7 +171,7 @@ mod test {
         assert_eq!("AArch64 (little endian)", target.description());
         assert_eq!(true, target.has_asm_backend());
         assert_eq!("aarch64-linux-gnu", target.triple());
-        assert_eq!("aarch64--linux-gnu", target.norm_triple());
+        assert_eq!("aarch64-unknown-linux-gnu", target.norm_triple());
     }
 
     #[test]
