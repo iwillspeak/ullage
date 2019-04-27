@@ -101,7 +101,7 @@ E.g.
  * `SourceText` - represents the input.
   * `from_string` - for direct input
   * `from_file` - for `mmmaping` files?? 
-  * `PPS_to_line` - for extracting line information for a `Span`
+  * `pos_to_line` - for extracting line information for a `Span`
  * `SyntaxTree` - Parsed syntax element.
   * `parse_compilation_unit` - Parse a whole 'compilation unit'
   * `parse_expression` - Just parse a single expression.

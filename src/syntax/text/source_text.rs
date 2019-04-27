@@ -8,6 +8,9 @@
 
 use super::{Ident, Interner, Pos};
 use std::cell::RefCell;
+use std::io::{self, prelude::*};
+use std::fs::File;
+use std::path::Path;
 
 /// Source Text Struct
 ///
@@ -35,6 +38,26 @@ impl SourceText {
             line_offsets,
             interner: Default::default(),
         }
+    }
+
+    /// Create a source text from standard input
+    ///
+    /// Reads the contents of `io:;stdin` to a buffer and creats a new
+    /// source tex from that.
+    pub fn from_stdin() -> io::Result<Self> {
+        let mut s = String::new();
+        io::stdin().read_to_string(&mut s)?;
+        Ok(SourceText::new(s))
+    }
+
+    /// Create a source text from a file
+    ///
+    /// Reads the contents of a given file path into a buffer and
+    /// creates a new source text from that.
+    pub fn from_path<P: AsRef<Path>>(path: P) -> io::Result<Self> {
+        let mut s = String::new();
+        File::open(path)?.read_to_string(&mut s)?;
+        Ok(SourceText::new(s))
     }
 
     /// Get the Starting Position

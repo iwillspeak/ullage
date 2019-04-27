@@ -10,6 +10,9 @@ mod token;
 mod trivia;
 pub mod types;
 
+use crate::text::SourceText;
+use crate::parse::Parser;
+
 pub use self::token::{Literal, Token, TokenKind};
 pub use self::trivia::{TriviaToken, TriviaTokenKind};
 
@@ -49,6 +52,16 @@ impl SyntaxTree {
             diagnostics,
             end,
         }
+    }
+
+    /// Parse a tree from source text
+    pub fn parse(source: &SourceText) -> Self {
+        Parser::new(source).parse()
+    }
+
+    /// Parse a source tree containing a single expression
+    pub fn parse_single(source: &SourceText) -> Self {
+        Parser::new(source).parse_single()
     }
 
     /// Get the root of the tree

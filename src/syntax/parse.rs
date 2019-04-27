@@ -34,7 +34,7 @@ use tokeniser::{TokenStream, Tokeniser};
 /// token that the parser is looking at. Internally the parser also
 /// buffers up the diagnostics which will be emitted at the end of a
 /// parse.
-pub struct Parser<'a> {
+pub(crate) struct Parser<'a> {
     source: &'a SourceText,
     lexer: Tokeniser<'a>,
     diagnostics: Vec<String>,
@@ -131,7 +131,7 @@ impl<'a> Parser<'a> {
             token if token.kind == *expected => self.advance(),
             other => {
                 let diagnostic = format!("expecting: {}, found: {}", expected, other.kind);
-                self.diagnostics.push(diagnostic.clone());
+                self.diagnostics.push(diagnostic);
                 Token::new(expected.clone())
             }
         }

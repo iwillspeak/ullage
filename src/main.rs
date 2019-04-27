@@ -15,12 +15,8 @@ use crate::compile::*;
 use crate::low_loader::targets;
 use crate::syntax::*;
 use docopt::Docopt;
-use failure::Error;
 use serde::{Deserialize, Deserializer};
 use std::fmt;
-use std::fs::File;
-use std::io;
-use std::io::prelude::*;
 use std::path::Path;
 use std::process::*;
 
@@ -170,14 +166,18 @@ fn main() {
     let output_path = Path::new(&output_path);
 
     // Load the file into memory, so we can parse it into a syntax tree
-    let source = read_input(args.arg_file).unwrap_or_else(|e| {
+    let source = if let Some(path) = args.arg_file {
+        text::SourceText::from_path(Path::new(&path))
+    } else {
+        text::SourceText::from_stdin()
+    };
+    let source = source.unwrap_or_else(|e| {
         eprintln!("error: could not read input: {}", e);
         exit(1)
     });
 
     // Parse the module
-    let source = text::SourceText::new(source);
-    let tree = parse::Parser::new(&source).parse();
+    let tree = syntax::SyntaxTree::parse(&source);
     if tree.has_diagnostics() {
         eprintln!("error: could not parse source: one or more errors:");
         for error in tree.diagnostics().iter() {
@@ -210,23 +210,6 @@ fn main() {
     if let Err(e) = emit_result {
         handle_comp_err(&e);
     }
-}
-
-/// Read the Compilation Input
-///
-/// If a file path was supplied then read the contents to a
-/// `String`. If no file was provided then the input should be read
-/// from standard input instead.
-fn read_input(path: Option<String>) -> std::result::Result<String, Error> {
-    let mut s = String::new();
-
-    if let Some(path) = path {
-        let input_path = Path::new(&path);
-        File::open(&input_path)?.read_to_string(&mut s)?;
-    } else {
-        io::stdin().read_to_string(&mut s)?;
-    }
-    Ok(s)
 }
 
 /// Handles a Compilation Error
