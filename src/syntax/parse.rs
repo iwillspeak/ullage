@@ -19,11 +19,12 @@ mod tokeniser;
 #[cfg(test)]
 mod checkparse_tests;
 
-use super::text::{Ident, Location, SourceText, DUMMY_SPAN};
+use super::text::{Ident, SourceText, DUMMY_SPAN};
 use super::tree::{Literal, SyntaxTree, Token, TokenKind};
 use super::{
     BlockBody, DelimItem, Expression, InfixOp, PrefixOp, TypeAnno, TypeRef, TypedId, VarStyle,
 };
+use crate::diag::Diagnostic;
 use std::iter::Iterator;
 use tokeniser::{TokenStream, Tokeniser};
 
@@ -37,7 +38,7 @@ use tokeniser::{TokenStream, Tokeniser};
 pub(crate) struct Parser<'a> {
     source: &'a SourceText,
     lexer: Tokeniser<'a>,
-    diagnostics: Vec<String>,
+    diagnostics: Vec<Diagnostic>,
     current: Option<Token>,
 }
 
@@ -57,7 +58,7 @@ impl<'a> Parser<'a> {
     /// This transfers the ownership of the buffered diagnostics from
     /// the parser and lexer to a new `Vec`. After calling this the
     /// parser and lexer diagnostics will be empty.
-    fn collect_diagnostics(&mut self) -> Vec<String> {
+    fn collect_diagnostics(&mut self) -> Vec<Diagnostic> {
         let mut diagnostics = Vec::new();
         diagnostics.append(&mut self.diagnostics);
         diagnostics.append(self.lexer.diagnostics_mut());
@@ -130,7 +131,10 @@ impl<'a> Parser<'a> {
         match self.current() {
             token if token.kind == *expected => self.advance(),
             other => {
-                let diagnostic = format!("expecting: {}, found: {}", expected, other.kind);
+                let diagnostic = Diagnostic::new(
+                    format!("expecting: {}, found: {}", expected, other.kind),
+                    other.span(),
+                );
                 self.diagnostics.push(diagnostic);
                 Token::new(expected.clone())
             }
@@ -202,7 +206,10 @@ impl<'a> Parser<'a> {
                 (self.advance(), id)
             }
             kind => {
-                let err = format!("expected identifier, found: {:}", kind);
+                let err = Diagnostic::new(
+                    format!("expected identifier, found: {:}", kind),
+                    current.span(),
+                );
                 self.diagnostics.push(err);
                 // by starting this with an invalid character we make
                 // sure we don't clash with a real identifier.
@@ -254,7 +261,7 @@ impl<'a> Parser<'a> {
                 TypeRef::tuple(open, types, close)
             }
             t => {
-                let err = format!("expected type, found: {:?}", t);
+                let err = Diagnostic::new(format!("expected type, found: {:?}", t), current.span());
                 self.diagnostics.push(err);
                 TypeRef::missing()
             }
@@ -487,13 +494,15 @@ impl<'a> Parser<'a> {
             _ => {
                 let span = token.span();
                 if span != DUMMY_SPAN {
-                    let pos = self.source.line_pos(span.start());
                     let err = if token.kind == TokenKind::End {
-                        format!("unexpected end of file at {}:{}. Expected expression but found end of file.", pos.0, pos.1)
+                        Diagnostic::new("Expected expression but found end of file", span)
                     } else {
-                        format!(
-                            "unexpected token: expected expression but found {} at {}:{}",
-                            token.kind, pos.0, pos.1
+                        Diagnostic::new(
+                            format!(
+                                "unexpected token: expected expression but found {}",
+                                token.kind
+                            ),
+                            span,
                         )
                     };
                     self.diagnostics.push(err);

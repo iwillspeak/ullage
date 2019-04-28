@@ -10,10 +10,12 @@ pub mod low_loader;
 pub mod meta;
 pub mod sem;
 pub mod syntax;
+pub mod diag;
 
 use crate::compile::*;
 use crate::low_loader::targets;
 use crate::syntax::*;
+use crate::syntax::text::{Location, DUMMY_SPAN};
 use docopt::Docopt;
 use serde::{Deserialize, Deserializer};
 use std::fmt;
@@ -181,7 +183,13 @@ fn main() {
     if tree.has_diagnostics() {
         eprintln!("error: could not parse source: one or more errors:");
         for error in tree.diagnostics().iter() {
-            eprintln!("error: {}", error);
+            // TODO: Move this formatting into some library code.
+            if error.span == DUMMY_SPAN {
+                eprintln!("error: {}", error.message);
+            } else {
+                let pos = source.line_pos(error.span.start());
+                eprintln!("{}:{}:error: {}", pos.0, pos.1, error.message);
+            }
         }
         exit(1)
     };

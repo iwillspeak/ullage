@@ -1,2 +1,2 @@
-0 if # !> unexpected end of file at 3:0. Expected expression but found end of file
-# !> expecting: keyword, found: end of file
+0 if # !> 3:0:error: Expected expression but found end of file
+# !> error: expecting: keyword, found: end of file

@@ -1,3 +1,4 @@
 (
-# !> unexpected end of file at 4:0. Expected expression but found end of file
-# !> expecting: ')', found: end of file
+# !> error: could not parse source: one or more errors:
+# !> 5:0:error: Expected expression but found end of file
+# !> error: expecting: ')', found: end of file

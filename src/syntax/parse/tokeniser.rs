@@ -15,6 +15,7 @@
 //! where the end of file token is returned once we run out of 'real'
 //! tokens.
 
+use crate::diag::Diagnostic;
 use super::super::text::{Location, Pos, SourceText, Span};
 use super::super::tree::{Literal, Token, TokenKind, TriviaToken, TriviaTokenKind};
 use std::iter::Peekable;
@@ -240,7 +241,7 @@ impl<'t> Iterator for RawTokeniser<'t> {
 /// next plain token is attached as trailing trivia.
 pub struct Tokeniser<'t> {
     inner: Peekable<RawTokeniser<'t>>,
-    diagnostics: Vec<String>,
+    diagnostics: Vec<Diagnostic>,
 }
 
 impl<'t> Tokeniser<'t> {
@@ -260,7 +261,7 @@ impl<'t> Tokeniser<'t> {
     ///
     /// TODO: We should pass some form of diagnostics 'sink' to the
     /// tokeniser rather than pulling diagnostics from it.
-    pub fn diagnostics_mut(&mut self) -> &mut Vec<String> {
+    pub fn diagnostics_mut(&mut self) -> &mut Vec<Diagnostic> {
         &mut self.diagnostics
     }
 
@@ -273,10 +274,11 @@ impl<'t> Tokeniser<'t> {
         kind: TriviaTokenKind,
         span: Span,
         trivia: &mut Vec<TriviaToken>,
-        diagnostics: &mut Vec<String>,
+        diagnostics: &mut Vec<Diagnostic>,
     ) {
         if kind == TriviaTokenKind::Junk {
-            diagnostics.push(format!("unrecognised character at {:?}", span));
+            diagnostics.push(Diagnostic::new(
+                "unrecognised character", span));
         }
         trivia.push(TriviaToken::with_span(span, kind));
     }

@@ -1,5 +1,5 @@
-# !> error: expected identifier, found: '('
-fn (expr: Number): Number 
-  # !> unexpected token: expected expression but found ')' at 4:6
+# !> 2:3:error: expected identifier, found: '('
+fn (expr: Number): Number
+  # !> 4:6:error: unexpected token: expected expression but found ')'
   100 )
 end

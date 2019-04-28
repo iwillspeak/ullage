@@ -10,6 +10,7 @@ mod token;
 mod trivia;
 pub mod types;
 
+use crate::diag::Diagnostic;
 use crate::text::SourceText;
 use crate::parse::Parser;
 
@@ -26,7 +27,7 @@ pub struct SyntaxTree {
     /// The root of the main expression tree
     root: Expression,
     /// Diagnostics related to the given tree
-    diagnostics: Vec<String>,
+    diagnostics: Vec<Diagnostic>,
     /// End token
     end: Token,
 }
@@ -46,7 +47,7 @@ impl SyntaxTree {
     ///  * `end`: The closing EOF token. This may have some leading
     ///  trivia attached and is therefore required for a full-fidelity
     ///  tree.
-    pub fn new(root: Expression, diagnostics: Vec<String>, end: Token) -> Self {
+    pub fn new(root: Expression, diagnostics: Vec<Diagnostic>, end: Token) -> Self {
         SyntaxTree {
             root,
             diagnostics,
@@ -75,7 +76,7 @@ impl SyntaxTree {
     }
 
     /// Get diagnostics
-    pub fn diagnostics(&self) -> &[String] {
+    pub fn diagnostics(&self) -> &[Diagnostic] {
         &self.diagnostics
     }
 
@@ -97,6 +98,7 @@ impl SyntaxTree {
 mod test {
 
     use super::*;
+    use crate::syntax::text::DUMMY_SPAN;
 
     #[test]
     fn tree_without_diagnositcs_reports_false() {
@@ -109,7 +111,7 @@ mod test {
     fn tree_with_diagnostics_reports_true() {
         let tree = SyntaxTree::new(
             Expression::empty(),
-            vec![String::from("error: test")],
+            vec![Diagnostic::new("error: test", DUMMY_SPAN)],
             Token::new(TokenKind::End),
         );
 
