@@ -1,13 +1,19 @@
-//! Raw Tokeniser
+//! Source Tokenisation
 //!
-//! This module defines the 'raw' tokeniser. The raw tokeniser emits a
-//! flat list of all the tokens in a given source text. It provides
-//! token kind information along with the span at which the token is
-//! found.
+//! We use two levels of abstraction when tokenising a buffer. The
+//! `RawTokeniser`, internal to this module, and the main `Tokeniser`.
 //!
-//! Raw tokens should be consumed by the main tokeniser to be turned
-//! into structured syntax tokens by grouping trivia tokens to their
-//! appropriate syntax token.
+//! The raw tokeniser emits a flat list of all the tokens in a given
+//! source text. It provides token kind information along with the
+//! span at which the token is found.
+//!
+//! Raw tokens are be consumed by the main tokeniser to be turned into
+//! structured syntax tokens by grouping trivia tokens to their
+//! appropriate syntax token. The main tokeniser is a standard
+//! iterator of `Token`s. In addition this module defines an ertonomc
+//! trait `TokenStream` which acts like a fused iterator of `Tokens`
+//! where the end of file token is returned once we run out of 'real'
+//! tokens.
 
 use super::super::text::{Location, Pos, SourceText, Span};
 use super::super::tree::{Literal, Token, TokenKind, TriviaToken, TriviaTokenKind};
@@ -15,7 +21,10 @@ use std::iter::Peekable;
 
 /// Token Stream Trait
 ///
-/// Token streams are iterators of tokesn that never end.
+/// Token streams are iterators of tokens that never end. Once the
+/// inner token stream ends syntasized end of file tokens are
+/// returned. This trait is implmeneted for any types which are
+/// `Iterator`s of tokens, which includes the main `Tokeniser`.
 pub trait TokenStream {
     /// Next Token
     ///
