@@ -6,16 +6,16 @@
 use failure;
 
 pub mod compile;
+pub mod diag;
 pub mod low_loader;
 pub mod meta;
 pub mod sem;
 pub mod syntax;
-pub mod diag;
 
 use crate::compile::*;
 use crate::low_loader::targets;
-use crate::syntax::*;
 use crate::syntax::text::{Location, DUMMY_SPAN};
+use crate::syntax::*;
 use docopt::Docopt;
 use serde::{Deserialize, Deserializer};
 use std::fmt;

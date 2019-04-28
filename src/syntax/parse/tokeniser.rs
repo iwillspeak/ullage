@@ -15,9 +15,9 @@
 //! where the end of file token is returned once we run out of 'real'
 //! tokens.
 
-use crate::diag::Diagnostic;
 use super::super::text::{Location, Pos, SourceText, Span};
 use super::super::tree::{Literal, Token, TokenKind, TriviaToken, TriviaTokenKind};
+use crate::diag::Diagnostic;
 use std::iter::Peekable;
 
 /// Token Stream Trait
@@ -277,8 +277,7 @@ impl<'t> Tokeniser<'t> {
         diagnostics: &mut Vec<Diagnostic>,
     ) {
         if kind == TriviaTokenKind::Junk {
-            diagnostics.push(Diagnostic::new(
-                "unrecognised character", span));
+            diagnostics.push(Diagnostic::new("unrecognised character", span));
         }
         trivia.push(TriviaToken::with_span(span, kind));
     }

@@ -11,8 +11,8 @@ mod trivia;
 pub mod types;
 
 use crate::diag::Diagnostic;
-use crate::text::SourceText;
 use crate::parse::Parser;
+use crate::text::SourceText;
 
 pub use self::token::{Literal, Token, TokenKind};
 pub use self::trivia::{TriviaToken, TriviaTokenKind};

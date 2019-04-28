@@ -96,8 +96,7 @@ impl<'a> SemCtx<'a> {
     }
 
     /// Emit a diagnostic into the context
-    pub fn emit(&mut self, diagnostic: Diagnostic)
-    {
+    pub fn emit(&mut self, diagnostic: Diagnostic) {
         self.diagnostics.push(diagnostic);
     }
 

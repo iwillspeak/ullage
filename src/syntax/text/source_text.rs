@@ -8,8 +8,8 @@
 
 use super::{Ident, Interner, Pos};
 use std::cell::RefCell;
-use std::io::{self, prelude::*};
 use std::fs::File;
+use std::io::{self, prelude::*};
 use std::path::Path;
 
 /// Source Text Struct
