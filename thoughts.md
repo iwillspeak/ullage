@@ -114,3 +114,28 @@ E.g.
  [roslyn_quoter]: https://roslynquoter.azurewebsites.net/
  [rust_analyzer]: https://github.com/rust-analyzer/rust-analyzer
  [libsyntax]: https://github.com/apple/swift/tree/master/lib/Syntax
+
+## Diagnostics API
+
+Currently there are a few places which collect up diagnostics:
+
+ * The `Tokeniser` - for malformed/text junk trivia
+ * The `Parser` - when parsing syntax errors are buffered into a
+   diagnostic list.
+ * The `Compiler` - when executing `transform_expression`. In future
+   this will probably be the job of a fully-fledged expression binder.
+
+In each of these places we just collect the `Diagnostic`s into a
+`Vec`. There's two things to consider here:
+
+ * Repetition of the `has_diagnostics` function
+ * Disconnect of formatting the errors. 
+
+Maybe we need some kind of newtype collection to handle this similar
+to Roslyn's `DiagnosticBag`. This could have the `has_diagnostics`
+method implemented as well as other `has_errors` for when we support
+diagnostic severity.
+
+For formatting we probably want some kind of diagnostic sink trait
+which will consume diagnostics. An implementation of this can then be
+created for console diagnostic output via `io::stderr`.
