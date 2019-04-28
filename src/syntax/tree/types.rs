@@ -4,6 +4,7 @@
 //! reference types.
 
 use super::Token;
+use crate::syntax::text::{Location, Pos};
 
 /// Type Reference
 ///
@@ -78,6 +79,28 @@ impl TypeRef {
     /// Create a missing type
     pub fn missing() -> Self {
         TypeRef::Missing
+    }
+}
+
+impl Location for TypeRef {
+    fn start(&self) -> Pos {
+        match self {
+            TypeRef::Simple(tok) => tok.span().start(),
+            TypeRef::Unit(open, ..) => open.span().start(),
+            TypeRef::Tuple(open, ..) => open.span().start(),
+            TypeRef::Array(open, ..) => open.span().start(),
+            TypeRef::Missing => Pos::from(0),
+        }
+    }
+
+    fn end(&self) -> Pos {
+        match self {
+            TypeRef::Simple(tok) => tok.span().end(),
+            TypeRef::Unit(_, close) => close.span().end(),
+            TypeRef::Tuple(_, _, close) => close.span().end(),
+            TypeRef::Array(_, _, close) => close.span().end(),
+            TypeRef::Missing => Pos::from(0),
+        }
     }
 }
 

@@ -182,15 +182,7 @@ fn main() {
     let tree = syntax::SyntaxTree::parse(&source);
     if tree.has_diagnostics() {
         eprintln!("error: could not parse source: one or more errors:");
-        for error in tree.diagnostics().iter() {
-            // TODO: Move this formatting into some library code.
-            if error.span == DUMMY_SPAN {
-                eprintln!("error: {}", error.message);
-            } else {
-                let pos = source.line_pos(error.span.start());
-                eprintln!("{}:{}:error: {}", pos.0, pos.1, error.message);
-            }
-        }
+        dump_diagnostics(&source, tree.diagnostics());
         exit(1)
     };
 
@@ -211,12 +203,31 @@ fn main() {
         Err(e) => handle_comp_err(&e),
     };
 
+    if comp.has_diagnostics() {
+        dump_diagnostics(&source, comp.diagnostics());
+        exit(1);
+    }
+
     // Create a compilation, and emit to the output path
     let emit_result = comp.emit(&target, &output_path);
 
     // Print any failures encountered and return a failure status
     if let Err(e) = emit_result {
         handle_comp_err(&e);
+    }
+}
+
+/// Write Dignostics to STDERR
+///
+fn dump_diagnostics(source: &text::SourceText, diagnostics: &[diag::Diagnostic]) {
+    for error in diagnostics.iter() {
+        // TODO: Move this formatting into some library code.
+        if error.span == DUMMY_SPAN {
+            eprintln!("error: {}", error.message);
+        } else {
+            let pos = source.line_pos(error.span.start());
+            eprintln!("{}:{}:error: {}", pos.0, pos.1, error.message);
+        }
     }
 }
 

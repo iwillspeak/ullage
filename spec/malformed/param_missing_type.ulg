@@ -1,0 +1,9 @@
+# !> error: parameter missing type
+fn foo(missing_type): Number
+ 1000
+end
+
+# !> 7:12:error: reference to undefined parameter type
+fn bar(bad: Bad): Number
+ 1000
+end

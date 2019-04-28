@@ -4,6 +4,7 @@
 //! expressions from AST representation to semantic.
 
 use super::types::{BuiltinType, Typ};
+use crate::diag::Diagnostic;
 use crate::syntax::text::{Ident, SourceText};
 use crate::syntax::tree::TokenKind;
 use crate::syntax::TypeRef;
@@ -20,6 +21,8 @@ pub struct SemCtx<'a> {
     named_types: HashMap<Ident, Typ>,
     /// The source text
     source: &'a SourceText,
+    /// A collection of diagnostics emitted when transforming
+    diagnostics: Vec<Diagnostic>,
 }
 
 impl<'a> SemCtx<'a> {
@@ -36,6 +39,7 @@ impl<'a> SemCtx<'a> {
             .cloned()
             .collect(),
             source,
+            diagnostics: Vec::new(),
         }
     }
 
@@ -89,5 +93,21 @@ impl<'a> SemCtx<'a> {
     /// Borrow the Source
     pub fn source(&self) -> &SourceText {
         &self.source
+    }
+
+    /// Emit a diagnostic into the context
+    pub fn emit(&mut self, diagnostic: Diagnostic)
+    {
+        self.diagnostics.push(diagnostic);
+    }
+
+    /// Check if there are any diagnostics in the translation session
+    pub fn has_diagnostics(&self) -> bool {
+        !self.diagnostics.is_empty()
+    }
+
+    /// Get the diagnostics
+    pub fn into_diagnostics(self) -> Vec<Diagnostic> {
+        self.diagnostics
     }
 }

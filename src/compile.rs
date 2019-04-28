@@ -1,6 +1,7 @@
 //! This module contians the code required to compile a parsed tree
 //! down to LLVM bytecode.
 
+use crate::diag::Diagnostic;
 use crate::low_loader::prelude::*;
 use crate::sem;
 use crate::syntax;
@@ -52,6 +53,8 @@ pub struct Compilation {
     expr: sem::Expression,
     /// The options for this compilation
     options: CompilationOptions,
+    /// diagnostics from this compilation
+    diagnostics: Vec<Diagnostic>,
 }
 
 impl Compilation {
@@ -73,6 +76,7 @@ impl Compilation {
         Ok(Compilation {
             expr: sem_expr,
             options: opts,
+            diagnostics: trans_sess.into_diagnostics(),
         })
     }
 
@@ -80,6 +84,12 @@ impl Compilation {
     ///
     /// Performs the compilation, emitting the results to the given file.
     pub fn emit(self, target: &Target, output_path: &Path) -> CompResult<()> {
+        if !self.diagnostics.is_empty() {
+            return Err(CompError::Generic(
+                "can't emit a compilation contianing diagnostics".into(),
+            ));
+        }
+
         let mut ctx = Context::new();
         let name = output_path
             .file_stem()
@@ -129,5 +139,15 @@ impl Compilation {
         } else {
             Err(CompError::link_fail(status.code(), output.stderr))
         }
+    }
+
+    /// Does the compilation have any diagnostics to emit?
+    pub fn has_diagnostics(&self) -> bool {
+        !self.diagnostics.is_empty()
+    }
+
+    /// Borrow a slice of the diagnostics in this compilation
+    pub fn diagnostics(&self) -> &[Diagnostic] {
+        &self.diagnostics
     }
 }

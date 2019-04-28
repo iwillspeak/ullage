@@ -282,9 +282,10 @@ impl<'a> Parser<'a> {
 
     /// Parse an identifier, with an optional type
     fn typed_id(&mut self) -> TypedId {
+        // FIXME: This discards the token for the identifier.
         let (_fixme, id) = self.identifier();
         let typ = self.optional_type_anno();
-        TypedId { id, typ }
+        TypedId::from_parts(id, typ)
     }
 
     /// Attempt to parse a local declaration

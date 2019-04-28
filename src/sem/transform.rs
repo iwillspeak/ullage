@@ -6,7 +6,8 @@
 //!
 //! [`transform_expression`]: ./function.transform_expression.html
 
-use crate::syntax::text::Ident;
+use crate::diag::Diagnostic;
+use crate::syntax::text::{Ident, Span, DUMMY_SPAN, Location};
 use crate::syntax::tree::TokenKind;
 use crate::syntax::InfixOp;
 use crate::syntax::{Constant, Expression as SyntaxExpr, PrefixOp, VarStyle};
@@ -141,15 +142,27 @@ pub fn transform_expression(ctx: &mut SemCtx, expr: SyntaxExpr) -> CompResult<Ex
                 .params
                 .into_iter()
                 .map(|p| {
-                    // FIXME: this will squash type declaration
-                    // errors in params. All params _must_ have a
-                    // type.
                     let p = p.as_inner();
-                    let typ = p.typ.as_ref().and_then(|t| ctx.sem_ty(&t.type_ref));
-                    ctx.add_local(p.id, typ.unwrap());
+                    let typ = match p.typ.as_ref() {
+                        Some(anno) => match ctx.sem_ty(&anno.type_ref) {
+                            Some(ty) => ty,
+                            None => {
+                                ctx.emit(Diagnostic::new(
+                                    "reference to undefined parameter type",
+                                    Span::new_at(anno.type_ref.start())
+                                ));
+                                Typ::Unknown
+                            }
+                        },
+                        None => {
+                            ctx.emit(Diagnostic::new("parameter missing type", DUMMY_SPAN));
+                            Typ::Unknown
+                        }
+                    };
+                    ctx.add_local(p.id, typ);
                     VarDecl {
                         ident: ctx.source().interned_value(p.id),
-                        ty: typ,
+                        ty: Some(typ),
                     }
                 })
                 .collect();
