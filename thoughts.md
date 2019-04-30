@@ -28,7 +28,7 @@ would have synthesised `Span` information.
 
 Initial optimisations/transformations would be a desugaring pass over
 this AST before lowering to the `sem` tree. Maybe even want to do the
-qtype check pass at this level and pass a fully-formed type checked
+type check pass at this level and pass a fully-formed type checked
 tree to `sem`. If we do add a desugaring pass then the output of that
 would be nice to have as an `--emit` value.
 
@@ -60,8 +60,8 @@ There are a few other parsers which construct full fidelity trees:
 
  * Roslyn - For C#
  * [swift/Syntax][libsyntax] - for Swift. Based on Roslyn
- * [Rust-analyzer][rust_analyzer] - Based on swift/Syntax. Stores tree nodes in arenas
-   and uses Salsa.
+ * [Rust-analyzer][rust_analyzer] - Based on swift/Syntax. Stores tree
+   nodes in arenas and uses Salsa.
 
 These always produce _some_ parse tree for every file. Invalid tokens
 are collected into trivia or skipped. Allowing missing portions of
