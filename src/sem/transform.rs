@@ -7,7 +7,7 @@
 //! [`transform_expression`]: ./function.transform_expression.html
 
 use crate::diag::Diagnostic;
-use crate::syntax::text::{Ident, Location, Span, DUMMY_SPAN};
+use crate::syntax::text::{Ident, Location, Span};
 use crate::syntax::tree::TokenKind;
 use crate::syntax::InfixOp;
 use crate::syntax::{Constant, Expression as SyntaxExpr, PrefixOp, VarStyle};
@@ -155,7 +155,7 @@ pub fn transform_expression(ctx: &mut SemCtx, expr: SyntaxExpr) -> CompResult<Ex
                             }
                         },
                         None => {
-                            ctx.emit(Diagnostic::new("parameter missing type", DUMMY_SPAN));
+                            ctx.emit(Diagnostic::new("parameter missing type", p.id_tok.span()));
                             Typ::Unknown
                         }
                     };
