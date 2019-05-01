@@ -282,10 +282,9 @@ impl<'a> Parser<'a> {
 
     /// Parse an identifier, with an optional type
     fn typed_id(&mut self) -> TypedId {
-        // FIXME: This discards the token for the identifier.
-        let (_fixme, id) = self.identifier();
+        let (id_tok, _) = self.identifier();
         let typ = self.optional_type_anno();
-        TypedId::from_parts(id, typ)
+        TypedId::from_parts(id_tok, typ)
     }
 
     /// Attempt to parse a local declaration
@@ -293,7 +292,7 @@ impl<'a> Parser<'a> {
     /// Parses the body of a local variable delcaration (`let` or
     /// `var`).
     fn declaration(&mut self, var_tok: Token) -> Expression {
-        let (_fixme, id) = self.identifier();
+        let (id_tok, _) = self.identifier();
         let typ = self.optional_type_anno();
         let assign_tok = self.expect(&TokenKind::Equals);
         let rhs = self.top_level_expression();
@@ -304,7 +303,7 @@ impl<'a> Parser<'a> {
         };
         Expression::declaration(
             var_tok,
-            TypedId::from_parts(id, typ),
+            TypedId::from_parts(id_tok, typ),
             style,
             assign_tok,
             rhs,

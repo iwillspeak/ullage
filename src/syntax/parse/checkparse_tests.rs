@@ -412,7 +412,7 @@ fn parse_function_with_args() {
         s.intern("neg"),
         Token::new(TokenKind::OpenBracket),
         vec![DelimItem::First(TypedId::new(
-            s.intern("i"),
+            Token::new(TokenKind::Word(s.intern("i"))),
             mk_simple_ty_anno(&s, "Num")
         ))],
         Token::new(TokenKind::CloseBracket),
@@ -430,14 +430,20 @@ fn parse_function_with_args() {
             s.intern("test"),
             Token::new(TokenKind::OpenBracket),
             vec![
-                DelimItem::First(TypedId::new(s.intern("i"), mk_simple_ty_anno(&s, "Num"))),
+                DelimItem::First(TypedId::new(
+                    Token::new(TokenKind::Word(s.intern("i"))),
+                    mk_simple_ty_anno(&s, "Num"),
+                )),
                 DelimItem::Follow(
                     Token::new(TokenKind::Comma),
-                    TypedId::new_without_type(s.intern("j")),
+                    TypedId::new_without_type(Token::new(TokenKind::Word(s.intern("j")))),
                 ),
                 DelimItem::Follow(
                     Token::new(TokenKind::Comma),
-                    TypedId::new(s.intern("k"), mk_simple_ty_anno(&s, "String")),
+                    TypedId::new(
+                        Token::new(TokenKind::Word(s.intern("k"))),
+                        mk_simple_ty_anno(&s, "String"),
+                    ),
                 ),
             ],
             Token::new(TokenKind::CloseBracket),
@@ -462,7 +468,7 @@ fn parse_simple_array_type() {
     check_parse!("let f: [Num] = 100", |s| Expression::declaration(
         Token::new(TokenKind::Word(s.intern("let"))),
         TypedId::from_parts(
-            s.intern("f"),
+            Token::new(TokenKind::Word(s.intern("f"))),
             Some(TypeAnno::new(
                 Token::new(TokenKind::Colon),
                 TypeRef::array(
@@ -482,7 +488,7 @@ fn parse_simple_array_type() {
 fn parse_simple_let() {
     check_parse!("let foo = 100", |s| Expression::declaration(
         Token::new(TokenKind::Word(s.intern("let"))),
-        TypedId::from_parts(s.intern("foo"), None),
+        TypedId::from_parts(Token::new(TokenKind::Word(s.intern("foo"))), None),
         VarStyle::Immutable,
         Token::new(TokenKind::Equals),
         Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(100))), 100),
@@ -494,7 +500,7 @@ fn parse_simple_tuple() {
     check_parse!("let f: (Num) = 100", |s| Expression::declaration(
         Token::new(TokenKind::Word(s.intern("let"))),
         TypedId::from_parts(
-            s.intern("f"),
+            Token::new(TokenKind::Word(s.intern("f"))),
             Some(TypeAnno::new(
                 Token::new(TokenKind::Colon),
                 TypeRef::tuple(
@@ -511,7 +517,7 @@ fn parse_simple_tuple() {
     check_parse!("let f: (Num, [String]) = 100", |s| Expression::declaration(
         Token::new(TokenKind::Word(s.intern("let"))),
         TypedId::from_parts(
-            s.intern("f"),
+            Token::new(TokenKind::Word(s.intern("f"))),
             Some(TypeAnno::new(
                 Token::new(TokenKind::Colon),
                 TypeRef::tuple(
@@ -538,14 +544,17 @@ fn parse_simple_tuple() {
 fn parse_variable_decl() {
     check_parse!("var foo = 93", |s| Expression::declaration(
         Token::new(TokenKind::Word(s.intern("var"))),
-        TypedId::from_parts(s.intern("foo"), None),
+        TypedId::from_parts(Token::new(TokenKind::Word(s.intern("foo"))), None),
         VarStyle::Mutable,
         Token::new(TokenKind::Equals),
         Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(93))), 93),
     ));
     check_parse!("var foo_bar: Number = -99999", |s| Expression::declaration(
         Token::new(TokenKind::Word(s.intern("var"))),
-        TypedId::from_parts(s.intern("foo_bar"), Some(mk_simple_ty_anno(&s, "Number"))),
+        TypedId::from_parts(
+            Token::new(TokenKind::Word(s.intern("foo_bar"))),
+            Some(mk_simple_ty_anno(&s, "Number"))
+        ),
         VarStyle::Mutable,
         Token::new(TokenKind::Equals),
         Expression::prefix(

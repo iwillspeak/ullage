@@ -5,7 +5,7 @@
 
 use super::super::text::Ident;
 use super::operators::{InfixOp, PrefixOp};
-use super::token::Token;
+use super::token::{Token, TokenKind};
 use super::types::TypeAnno;
 
 /// An identifier, with an optional type attached
@@ -19,6 +19,9 @@ pub struct TypedId {
 
     /// The Idnetifier Itself
     pub id: Ident,
+
+    /// The token for the identifier itself
+    pub id_tok: Token,
 }
 
 impl TypedId {
@@ -26,7 +29,7 @@ impl TypedId {
     ///
     /// Constructs a new idnetifier declaration where the identifier
     /// definitely has a known type.
-    pub fn new(id: Ident, typ: TypeAnno) -> Self {
+    pub fn new(id: Token, typ: TypeAnno) -> Self {
         Self::from_parts(id, Some(typ))
     }
 
@@ -35,16 +38,20 @@ impl TypedId {
     /// Constructs a new identifier declaraiton where the identifier
     /// does not have a type specified in the source. This is used
     /// where the type will be infered at a later date.
-    pub fn new_without_type(id: Ident) -> Self {
-        Self::from_parts(id, None)
+    pub fn new_without_type(id_tok: Token) -> Self {
+        Self::from_parts(id_tok, None)
     }
 
     /// Create an Id from Constituent Parts
     ///
     /// Used to construct a new identifier when a type has only
     /// optionally been specified.
-    pub fn from_parts(id: Ident, typ: Option<TypeAnno>) -> Self {
-        TypedId { id, typ }
+    pub fn from_parts(id_tok: Token, typ: Option<TypeAnno>) -> Self {
+        if let TokenKind::Word(id) = id_tok.kind {
+            TypedId { typ, id, id_tok }
+        } else {
+            panic!("Creating a `TypedId` requires an `Word` token")
+        }
     }
 }
 
