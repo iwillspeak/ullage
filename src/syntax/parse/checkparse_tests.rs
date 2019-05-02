@@ -505,7 +505,7 @@ fn parse_simple_tuple() {
                 Token::new(TokenKind::Colon),
                 TypeRef::tuple(
                     Token::new(TokenKind::OpenBracket),
-                    vec![mk_simple_ty(&s, "Num")],
+                    vec![DelimItem::First(mk_simple_ty(&s, "Num"))],
                     Token::new(TokenKind::CloseBracket)
                 )
             )),
@@ -523,11 +523,14 @@ fn parse_simple_tuple() {
                 TypeRef::tuple(
                     Token::new(TokenKind::OpenBracket),
                     vec![
-                        mk_simple_ty(&s, "Num"),
-                        TypeRef::array(
-                            Token::new(TokenKind::OpenSqBracket),
-                            mk_simple_ty(&s, "String"),
-                            Token::new(TokenKind::CloseSqBracket)
+                        DelimItem::First(mk_simple_ty(&s, "Num")),
+                        DelimItem::Follow(
+                            Token::new(TokenKind::Comma),
+                            TypeRef::array(
+                                Token::new(TokenKind::OpenSqBracket),
+                                mk_simple_ty(&s, "String"),
+                                Token::new(TokenKind::CloseSqBracket)
+                            )
                         ),
                     ],
                     Token::new(TokenKind::CloseBracket)

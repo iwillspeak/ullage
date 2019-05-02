@@ -3,6 +3,7 @@
 //! This module contians the structures used in the syntax tree to
 //! reference types.
 
+use super::expression::DelimItem;
 use super::Token;
 use crate::syntax::text::{Location, Pos};
 
@@ -17,7 +18,7 @@ pub enum TypeRef {
     /// The Unit Type
     Unit(Box<Token>, Box<Token>),
     /// A non-empty Tuple
-    Tuple(Box<Token>, Vec<TypeRef>, Box<Token>),
+    Tuple(Box<Token>, Vec<DelimItem<TypeRef>>, Box<Token>),
     /// An Array Type
     Array(Box<Token>, Box<TypeRef>, Box<Token>),
     /// Missing type. Used to represent type information being missing
@@ -60,7 +61,7 @@ impl TypeRef {
     ///
     /// A tuple type is an ordered collection of values. Each value
     /// can be of a different type.
-    pub fn tuple(open: Token, inner: Vec<TypeRef>, close: Token) -> Self {
+    pub fn tuple(open: Token, inner: Vec<DelimItem<TypeRef>>, close: Token) -> Self {
         if inner.is_empty() {
             Self::unit(open, close)
         } else {

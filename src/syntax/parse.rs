@@ -246,17 +246,7 @@ impl<'a> Parser<'a> {
             ),
             TokenKind::OpenBracket => {
                 let open = self.advance();
-                let mut types = Vec::new();
-                if !self.current_is(&TokenKind::CloseBracket) {
-                    types.push(self.ty());
-                }
-                while !self.current_is(&TokenKind::CloseBracket) {
-                    // FIXME: This needs to be a delimited list
-                    // currently this comma token is getting lost in
-                    // the parse tree.
-                    let _delim = self.expect(&TokenKind::Comma);
-                    types.push(self.ty());
-                }
+                let types = self.delimited(|p| p.ty(), TokenKind::Comma, TokenKind::CloseBracket);
                 let close = self.expect(&TokenKind::CloseBracket);
                 TypeRef::tuple(open, types, close)
             }
@@ -421,14 +411,17 @@ impl<'a> Parser<'a> {
     /// Returns a list of zero or more elemnets delimited by the given
     /// tokens. Used to parse the parameter list for a function and
     /// the argument list for a call site.
-    fn delimited(&mut self, delimiter: TokenKind, close: TokenKind) -> Vec<DelimItem<TypedId>> {
+    fn delimited<P, T>(&mut self, p: P, delimiter: TokenKind, close: TokenKind) -> Vec<DelimItem<T>>
+    where
+        P: Fn(&mut Parser) -> T,
+    {
         let mut res = Vec::new();
         if !self.current_is(&close) {
-            res.push(DelimItem::First(self.typed_id()));
+            res.push(DelimItem::First(p(self)));
         }
         while !self.current_is(&close) {
             let delim = self.expect(&delimiter);
-            res.push(DelimItem::Follow(delim, self.typed_id()));
+            res.push(DelimItem::Follow(delim, p(self)));
         }
         res
     }
@@ -447,7 +440,8 @@ impl<'a> Parser<'a> {
                 let fn_kw = token;
                 let (_fixme, identifier) = self.identifier();
                 let params_open = self.expect(&TokenKind::OpenBracket);
-                let params = self.delimited(TokenKind::Comma, TokenKind::CloseBracket);
+                let params =
+                    self.delimited(|p| p.typed_id(), TokenKind::Comma, TokenKind::CloseBracket);
                 let params_close = self.expect(&TokenKind::CloseBracket);
                 let return_type = self.type_anno();
                 let body = self.block();
