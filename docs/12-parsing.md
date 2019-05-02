@@ -1,38 +1,39 @@
 # Parsing and Syntax Trees
 
-The current parsing architecture works but doesn't provide enough metadata to the parser in the token stream. The parser then fails to pass on any metadata to the AST.
+The parser takes an input `SourceText` and produces a full-fidelity `SyntaxTree`. In theory each character in the source exists as a `Token` or `TriviaToken` within this tree. This initial tree is intended to provide as rich a possible model of the underlying source text to allow for syntax transformations in the future. It is later transformed into an abstract representation of the semantics of the code by the `sem` module.
 
 [TOC]
 
-## Current
+## Structure
 
-A `Tokeniser` is created from a string. This iterates over the `char`s in the string and yields tokens. Word tokens in the stream have their value copied out of the source buffer.
+Source is represented by a `SourceText` type. This exposes characters
+as `&str` slices or via the `walk_chars` method for tokenisation. The
+source text also contains line information and has the ability to take
+a position and convert it into a line, column pair.
 
-There are a few downsides to this:
+Parsing creates a lexer which implements token iteration for a given
+`SourceText`. Each token has a `Span` and `TokenKind`. Consumption of
+tokens from the iterator by `Parser::expect` stubs out missing tokens
+as well as recording errors in a collection of `Diagnostic`s.
 
- 1. We are stuck with only being able to parse strings. Would be nice to abstract over the input so that string buffers and files can be parsed.
- 2. The value of each token is only extracted for `Word` tokens. It would be nice to access the raw value for all tokens.
- 3. Whitespace is lost in the AST. Richer whitespace and other trivia tokens would allow better error reporting and round-tripping.
- 4. The position of each token is lost. It would be nice to keep the tokens around in the AST so that their position information is available.
- 5. Parsing is limited to a single source. It would be nice to add more than one syntax tree to a compilation.
-
-## Proposed Replacement
-
-Source will be represented by a `SourceText` type. This will expose the  characters at a given index along with the ability to take a position and convert it into a file, line, column triple.
-
-Parsing will crate a lexer which implements token iteration for a given `SourceText`. Each token should be a pair of a `Position` and `TokenKind`. Consumption of tokens from the iterator by the parser should stub out missing tokens as well as recording errors in a `DiagnosticCollection`.
-
-Rather than returning a `Result` type from the parser instead a valid parse should always be returned. At the end if there are any diagnostics an error type containing those messages and the parsed tree with its substitutions should be returned.
+Rather than returning a `Result` type from the parser instead a valid
+`SyntaxTree` is always be returned. It is the client's responsibility to inspect the tree for a given parse for diagnostics and act accordingly. This allows clients to parse malformed source text and should allow the compiler to produce more error information in each pass.
 
 ### Structure
 
-The structure could look something like this:
+The structure looks something like this:
 
  * `syntax/parse/` - Parser and tokenisation logic
- * `syntax/tree/` - Tree node types and the `SyntaxNode` enum.
- * `syntax/text/` - Source buffer abstraction as well as diagnostic pretty printing.
- * `diagnostics/` - Diagnostic collection implementation.
+ * `syntax/tree/` - Tree node types.
+ * `syntax/text/` - Source buffer abstraction.
+ * `diag.rs` - Diagnostic implementation.
 
 ### Diagnostics
 
-Initially diagnostics could just be string values and position information.  More metadata can be added later. It might be useful to add 'level' information to each diagnostic to allow for warnings.
+At the moment diagnostics are just string values and position
+information. More metadata can be added later. It might be useful to
+add 'level' information to each diagnostic to allow for warnings.
+
+It would be nice to have some kind of diagnostic pretty printing
+rather than relying on the `main` method to walk the diagnostics and
+write them to stderr manually.
