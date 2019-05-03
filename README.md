@@ -61,9 +61,9 @@ Ullage is open source, under the [MIT License](LICENSE.md).
  * [x] Parse base constructs
  * [ ] For loops and iterators
  * [ ] Traditional `if` blocks
- * [ ] Keep track of _all_ underlying tokens
- * [ ] Expose position & span information
- * [ ] Round-trippable/pretty-printable
+ * [x] Keep track of _all_ underlying tokens
+ * [ ] Expose position & span information on syntax nodes
+ * [ ] Round-trippable/pretty-printable trees
 
 ### Code Generation / Lowering
 
@@ -73,8 +73,8 @@ Ullage is open source, under the [MIT License](LICENSE.md).
  * [ ] Heap allocated types
     * [x] Lowering of `String` type
     * [ ] User-defined types
-    * [ ] RC garbage collection
- * [ ] Library output types (llvm_ir, llvm bc, object, staticlib, dylib, exe)
+    * [ ] RC garbage collection (#26)
+ * [ ] Library output types (LLVM ir, LLVM bc, object, staticlib, dylib, exe)
  * [x] Control of target machine & features
  * [x] Optimisation
  * [ ] Stop shelling out for linking on supported platforms (lld or similar)

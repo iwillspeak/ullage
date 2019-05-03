@@ -142,7 +142,12 @@ created for console diagnostic output via `io::stderr`.
 
 ## Syntax Tree Positions
 
-Currently only Tokens have position information. There's a `Location` trait which is implemented on `Pos` and `Span` in addition to some other types which can be used to abstract over `bits of a tree which have a position. It might be nice to create a better trait which can be implemented by all of the nodes in the tree; syntax, token, and trivia.
+Currently only Tokens have position information. There's a `Location`
+trait which is implemented on `Pos` and `Span` in addition to some
+other types which can be used to abstract over bits of a tree which
+have a position. It might be nice to create a better trait which can
+be implemented by all of the nodes in the tree; syntax, token, and
+trivia.
 
 The trait would then expose a `fn span(&self) -> Span` which can be used to find the extent of the node in the source. We could even add a visit API and/or some kind of token-based or node-based iteration APIs.
 
