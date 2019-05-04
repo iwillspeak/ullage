@@ -43,6 +43,7 @@ Options:
   --target=<triple>      Set the compilation target triple.
   --dumpir               Dump the LLVM IR for the module.
   --dumpast              Dump the syntax tree to stdout and exit.
+  --prettytree           Dump a prettified summary of the syntax tree.
   --dumptargets          Dump the available targets and exit.
   --dumptargetinfo       Dump information about the given triple.
 ";
@@ -53,14 +54,17 @@ Options:
 /// program. This is filled in for us by Docopt.
 #[derive(Debug, Deserialize)]
 struct Args {
-    flag_dumpast: bool,
     flag_output: Option<String>,
     flag_optimise: Option<OptFlag>,
+    flag_target: Option<String>,
+    arg_file: Option<String>,
+
+    // TODO: maybe move these dump options into a single flag?
+    flag_dumpast: bool,
+    flag_prettytree: bool,
     flag_dumpir: bool,
     flag_dumptargets: bool,
     flag_dumptargetinfo: bool,
-    flag_target: Option<String>,
-    arg_file: Option<String>,
 }
 
 /// Optimisation Level
@@ -191,6 +195,11 @@ fn main() {
         println!("parsed AST: {:#?}", tree.root());
         exit(0);
     }
+    if args.flag_prettytree {
+        let mut prefix = " ".into();
+        dump_expr(&source, tree.root(), &mut prefix, "+");
+        exit(0);
+    }
 
     let options = CompilationOptions::default()
         .with_dump_ir(args.flag_dumpir)
@@ -216,6 +225,60 @@ fn main() {
         handle_comp_err(&e);
     }
 }
+
+/// Dump the Expression Tree
+///
+/// Walks the subnodes of this tree and prints a text representation
+/// of them as an ASCII tree.
+fn dump_expr(source: &syntax::text::SourceText, expr: &Expression, prefix: &mut String, lead: &str) {
+    println!("{}{} {}", prefix, lead, match expr {
+        Expression::Identifier(id) => format!("Identifier `{}`", source.interned_value(id.ident)),
+        Expression::Literal(l) => format!("Literal <{:?}>", l.value),
+        Expression::Prefix(p) => format!("Prefix <{:?}>", p.op),
+        Expression::Infix(i) => format!("Infix <{:?}>", i.op),
+        Expression::Call(_) => "Call".into(),
+        Expression::Index(_) => "Index".into(),
+        Expression::IfThenElse(_) => "IfThenElse".into(),
+        Expression::Function(_) => "Function".into(),
+        Expression::Loop(_) => "Loop".into(),
+        Expression::Sequence(_) => "Sequence".into(),
+        Expression::Print(_) => "Print".into(),
+        Expression::Declaration(d) => format!("Declaration `{}`", source.interned_value(d.id.id)),
+        Expression::Grouping(_) => "Grouping".into(),
+    });
+    let children: Vec<&Expression> = match expr {
+        Expression::Identifier(_) => Vec::new(),
+        Expression::Literal(_) => Vec::new(),
+        Expression::Prefix(p) => vec!{&p.inner},
+        Expression::Infix(i) => vec!{&i.left, &i.right},
+        Expression::Call(c) => std::iter::once(&*c.callee).chain(c.arguments.iter()).collect(),
+        // FIXME: index not supported
+        Expression::Index(_) => unimplemented!(),
+        Expression::IfThenElse(i) => vec!{&i.cond, &i.if_true, &i.if_false},
+        Expression::Function(f) => vec!{&f.body.contents},
+        Expression::Loop(l) => vec!{&l.condition, &l.body.contents},
+        Expression::Sequence(s) => s.iter().collect(),
+        Expression::Print(p) => vec!{&p.inner},
+        Expression::Declaration(d) => vec!{&d.initialiser},
+        Expression::Grouping(g) => vec!{&g.inner},
+    };
+    let orig_prefix_len = prefix.len();
+    match lead {
+        "`-" => prefix.push_str("  "),
+        "|-" => prefix.push_str("| "),
+        _ => (),
+    }
+    if let Some((last, rest)) = children.split_last() {
+        for child in rest {
+            dump_expr(source, child, prefix, "|-");
+        }
+        dump_expr(source, last, prefix, "`-");
+    }
+    if orig_prefix_len < prefix.len() {
+        prefix.truncate(orig_prefix_len);
+    }
+}
+
 
 /// Write Dignostics to STDERR
 ///
