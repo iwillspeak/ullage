@@ -196,8 +196,8 @@ fn main() {
         exit(0);
     }
     if args.flag_prettytree {
-        let mut prefix = " ".into();
-        dump_expr(&source, tree.root(), &mut prefix, "+");
+        let mut prefix = String::new();
+        pretty_tree(&source, tree.root(), &mut prefix, "•");
         exit(0);
     }
 
@@ -230,7 +230,7 @@ fn main() {
 ///
 /// Walks the subnodes of this tree and prints a text representation
 /// of them as an ASCII tree.
-fn dump_expr(source: &syntax::text::SourceText, expr: &Expression, prefix: &mut String, lead: &str) {
+fn pretty_tree(source: &syntax::text::SourceText, expr: &Expression, prefix: &mut String, lead: &str) {
     println!("{}{} {}", prefix, lead, match expr {
         Expression::Identifier(id) => format!("Identifier `{}`", source.interned_value(id.ident)),
         Expression::Literal(l) => format!("Literal <{:?}>", l.value),
@@ -239,7 +239,7 @@ fn dump_expr(source: &syntax::text::SourceText, expr: &Expression, prefix: &mut 
         Expression::Call(_) => "Call".into(),
         Expression::Index(_) => "Index".into(),
         Expression::IfThenElse(_) => "IfThenElse".into(),
-        Expression::Function(_) => "Function".into(),
+        Expression::Function(f) => format!("Function `{}`", source.interned_value(f.identifier)),
         Expression::Loop(_) => "Loop".into(),
         Expression::Sequence(_) => "Sequence".into(),
         Expression::Print(_) => "Print".into(),
@@ -262,17 +262,18 @@ fn dump_expr(source: &syntax::text::SourceText, expr: &Expression, prefix: &mut 
         Expression::Declaration(d) => vec!{&d.initialiser},
         Expression::Grouping(g) => vec!{&g.inner},
     };
+
     let orig_prefix_len = prefix.len();
     match lead {
-        "`-" => prefix.push_str("  "),
-        "|-" => prefix.push_str("| "),
+        "└─" => prefix.push_str("  "),
+        "├─" => prefix.push_str("│ "),
         _ => (),
     }
     if let Some((last, rest)) = children.split_last() {
         for child in rest {
-            dump_expr(source, child, prefix, "|-");
+            pretty_tree(source, child, prefix, "├─");
         }
-        dump_expr(source, last, prefix, "`-");
+        pretty_tree(source, last, prefix, "└─");
     }
     if orig_prefix_len < prefix.len() {
         prefix.truncate(orig_prefix_len);
