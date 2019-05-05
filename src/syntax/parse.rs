@@ -147,14 +147,14 @@ impl<'a> Parser<'a> {
     /// unit consists of a series of expressions. This loops until it
     /// finds the end of file producing a list of the expressions it
     /// parsed.
-    pub fn parse(&mut self) -> SyntaxTree {
+    pub fn parse(&mut self) -> SyntaxTree<'a> {
         let mut expressions = Vec::new();
         while !self.current_is(&TokenKind::End) {
             expressions.push(self.top_level_expression());
         }
         let end = self.expect(&TokenKind::End);
         let errors = self.collect_diagnostics();
-        SyntaxTree::new(Expression::sequence(expressions), errors, end)
+        SyntaxTree::new(self.source, Expression::sequence(expressions), errors, end)
     }
 
     /// Parse a single expression into a tree
@@ -162,11 +162,11 @@ impl<'a> Parser<'a> {
     /// Used to parse 'top-level' expressions. This can be a root
     /// production in the grammar if attempting to parse a single
     /// item. e.g. for scripting or testing purposes.
-    pub fn parse_single(&mut self) -> SyntaxTree {
+    pub fn parse_single(&mut self) -> SyntaxTree<'a> {
         let expression = self.top_level_expression();
         let end = self.expect(&TokenKind::End);
         let errors = self.collect_diagnostics();
-        SyntaxTree::new(expression, errors, end)
+        SyntaxTree::new(self.source, expression, errors, end)
     }
 
     /// Attempt to parse a single expression

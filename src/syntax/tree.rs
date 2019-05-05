@@ -10,6 +10,8 @@ mod token;
 mod trivia;
 pub mod types;
 
+use std::io::{self, prelude::*};
+
 use crate::diag::Diagnostic;
 use crate::parse::Parser;
 use crate::text::SourceText;
@@ -23,16 +25,18 @@ use expression::Expression;
 ///
 /// The syntax tree represents the parsed source of a given file. It
 /// contains multiple expressions followed by an end of file token.
-pub struct SyntaxTree {
+pub struct SyntaxTree<'a> {
     /// The root of the main expression tree
     root: Expression,
     /// Diagnostics related to the given tree
     diagnostics: Vec<Diagnostic>,
     /// End token
     end: Token,
+    /// The source for this tree
+    source: &'a SourceText,
 }
 
-impl SyntaxTree {
+impl<'a> SyntaxTree<'a> {
     /// Create a new syntax tree
     ///
     /// The syntax tree represents a single parsed item of source
@@ -47,21 +51,27 @@ impl SyntaxTree {
     ///  * `end`: The closing EOF token. This may have some leading
     ///  trivia attached and is therefore required for a full-fidelity
     ///  tree.
-    pub fn new(root: Expression, diagnostics: Vec<Diagnostic>, end: Token) -> Self {
+    pub fn new(
+        source: &'a SourceText,
+        root: Expression,
+        diagnostics: Vec<Diagnostic>,
+        end: Token,
+    ) -> Self {
         SyntaxTree {
             root,
             diagnostics,
             end,
+            source,
         }
     }
 
     /// Parse a tree from source text
-    pub fn parse(source: &SourceText) -> Self {
+    pub fn parse(source: &'a SourceText) -> Self {
         Parser::new(source).parse()
     }
 
     /// Parse a source tree containing a single expression
-    pub fn parse_single(source: &SourceText) -> Self {
+    pub fn parse_single(source: &'a SourceText) -> Self {
         Parser::new(source).parse_single()
     }
 
@@ -92,6 +102,95 @@ impl SyntaxTree {
     pub fn into_parts(self) -> (Expression, Token) {
         (self.root, self.end)
     }
+
+    /// Dump the Expression Tree
+    ///
+    /// Walks the subnodes of this tree and prints a text representation
+    /// of them as an ASCII tree
+    pub fn write_to<W>(&self, writer: &mut W) -> io::Result<()>
+    where
+        W: io::Write,
+    {
+        let mut writer = io::BufWriter::new(writer);
+        let mut prefix = String::new();
+        pretty_tree(&mut writer, self.source, self.root(), &mut prefix, "•")
+    }
+}
+
+///
+/// Walks the subnodes of this tree and prints a text representation
+/// of them as an ASCII tree.
+fn pretty_tree<W>(
+    writer: &mut io::BufWriter<W>,
+    source: &SourceText,
+    expr: &Expression,
+    prefix: &mut String,
+    lead: &str,
+) -> io::Result<()>
+where
+    W: io::Write,
+{
+    writeln!(
+        writer,
+        "{}{} {}",
+        prefix,
+        lead,
+        match expr {
+            Expression::Identifier(id) => {
+                format!("Identifier `{}`", source.interned_value(id.ident))
+            }
+            Expression::Literal(l) => format!("Literal <{:?}>", l.value),
+            Expression::Prefix(p) => format!("Prefix <{:?}>", p.op),
+            Expression::Infix(i) => format!("Infix <{:?}>", i.op),
+            Expression::Call(_) => "Call".into(),
+            Expression::Index(_) => "Index".into(),
+            Expression::IfThenElse(_) => "IfThenElse".into(),
+            Expression::Function(f) => {
+                format!("Function `{}`", source.interned_value(f.identifier))
+            }
+            Expression::Loop(_) => "Loop".into(),
+            Expression::Sequence(_) => "Sequence".into(),
+            Expression::Print(_) => "Print".into(),
+            Expression::Declaration(d) => {
+                format!("Declaration `{}`", source.interned_value(d.id.id))
+            }
+            Expression::Grouping(_) => "Grouping".into(),
+        }
+    )?;
+    let children: Vec<&Expression> = match expr {
+        Expression::Identifier(_) => Vec::new(),
+        Expression::Literal(_) => Vec::new(),
+        Expression::Prefix(p) => vec![&p.inner],
+        Expression::Infix(i) => vec![&i.left, &i.right],
+        Expression::Call(c) => std::iter::once(&*c.callee)
+            .chain(c.arguments.iter())
+            .collect(),
+        Expression::Index(i) => vec![&i.index, &i.indexee],
+        Expression::IfThenElse(i) => vec![&i.cond, &i.if_true, &i.if_false],
+        Expression::Function(f) => vec![&f.body.contents],
+        Expression::Loop(l) => vec![&l.condition, &l.body.contents],
+        Expression::Sequence(s) => s.iter().collect(),
+        Expression::Print(p) => vec![&p.inner],
+        Expression::Declaration(d) => vec![&d.initialiser],
+        Expression::Grouping(g) => vec![&g.inner],
+    };
+
+    let orig_prefix_len = prefix.len();
+    match lead {
+        "└─" => prefix.push_str("  "),
+        "├─" => prefix.push_str("│ "),
+        _ => (),
+    }
+    if let Some((last, rest)) = children.split_last() {
+        for child in rest {
+            pretty_tree(writer, source, child, prefix, "├─")?;
+        }
+        pretty_tree(writer, source, last, prefix, "└─")?;
+    }
+    if orig_prefix_len < prefix.len() {
+        prefix.truncate(orig_prefix_len);
+    }
+    Ok(())
 }
 
 #[cfg(test)]

@@ -196,8 +196,7 @@ fn main() {
         exit(0);
     }
     if args.flag_prettytree {
-        let mut prefix = String::new();
-        pretty_tree(&source, tree.root(), &mut prefix, "•");
+        tree.write_to(&mut std::io::stdout()).unwrap();
         exit(0);
     }
 
@@ -225,61 +224,6 @@ fn main() {
         handle_comp_err(&e);
     }
 }
-
-/// Dump the Expression Tree
-///
-/// Walks the subnodes of this tree and prints a text representation
-/// of them as an ASCII tree.
-fn pretty_tree(source: &syntax::text::SourceText, expr: &Expression, prefix: &mut String, lead: &str) {
-    println!("{}{} {}", prefix, lead, match expr {
-        Expression::Identifier(id) => format!("Identifier `{}`", source.interned_value(id.ident)),
-        Expression::Literal(l) => format!("Literal <{:?}>", l.value),
-        Expression::Prefix(p) => format!("Prefix <{:?}>", p.op),
-        Expression::Infix(i) => format!("Infix <{:?}>", i.op),
-        Expression::Call(_) => "Call".into(),
-        Expression::Index(_) => "Index".into(),
-        Expression::IfThenElse(_) => "IfThenElse".into(),
-        Expression::Function(f) => format!("Function `{}`", source.interned_value(f.identifier)),
-        Expression::Loop(_) => "Loop".into(),
-        Expression::Sequence(_) => "Sequence".into(),
-        Expression::Print(_) => "Print".into(),
-        Expression::Declaration(d) => format!("Declaration `{}`", source.interned_value(d.id.id)),
-        Expression::Grouping(_) => "Grouping".into(),
-    });
-    let children: Vec<&Expression> = match expr {
-        Expression::Identifier(_) => Vec::new(),
-        Expression::Literal(_) => Vec::new(),
-        Expression::Prefix(p) => vec!{&p.inner},
-        Expression::Infix(i) => vec!{&i.left, &i.right},
-        Expression::Call(c) => std::iter::once(&*c.callee).chain(c.arguments.iter()).collect(),
-        // FIXME: index not supported
-        Expression::Index(_) => unimplemented!(),
-        Expression::IfThenElse(i) => vec!{&i.cond, &i.if_true, &i.if_false},
-        Expression::Function(f) => vec!{&f.body.contents},
-        Expression::Loop(l) => vec!{&l.condition, &l.body.contents},
-        Expression::Sequence(s) => s.iter().collect(),
-        Expression::Print(p) => vec!{&p.inner},
-        Expression::Declaration(d) => vec!{&d.initialiser},
-        Expression::Grouping(g) => vec!{&g.inner},
-    };
-
-    let orig_prefix_len = prefix.len();
-    match lead {
-        "└─" => prefix.push_str("  "),
-        "├─" => prefix.push_str("│ "),
-        _ => (),
-    }
-    if let Some((last, rest)) = children.split_last() {
-        for child in rest {
-            pretty_tree(source, child, prefix, "├─");
-        }
-        pretty_tree(source, last, prefix, "└─");
-    }
-    if orig_prefix_len < prefix.len() {
-        prefix.truncate(orig_prefix_len);
-    }
-}
-
 
 /// Write Dignostics to STDERR
 ///
