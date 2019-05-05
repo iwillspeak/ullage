@@ -197,23 +197,46 @@ where
 mod test {
 
     use super::*;
-    use crate::syntax::text::DUMMY_SPAN;
+    use crate::syntax::text::{SourceText, DUMMY_SPAN};
 
     #[test]
     fn tree_without_diagnositcs_reports_false() {
-        let tree = SyntaxTree::new(Expression::empty(), Vec::new(), Token::new(TokenKind::End));
+        let source = SourceText::new("");
+        let tree = SyntaxTree::new(&source, Expression::empty(), Vec::new(), Token::new(TokenKind::End));
 
         assert_ne!(true, tree.has_diagnostics());
     }
 
     #[test]
     fn tree_with_diagnostics_reports_true() {
+        let source = SourceText::new("");
         let tree = SyntaxTree::new(
+            &source,
             Expression::empty(),
             vec![Diagnostic::new("error: test", DUMMY_SPAN)],
             Token::new(TokenKind::End),
         );
 
         assert_eq!(true, tree.has_diagnostics());
+    }
+
+    #[test]
+    fn tree_write_to_string() {
+        let source = SourceText::new("(1 + 2) - 3");
+        let tree = SyntaxTree::parse(&source);
+        let mut buff = Vec::new();
+
+        tree.write_to(&mut buff).unwrap();
+        let written = String::from_utf8(buff) .unwrap();
+
+        assert_eq!("
+• Sequence
+└─ Infix <Sub>
+  ├─ Grouping
+  │ └─ Infix <Add>
+  │   ├─ Literal <Number(1)>
+  │   └─ Literal <Number(2)>
+  └─ Literal <Number(3)>
+".trim(), written.trim());
     }
 }
