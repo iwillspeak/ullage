@@ -3,7 +3,8 @@
 //! A syntax expression represents the value of a given node in the
 //! syntax tree.
 
-use super::super::text::Ident;
+use super::super::text::{Ident, SourceText};
+use super::super::SyntaxNode;
 use super::operators::{InfixOp, PrefixOp};
 use super::token::{Token, TokenKind};
 use super::types::TypeAnno;
@@ -541,5 +542,32 @@ impl Expression {
             inner: Box::new(inner),
             close_tok: Box::new(close),
         })
+    }
+}
+
+impl SyntaxNode for Expression {
+    /// Expression description
+    fn description(&self, source: &SourceText) -> std::borrow::Cow<str> {
+        match *self {
+            Expression::Identifier(ref id) => {
+                format!("Identifier `{}`", source.interned_value(id.ident)).into()
+            }
+            Expression::Literal(ref l) => format!("Literal <{:?}>", l.value).into(),
+            Expression::Prefix(ref p) => format!("Prefix <{:?}>", p.op).into(),
+            Expression::Infix(ref i) => format!("Infix <{:?}>", i.op).into(),
+            Expression::Call(_) => "Call".into(),
+            Expression::Index(_) => "Index".into(),
+            Expression::IfThenElse(_) => "IfThenElse".into(),
+            Expression::Function(ref f) => {
+                format!("Function `{}`", source.interned_value(f.identifier)).into()
+            }
+            Expression::Loop(_) => "Loop".into(),
+            Expression::Sequence(_) => "Sequence".into(),
+            Expression::Print(_) => "Print".into(),
+            Expression::Declaration(ref d) => {
+                format!("Declaration `{}`", source.interned_value(d.id.id)).into()
+            }
+            Expression::Grouping(_) => "Grouping".into(),
+        }
     }
 }

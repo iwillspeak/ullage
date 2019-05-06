@@ -19,6 +19,7 @@ use crate::text::SourceText;
 pub use self::token::{Literal, Token, TokenKind};
 pub use self::trivia::{TriviaToken, TriviaTokenKind};
 
+use super::SyntaxNode;
 use expression::Expression;
 
 /// Syntax tree
@@ -130,33 +131,7 @@ fn pretty_tree<W>(
 where
     W: io::Write,
 {
-    writeln!(
-        writer,
-        "{}{} {}",
-        prefix,
-        lead,
-        match expr {
-            Expression::Identifier(id) => {
-                format!("Identifier `{}`", source.interned_value(id.ident))
-            }
-            Expression::Literal(l) => format!("Literal <{:?}>", l.value),
-            Expression::Prefix(p) => format!("Prefix <{:?}>", p.op),
-            Expression::Infix(i) => format!("Infix <{:?}>", i.op),
-            Expression::Call(_) => "Call".into(),
-            Expression::Index(_) => "Index".into(),
-            Expression::IfThenElse(_) => "IfThenElse".into(),
-            Expression::Function(f) => {
-                format!("Function `{}`", source.interned_value(f.identifier))
-            }
-            Expression::Loop(_) => "Loop".into(),
-            Expression::Sequence(_) => "Sequence".into(),
-            Expression::Print(_) => "Print".into(),
-            Expression::Declaration(d) => {
-                format!("Declaration `{}`", source.interned_value(d.id.id))
-            }
-            Expression::Grouping(_) => "Grouping".into(),
-        }
-    )?;
+    writeln!(writer, "{}{} {}", prefix, lead, expr.description(source))?;
     let children: Vec<&Expression> = match expr {
         Expression::Identifier(_) => Vec::new(),
         Expression::Literal(_) => Vec::new(),
@@ -202,7 +177,12 @@ mod test {
     #[test]
     fn tree_without_diagnositcs_reports_false() {
         let source = SourceText::new("");
-        let tree = SyntaxTree::new(&source, Expression::empty(), Vec::new(), Token::new(TokenKind::End));
+        let tree = SyntaxTree::new(
+            &source,
+            Expression::empty(),
+            Vec::new(),
+            Token::new(TokenKind::End),
+        );
 
         assert_ne!(true, tree.has_diagnostics());
     }
@@ -227,9 +207,10 @@ mod test {
         let mut buff = Vec::new();
 
         tree.write_to(&mut buff).unwrap();
-        let written = String::from_utf8(buff) .unwrap();
+        let written = String::from_utf8(buff).unwrap();
 
-        assert_eq!("
+        assert_eq!(
+            "
 • Sequence
 └─ Infix <Sub>
   ├─ Grouping
@@ -237,6 +218,9 @@ mod test {
   │   ├─ Literal <Number(1)>
   │   └─ Literal <Number(2)>
   └─ Literal <Number(3)>
-".trim(), written.trim());
+"
+            .trim(),
+            written.trim()
+        );
     }
 }
