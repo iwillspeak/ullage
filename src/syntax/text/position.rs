@@ -3,18 +3,6 @@
 //! This module provides the types needed to represent positions with
 //! a buffer.
 
-/// Source Location
-///
-/// Represents an abstraction over a source location. This is either a
-/// specific cursor within the input or a span.
-pub trait Location {
-    /// Returns the lowest point in this location.
-    fn start(&self) -> Pos;
-
-    /// Returns the highest point in this locaiton.
-    fn end(&self) -> Pos;
-}
-
 /// Source Buffer Position
 ///
 /// Used to represent a position within a the source of a compilation
@@ -47,16 +35,6 @@ impl Pos {
     /// this position.
     pub fn offset(self) -> usize {
         self.0
-    }
-}
-
-impl Location for Pos {
-    fn start(&self) -> Pos {
-        *self
-    }
-
-    fn end(&self) -> Pos {
-        *self
     }
 }
 
@@ -93,14 +71,14 @@ impl Span {
             end: pos,
         }
     }
-}
 
-impl Location for Span {
-    fn start(&self) -> Pos {
+    /// Get the starting position of this span
+    pub fn start(&self) -> Pos {
         self.start
     }
 
-    fn end(&self) -> Pos {
+    /// Get the end position of this span
+    pub fn end(&self) -> Pos {
         self.end
     }
 }
@@ -130,13 +108,19 @@ pub mod test {
     }
 
     #[test]
-    fn location_start_end() {
-        let pos_loc = Pos::from(123);
+    fn span_has_start_end() {
         let span_loc = Span::new(12.into(), 43.into());
 
-        assert_eq!(123, pos_loc.start().offset());
-        assert_eq!(123, pos_loc.end().offset());
         assert_eq!(12, span_loc.start().offset());
         assert_eq!(43, span_loc.end().offset());
+    }
+
+    #[test]
+    fn span_at_pos() {
+        let pos = Pos::from(123);
+        let span = Span::new_at(pos);
+
+        assert_eq!(123, span.start().offset());
+        assert_eq!(123, span.end().offset());
     }
 }

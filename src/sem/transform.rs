@@ -7,10 +7,9 @@
 //! [`transform_expression`]: ./function.transform_expression.html
 
 use crate::diag::Diagnostic;
-use crate::syntax::text::{Ident, Location, Span};
+use crate::syntax::text::Ident;
 use crate::syntax::tree::TokenKind;
-use crate::syntax::InfixOp;
-use crate::syntax::{Constant, Expression as SyntaxExpr, PrefixOp, VarStyle};
+use crate::syntax::{Constant, Expression as SyntaxExpr, InfixOp, PrefixOp, SyntaxNode, VarStyle};
 
 use super::super::compile::{CompError, CompResult};
 use super::operators::find_builtin_op;
@@ -149,7 +148,7 @@ pub fn transform_expression(ctx: &mut SemCtx, expr: SyntaxExpr) -> CompResult<Ex
                             None => {
                                 ctx.emit(Diagnostic::new(
                                     "reference to undefined parameter type",
-                                    Span::new_at(anno.type_ref.start()),
+                                    anno.type_ref.span(),
                                 ));
                                 Typ::Unknown
                             }

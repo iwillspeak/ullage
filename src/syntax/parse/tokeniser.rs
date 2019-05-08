@@ -15,7 +15,7 @@
 //! where the end of file token is returned once we run out of 'real'
 //! tokens.
 
-use super::super::text::{Location, Pos, SourceText, Span};
+use super::super::text::{Pos, SourceText, Span};
 use super::super::tree::{Literal, Token, TokenKind, TriviaToken, TriviaTokenKind};
 use crate::diag::Diagnostic;
 use std::iter::Peekable;
@@ -309,7 +309,7 @@ impl<'t> Tokeniser<'t> {
         if leading.is_empty() {
             None
         } else {
-            let last_pos = leading.last().unwrap().end();
+            let last_pos = leading.last().unwrap().span().end();
             Some(
                 Token::with_span(Span::new_at(last_pos), TokenKind::End)
                     .with_leading_trivia(leading),

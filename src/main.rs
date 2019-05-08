@@ -14,7 +14,7 @@ pub mod syntax;
 
 use crate::compile::*;
 use crate::low_loader::targets;
-use crate::syntax::text::{Location, DUMMY_SPAN};
+use crate::syntax::text::DUMMY_SPAN;
 use crate::syntax::*;
 use docopt::Docopt;
 use serde::{Deserialize, Deserializer};

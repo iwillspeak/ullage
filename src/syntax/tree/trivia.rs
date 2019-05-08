@@ -7,7 +7,7 @@
 //! re-written and then serialised to allow code tranformations
 //! without loss of things like comments and indentation.
 
-use super::super::text::{Location, Pos, Span};
+use super::super::text::Span;
 
 /// Trivia Token
 ///
@@ -40,14 +40,9 @@ impl TriviaToken {
     pub fn with_span(span: Span, kind: TriviaTokenKind) -> Self {
         TriviaToken { span, kind }
     }
-}
 
-impl Location for TriviaToken {
-    fn start(&self) -> Pos {
-        self.span.start()
-    }
-
-    fn end(&self) -> Pos {
-        self.span.end()
+    /// Get the `Span` of this trivia
+    pub fn span(&self) -> Span {
+        self.span
     }
 }

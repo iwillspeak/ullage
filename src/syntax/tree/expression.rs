@@ -3,7 +3,7 @@
 //! A syntax expression represents the value of a given node in the
 //! syntax tree.
 
-use super::super::text::{Ident, SourceText};
+use super::super::text::{Ident, SourceText, Span, DUMMY_SPAN};
 use super::super::SyntaxNode;
 use super::operators::{InfixOp, PrefixOp};
 use super::token::{Token, TokenKind};
@@ -568,6 +568,46 @@ impl SyntaxNode for Expression {
                 format!("Declaration `{}`", source.interned_value(d.id.id)).into()
             }
             Expression::Grouping(_) => "Grouping".into(),
+        }
+    }
+
+    /// Get the span of this node
+    fn span(&self) -> Span {
+        match *self {
+            Expression::Identifier(ref id) => id.token.span(),
+            Expression::Literal(ref l) => l.token.span(),
+            Expression::Prefix(ref p) => Span::new(p.op_token.span().start(), p.inner.span().end()),
+            Expression::Infix(ref i) => Span::new(i.left.span().start(), i.right.span().end()),
+            Expression::Call(ref c) => {
+                Span::new(c.callee.span().start(), c.close_paren.span().end())
+            }
+            Expression::Index(ref i) => {
+                Span::new(i.indexee.span().start(), i.close_bracket.span().end())
+            }
+            // FIXME: this won't work well with `unless`
+            //        The proper fix for this is to have a better
+            //        `Span` constructor which takes two spans as
+            //        parameters.
+            Expression::IfThenElse(ref i) => {
+                Span::new(i.if_true.span().start(), i.if_false.span().end())
+            }
+            Expression::Function(ref f) => {
+                Span::new(f.fn_kw.span().start(), f.body.close.span().end())
+            }
+            Expression::Loop(ref l) => {
+                Span::new(l.kw_token.span().start(), l.body.close.span().end())
+            }
+            Expression::Sequence(ref s) => match (s.first(), s.last()) {
+                (Some(first), Some(last)) => Span::new(first.span().start(), last.span().end()),
+                _ => DUMMY_SPAN,
+            },
+            Expression::Print(ref p) => Span::new(p.print_tok.span().start(), p.inner.span().end()),
+            Expression::Declaration(ref d) => {
+                Span::new(d.var_kw.span().start(), d.initialiser.span().end())
+            }
+            Expression::Grouping(ref g) => {
+                Span::new(g.open_tok.span().start(), g.close_tok.span().end())
+            }
         }
     }
 }

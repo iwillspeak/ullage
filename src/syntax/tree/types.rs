@@ -3,9 +3,11 @@
 //! This module contians the structures used in the syntax tree to
 //! reference types.
 
+use super::super::text::{SourceText, Span, DUMMY_SPAN};
+use super::super::SyntaxNode;
 use super::expression::DelimItem;
 use super::Token;
-use crate::syntax::text::{Location, Pos};
+use std::borrow::Cow;
 
 /// Type Reference
 ///
@@ -83,24 +85,25 @@ impl TypeRef {
     }
 }
 
-impl Location for TypeRef {
-    fn start(&self) -> Pos {
+impl SyntaxNode for TypeRef {
+    fn description(&self, source: &SourceText) -> Cow<str> {
         match self {
-            TypeRef::Simple(tok) => tok.span().start(),
-            TypeRef::Unit(open, ..) => open.span().start(),
-            TypeRef::Tuple(open, ..) => open.span().start(),
-            TypeRef::Array(open, ..) => open.span().start(),
-            TypeRef::Missing => Pos::from(0),
+            TypeRef::Array(..) => "Type <array>".into(),
+            TypeRef::Missing => "Type <missing>".into(),
+            TypeRef::Simple(t) => {
+                format!("Type `{}`", source.slice(t.span().start(), t.span().end())).into()
+            }
+            _ => "err.into".into(),
         }
     }
 
-    fn end(&self) -> Pos {
+    fn span(&self) -> Span {
         match self {
-            TypeRef::Simple(tok) => tok.span().end(),
-            TypeRef::Unit(_, close) => close.span().end(),
-            TypeRef::Tuple(_, _, close) => close.span().end(),
-            TypeRef::Array(_, _, close) => close.span().end(),
-            TypeRef::Missing => Pos::from(0),
+            TypeRef::Array(open, _, close) => Span::new(open.span().start(), close.span().end()),
+            TypeRef::Missing => DUMMY_SPAN,
+            TypeRef::Simple(token) => token.span(),
+            TypeRef::Tuple(open, _, close) => Span::new(open.span().start(), close.span().end()),
+            TypeRef::Unit(open, close) => Span::new(open.span().start(), close.span().end()),
         }
     }
 }
