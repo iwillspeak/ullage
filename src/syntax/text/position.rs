@@ -7,7 +7,7 @@
 ///
 /// Used to represent a position within a the source of a compilation
 /// session.
-#[derive(Debug, PartialEq, Copy, Clone)]
+#[derive(Debug, PartialEq, Eq, Copy, Clone, PartialOrd, Ord)]
 pub struct Pos(usize);
 
 /// Source Buffer Span
@@ -70,6 +70,15 @@ impl Span {
             start: pos,
             end: pos,
         }
+    }
+
+    /// Create a `Span` enclosing two existing spans. This makes a new
+    /// span with extents that encompas the highest and lowest `Pos`
+    /// in either span.
+    pub fn enclosing(first: Span, second: Span) -> Self {
+        let start = std::cmp::min(first.start(), second.start());
+        let end = std::cmp::max(first.end(), second.end());
+        Span::new(start, end)
     }
 
     /// Get the starting position of this span

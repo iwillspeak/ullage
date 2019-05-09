@@ -99,11 +99,11 @@ impl SyntaxNode for TypeRef {
 
     fn span(&self) -> Span {
         match self {
-            TypeRef::Array(open, _, close) => Span::new(open.span().start(), close.span().end()),
+            TypeRef::Array(open, _, close) => Span::enclosing(open.span(), close.span()),
             TypeRef::Missing => DUMMY_SPAN,
             TypeRef::Simple(token) => token.span(),
-            TypeRef::Tuple(open, _, close) => Span::new(open.span().start(), close.span().end()),
-            TypeRef::Unit(open, close) => Span::new(open.span().start(), close.span().end()),
+            TypeRef::Tuple(open, _, close) => Span::enclosing(open.span(), close.span()),
+            TypeRef::Unit(open, close) => Span::enclosing(open.span(), close.span()),
         }
     }
 }

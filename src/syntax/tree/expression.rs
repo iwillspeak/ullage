@@ -576,38 +576,22 @@ impl SyntaxNode for Expression {
         match *self {
             Expression::Identifier(ref id) => id.token.span(),
             Expression::Literal(ref l) => l.token.span(),
-            Expression::Prefix(ref p) => Span::new(p.op_token.span().start(), p.inner.span().end()),
-            Expression::Infix(ref i) => Span::new(i.left.span().start(), i.right.span().end()),
-            Expression::Call(ref c) => {
-                Span::new(c.callee.span().start(), c.close_paren.span().end())
-            }
-            Expression::Index(ref i) => {
-                Span::new(i.indexee.span().start(), i.close_bracket.span().end())
-            }
-            // FIXME: this won't work well with `unless`
-            //        The proper fix for this is to have a better
-            //        `Span` constructor which takes two spans as
-            //        parameters.
-            Expression::IfThenElse(ref i) => {
-                Span::new(i.if_true.span().start(), i.if_false.span().end())
-            }
-            Expression::Function(ref f) => {
-                Span::new(f.fn_kw.span().start(), f.body.close.span().end())
-            }
-            Expression::Loop(ref l) => {
-                Span::new(l.kw_token.span().start(), l.body.close.span().end())
-            }
+            Expression::Prefix(ref p) => Span::enclosing(p.op_token.span(), p.inner.span()),
+            Expression::Infix(ref i) => Span::enclosing(i.left.span(), i.right.span()),
+            Expression::Call(ref c) => Span::enclosing(c.callee.span(), c.close_paren.span()),
+            Expression::Index(ref i) => Span::enclosing(i.indexee.span(), i.close_bracket.span()),
+            Expression::IfThenElse(ref i) => Span::enclosing(i.if_true.span(), i.if_false.span()),
+            Expression::Function(ref f) => Span::enclosing(f.fn_kw.span(), f.body.close.span()),
+            Expression::Loop(ref l) => Span::enclosing(l.kw_token.span(), l.body.close.span()),
             Expression::Sequence(ref s) => match (s.first(), s.last()) {
-                (Some(first), Some(last)) => Span::new(first.span().start(), last.span().end()),
+                (Some(first), Some(last)) => Span::enclosing(first.span(), last.span()),
                 _ => DUMMY_SPAN,
             },
-            Expression::Print(ref p) => Span::new(p.print_tok.span().start(), p.inner.span().end()),
+            Expression::Print(ref p) => Span::enclosing(p.print_tok.span(), p.inner.span()),
             Expression::Declaration(ref d) => {
-                Span::new(d.var_kw.span().start(), d.initialiser.span().end())
+                Span::enclosing(d.var_kw.span(), d.initialiser.span())
             }
-            Expression::Grouping(ref g) => {
-                Span::new(g.open_tok.span().start(), g.close_tok.span().end())
-            }
+            Expression::Grouping(ref g) => Span::enclosing(g.open_tok.span(), g.close_tok.span()),
         }
     }
 }
