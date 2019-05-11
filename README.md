@@ -1,10 +1,11 @@
 # Ullage
 
-Ullage started as an attempt to implement a top-down operator precedence parser in Rust. It has since started developing into a small language. Feel free to have a poke around but don't expect much to work at the moment.
+A statically-typed compiled language defined by a simple grammar.
 
 ## Current Status
 
-It is now possible to write simple programs. The following program computes 9 factorial:
+It is now possible to write simple programs. The following program
+computes 9 factorial:
 
     fn fact(n: Number): Number
         var acc = 1
@@ -33,10 +34,12 @@ You can also mess around with constant strings:
 ## Building and Testing
 
 The main build is performed by `cargo`. For running the functional
-tests and benchmarks you'll need Python. The suggested process is to use the `build.sh` script:
+tests and benchmarks you'll need Python. The suggested process is to
+use the `build.sh` script:
 
  * `$ ./build.sh` will build the compiler `target/release/ullage`.
- * `$ ./build.sh test` will build the compiler and run the test suite from `specs/`.
+ * `$ ./build.sh test` will build the compiler and run the test suite
+   from `specs/`.
  * `$ ./build.sh bench` will run the benchmarks from `spec/bench/`.
 
 ## License
@@ -62,7 +65,7 @@ Ullage is open source, under the [MIT License](LICENSE.md).
  * [ ] For loops and iterators
  * [ ] Traditional `if` blocks
  * [x] Keep track of _all_ underlying tokens
- * [ ] Expose position & span information on syntax nodes
+ * [x] Expose position & span information on syntax nodes
  * [ ] Round-trippable/pretty-printable trees
 
 ### Code Generation / Lowering
@@ -77,4 +80,8 @@ Ullage is open source, under the [MIT License](LICENSE.md).
  * [ ] Library output types (LLVM ir, LLVM bc, object, staticlib, dylib, exe)
  * [x] Control of target machine & features
  * [x] Optimisation
- * [ ] Stop shelling out for linking on supported platforms (lld or similar)
+ * [ ] Linker support:
+   * [x] `clang` - macOS linker default
+   * [ ] gold - GNU ld
+   * [ ] lld/llvm-link
+   * [ ] Microsoft LINK
