@@ -1,0 +1,52 @@
+<html>
+  <head>
+    <title>Syntax Transformations</title>
+    <meta name="viewport" content="width=700">
+    <meta charset="UTF-8"> 
+    <link href="https://fonts.googleapis.com/css?family=Merriweather|Open+Sans" rel="stylesheet">
+    <link rel="stylesheet"
+      href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/default.min.css">
+    <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
+    <link rel="stylesheet" href="../style.css">
+    <script>hljs.initHighlightingOnLoad();</script>
+  </head>
+  <body><header class="page-heading"><h1><a href="#">Syntax Transformations</h1><a class="home-link" href="../">ullage</a></header><p>Currently we take the AST and transform it into a semantic tree. To
+better support IDE-like features we will need to support more
+variations in transformation.</p>
+<p>With input trees immutable we could have a syntax transformer which
+uses the visitor pattern. Would then have a <code>visit_</code> for each kind of
+<code>Expression</code> and have them produce a new expression. New expressions
+would have synthesised <code>Span</code> information.</p>
+<p>Initial optimisations/transformations would be a desugaring pass over
+this AST before lowering to the <code>sem</code> tree. Maybe even want to do the
+type check pass at this level and pass a fully-formed type checked
+tree to <code>sem</code>. If we do add a desugaring pass then the output of that
+would be nice to have as an <code>--emit</code> value.</p>
+<p>This would be useful to observe the desugaring of things like <code>for</code>
+into <code>while</code>.</p>
+<p>Further use of these would be to implement a language server in the
+future and some kind of code formatter.</p>
+<h2 id="Round-tripping-POC"><a href="#Round-tripping-POC">Round-tripping POC</a></h2><p>Given initial support for syntax transformations we could have a
+visitor for the tree which writes the tree to the standard output to
+prove out the round-tripping. Add a new set of tests which just
+round-trips all of the code from the specs.</p>
+<p>API surface could be similar to Minsk's <code>Compilation::EmitTree</code>. I'm
+thinking we come up with a trait something like <code>TreeSink</code> and
+implement it for <code>IO::Write</code> or similar. Can then have a similar
+<code>emit_tree</code> which walks the tree and pushes it to the writer.</p>
+<p>I'm thinking we might also want to have this tree emission part of a
+higher level <code>--emit=</code> flag on the compiler front end. Other values
+for now would be to emit the <code>Debug</code> version of the parsed tree and to
+emit the compilation result as IR, an object file or a linked
+executable.</p>
+<h2 id="Interaction-with-dumpast-and-dumptree"><a href="#Interaction-with-dumpast-and-dumptree">Interaction with <code>dumpast</code> and <code>dumptree</code></a></h2><p>The current flags for dumping compilation state may be best grouped
+under a single <code>--dump=&lt;type&gt;</code> flag. This could allow for different
+outputs:</p>
+<ul>
+<li>Plain round-tripped source</li>
+<li>Formatted source</li>
+<li>Syntax tree structure</li>
+<li>Desugared source</li>
+<li>HTML syntax tree</li>
+</ul>
+<footer></footer></body></html>
