@@ -1,6 +1,12 @@
 # Parsing and Syntax Trees
 
-The parser takes an input `SourceText` and produces a full-fidelity `SyntaxTree`. In theory each character in the source exists as a `Token` or `TriviaToken` within this tree. This initial tree is intended to provide as rich a possible model of the underlying source text to allow for syntax transformations in the future. It is later transformed into an abstract representation of the semantics of the code by the `sem` module.
+The parser takes an input `SourceText` and produces a full-fidelity
+`SyntaxTree`. In theory each character in the source exists as a
+`Token` or `TriviaToken` within this tree. This initial tree is
+intended to provide as rich a possible model of the underlying source
+text to allow for syntax transformations in the future. It is later
+transformed into an abstract representation of the semantics of the
+code by the `sem` module.
 
 [TOC]
 
@@ -17,7 +23,11 @@ tokens from the iterator by `Parser::expect` stubs out missing tokens
 as well as recording errors in a collection of `Diagnostic`s.
 
 Rather than returning a `Result` type from the parser instead a valid
-`SyntaxTree` is always be returned. It is the client's responsibility to inspect the tree for a given parse for diagnostics and act accordingly. This allows clients to parse malformed source text and should allow the compiler to produce more error information in each pass.
+`SyntaxTree` is always be returned. It is the client's responsibility
+to inspect the tree for a given parse for diagnostics and act
+accordingly. This allows clients to parse malformed source text and
+should allow the compiler to produce more error information in each
+pass.
 
 ### Structure
 
