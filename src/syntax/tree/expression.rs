@@ -77,6 +77,14 @@ impl<T> DelimItem<T> {
             DelimItem::Follow(_, ref t) => t,
         }
     }
+
+    /// Transform the delim item into the inner type
+    pub fn into_inner(self) -> T {
+        match self {
+            DelimItem::First(t) => t,
+            DelimItem::Follow(_, t) => t,
+        }
+    }
 }
 
 /// Literal / Constant Value
@@ -155,7 +163,7 @@ pub struct CallExpression {
     /// FIXME: This should be a delimited list rather than a palin
     /// vec. We are missing the `,` between arguments to the call from
     /// the tree otherwise.
-    pub arguments: Vec<Expression>,
+    pub arguments: Vec<DelimItem<Expression>>,
     /// THe closing `)` of this call
     pub close_paren: Box<Token>,
 }
@@ -412,7 +420,7 @@ impl Expression {
     pub fn call(
         callee: Expression,
         open_paren: Token,
-        args: Vec<Expression>,
+        args: Vec<DelimItem<Expression>>,
         close_paren: Token,
     ) -> Self {
         Expression::Call(CallExpression {

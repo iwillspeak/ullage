@@ -145,7 +145,7 @@ where
         Expression::Prefix(p) => vec![&p.inner],
         Expression::Infix(i) => vec![&i.left, &i.right],
         Expression::Call(c) => std::iter::once(&*c.callee)
-            .chain(c.arguments.iter())
+            .chain(c.arguments.iter().map(|a| a.as_inner()))
             .collect(),
         Expression::Index(i) => vec![&i.index, &i.indexee],
         Expression::IfThenElse(i) => vec![&i.cond, &i.if_true, &i.if_false],

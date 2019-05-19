@@ -367,17 +367,7 @@ impl<'a> Parser<'a> {
             // Function call
             TokenKind::OpenBracket => {
                 let open = token;
-                let mut params = Vec::new();
-                while !self.current_is(&TokenKind::CloseBracket) {
-                    let param = self.top_level_expression();
-                    params.push(param);
-                    if !self.current_is(&TokenKind::CloseBracket) {
-                        // FIXME: Delimited lists. Should fit in with
-                        // tuple parsing. Currently this delimiter
-                        // token is getting lost.
-                        let _delim = self.expect(&TokenKind::Comma);
-                    }
-                }
+                let params = self.delimited(|p| p.top_level_expression(), TokenKind::Comma, TokenKind::CloseBracket);
                 let close = self.expect(&TokenKind::CloseBracket);
                 Expression::call(lhs, open, params, close)
             }
