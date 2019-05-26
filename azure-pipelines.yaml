@@ -6,7 +6,9 @@ steps:
       versionSpec: '3.7'
   - script: 'pip3 install virtualenv'
     displayName: Virtualenv Install
-  - script: "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh"
-    displayName: Rustup
+  - script: "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs -o rustup.sh"
+    displayName: Download Rustup
+  - script: "sh rustup.sh -y"
+    displayName: Run Rustup
   - script: './build.sh test'
     displayName: './build.sh test'
