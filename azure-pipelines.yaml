@@ -1,10 +1,12 @@
 pool:
   vmImage: 'ubuntu-16.04'
-container: 'rust:latest'
 steps:
   - task: UsePythonVersion@0
     inputs:
-      versionSpec: '3.6'
+      versionSpec: '3.7'
   - script: 'pip3 install virtualenv'
+    displayName: Virtualenv Install
+  - script: "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh"
+    displayName: Rustup
   - script: './build.sh test'
     displayName: './build.sh test'
