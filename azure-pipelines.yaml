@@ -6,5 +6,6 @@ steps:
     inputs:
       versionSpec: '3.7'
       architecture: 'x64'
+  - script: 'pip3 install virtualenv'
   - script: './build.sh test'
     displayName: './build.sh test'
