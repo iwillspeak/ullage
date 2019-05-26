@@ -2,5 +2,9 @@ pool:
   vmImage: 'ubuntu-16.04'
 container: 'rust:latest'
 steps:
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: '3.7'
+      architecture: 'x64'
   - script: './build.sh test'
     displayName: './build.sh test'
