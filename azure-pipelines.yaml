@@ -1,0 +1,6 @@
+pool:
+  vmImage: 'ubuntu-16.04'
+container: 'rust:latest'
+steps:
+  - script: './build.sh test'
+    displayName: './build.sh test'
