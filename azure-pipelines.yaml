@@ -18,7 +18,9 @@ jobs:
 - job: Linux
   pool:
     vmImage: 'ubuntu-16.04'
-  container: 'ubuntu:bionic'
+  container: 
+    image: 'ubuntu:bionic'
+    options: '-ti -u root'
   steps:
     - script: |
         lscpu
