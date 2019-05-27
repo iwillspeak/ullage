@@ -18,6 +18,7 @@ jobs:
 - job: Linux
   pool:
     vmImage: 'ubuntu-16.04'
+  container: 'ubuntu:bionic'
   steps:
     - script: |
         lscpu
@@ -25,9 +26,6 @@ jobs:
         gcc --version
         ld --version
       displayName: Dump Box Configuration
-    - task: UsePythonVersion@0
-      inputs:
-        versionSpec: '3.7'
     - script: |
         cat > llvm.list <<EOF
         # 8
@@ -36,16 +34,16 @@ jobs:
         EOF
         sudo cp llvm.list /etc/apt/sources.list.d/
         sudo apt-get update
-        sudo apt-get install -y llvm-8-dev
+        sudo apt-get install -y llvm-8-dev python3 python3-pip python3-virtualenv zlib1g-dev libterminfo-dev
       displayName: Install LLVM
-    - script: 'sudo apt-get install -y gcc binutils'
-      displayName: Install latest gcc
-    - script: 'pip3 install virtualenv'
-      displayName: Virtualenv Install
+    # - script: 'sudo apt-get install -y gcc binutils'
+    #   displayName: Install latest gcc
+    # - script: 'pip3 install virtualenv'
+    #   displayName: Virtualenv Install
     - script: "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs -o rustup.sh && sh rustup.sh -y"
       displayName: Rustup
     - script: |
-        export PATH=${PATH}:~/.cargo/bin
+        source ~/.cargo/env
         export LLVM_SYS_80_PREFIX=/usr/lib/llvm-8
         ./build.sh test
       displayName: './build.sh test'
