@@ -3,7 +3,10 @@ jobs:
   pool:
     vmImage: 'macOS-10.14'
   steps:
-    - script: 'brew install llvm python'
+    - script: 'brew install llvm'
+      displayName: Brew install LLVM
+    - script: "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs -o rustup.sh && sh rustup.sh -y"
+      displayName: Rustup
     - script: |
         PATH=/usr/local/bin:$PATH             # Local bin (brew)
         PATH=~/.cargo/bin:$PATH               # Cargo installed binaries
