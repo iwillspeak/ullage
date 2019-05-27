@@ -1,6 +1,12 @@
 pool:
   vmImage: 'ubuntu-16.04'
 steps:
+  - script: |
+      lscpu
+      free -h
+      gcc --version
+      ld --version
+    displayName: Dump Box Configuration
   - task: UsePythonVersion@0
     inputs:
       versionSpec: '3.7'
