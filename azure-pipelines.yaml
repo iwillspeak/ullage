@@ -25,7 +25,7 @@ jobs:
     - script: |
         lscpu
         free -h
-        echo running as `who am i`
+        who am i
       displayName: Dump Box Configuration
     - script: |
         cat > llvm.list <<EOF
