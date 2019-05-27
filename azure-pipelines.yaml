@@ -4,11 +4,22 @@ steps:
   - task: UsePythonVersion@0
     inputs:
       versionSpec: '3.7'
+  - script: |
+      cat > llvm.list <<EOF
+      # 8
+      deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-8 main
+      deb-src http://apt.llvm.org/xenial/ llvm-toolchain-xenial-8 main
+      EOF
+      sudo cp llvm.list /etc/apt/sources.list.d/
+      sudo apt-get update
+      sudo apt-get install -y llvm-8-dev
+    displayName: Install LLVM
   - script: 'pip3 install virtualenv'
     displayName: Virtualenv Install
   - script: "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs -o rustup.sh && sh rustup.sh -y"
     displayName: Rustup
   - script: |
       export PATH=${PATH}:~/.cargo/bin
+      export LLVM_SYS_80_PREFIX=/usr/lib/llvm-8
       ./build.sh test
     displayName: './build.sh test'
