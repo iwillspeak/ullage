@@ -19,11 +19,16 @@ jobs:
     vmImage: 'ubuntu-16.04'
   # container: 'ubuntu:bionic'
   steps:
-    - script: |
-        sudo apt-get update
-        sudo apt-get install -y python3 python3-pip python3-virtualenv
-        python3 --version
-      displayName: Install Python3
+    # - script: |
+    #     sudo apt-get update
+    #     sudo apt-get install -y python3 python3-pip python3-virtualenv
+    #     python3 --version
+    #   displayName: Install Python3
+    - task: UsePythonVersion@0
+      inputs:
+        versionSpec: '3.7'
+    - script: 'pip3 install virtualenv'
+      displayName: Virtualenv Install
     - script: |
         sudo apt-get install -y gcc binutils
         gcc --version
@@ -37,12 +42,13 @@ jobs:
         EOF
         sudo cp llvm.list /etc/apt/sources.list.d/
         sudo apt-get update
-        sudo apt-get install -y llvm-8-dev zlib1g-dev libterminfo-dev
+        sudo apt-get install -y llvm-8-dev zlib1g-dev
       displayName: Install LLVM
     - script: "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs -o rustup.sh && sh rustup.sh -y"
       displayName: Rustup
     - script: |
         source ~/.cargo/env
         export LLVM_SYS_80_PREFIX=/usr/lib/llvm-8
+        export RUSTFLAGS=-C linker=rust-lld -C linker-flavour=ld.lld
         ./build.sh test
       displayName: './build.sh test'
