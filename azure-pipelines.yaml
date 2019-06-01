@@ -27,10 +27,14 @@ jobs:
     - task: UsePythonVersion@0
       inputs:
         versionSpec: '3.7'
-    - script: 'pip3 install virtualenv'
+    - script: |
+        python3 --version
+        pip3 --version
+        pip3 install virtualenv
+        virtualenv --version
       displayName: Virtualenv Install
     - script: |
-        sudo apt-get install -y gcc-4.7 binutils binutils-gold
+        sudo apt-get install -y gcc binutils
         gcc --version
         ld --version
       displayName: Install latest gcc
@@ -49,5 +53,5 @@ jobs:
     - script: |
         source ~/.cargo/env
         export LLVM_SYS_80_PREFIX=/usr/lib/llvm-8
-        ./build.sh test
-      displayName: './build.sh test'
+        ./build.sh
+      displayName: './build.sh'
