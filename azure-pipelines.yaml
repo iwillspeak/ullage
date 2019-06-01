@@ -20,19 +20,15 @@ jobs:
   container: 'ubuntu:bionic'
   steps:
     - script: |
-        lscpu
-        free -h
-        who am i
-        su root
-        who am i
-      displayName: Dump Box Configuration
+        apt install -y sudo
+      displayName: Install Sudo
     - script: |
         sudo apt-get update
         sudo apt-get install -y python3 python3-pip python3-virtualenv
         python3 --version
       displayName: Install Python3
     - script: |
-        apt-get install -y gcc binutils
+        sudo apt-get install -y gcc binutils
         gcc --version
         ld --version
       displayName: Install latest gcc
@@ -42,9 +38,9 @@ jobs:
         deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-8 main
         deb-src http://apt.llvm.org/xenial/ llvm-toolchain-xenial-8 main
         EOF
-        cp llvm.list /etc/apt/sources.list.d/
-        apt-get update
-        apt-get install -y llvm-8-dev zlib1g-dev libterminfo-dev
+        sudo cp llvm.list /etc/apt/sources.list.d/
+        sudo apt-get update
+        sudo apt-get install -y llvm-8-dev zlib1g-dev libterminfo-dev
       displayName: Install LLVM
     - script: "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs -o rustup.sh && sh rustup.sh -y"
       displayName: Rustup
