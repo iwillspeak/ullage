@@ -17,8 +17,7 @@ jobs:
 - job: Linux
   pool:
     vmImage: 'ubuntu-16.04'
-  container: 'ubuntu:bionic'
-  sudo: true
+  # container: 'ubuntu:bionic'
   steps:
     - script: |
         sudo apt-get update
