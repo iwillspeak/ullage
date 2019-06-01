@@ -30,7 +30,7 @@ jobs:
     - script: 'pip3 install virtualenv'
       displayName: Virtualenv Install
     - script: |
-        sudo apt-get install -y gcc binutils binutils-gold
+        sudo apt-get install -y gcc-4.7 binutils binutils-gold
         gcc --version
         ld --version
       displayName: Install latest gcc
