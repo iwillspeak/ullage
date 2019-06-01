@@ -8,9 +8,8 @@ jobs:
     - script: "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs -o rustup.sh && sh rustup.sh -y"
       displayName: Rustup
     - script: |
-        PATH=/usr/local/bin:$PATH             # Local bin (brew)
-        PATH=~/.cargo/bin:$PATH               # Cargo installed binaries
-        export PATH
+        export PATH=/usr/local/bin:$PATH             # Local bin (brew)
+        source ~/.cargo/env
         export LLVM_SYS_80_PREFIX=/usr/local/opt/llvm
         pip3 install virtualenv
         ./build.sh test
@@ -18,15 +17,23 @@ jobs:
 - job: Linux
   pool:
     vmImage: 'ubuntu-16.04'
-  container: 
-    image: 'ubuntu:bionic'
-    options: --user=root
+  container: 'ubuntu:bionic'
   steps:
     - script: |
         lscpu
         free -h
         who am i
       displayName: Dump Box Configuration
+    - script: |
+        apt-get update
+        apt-get install -y python3 python3-pip python3-virtualenv
+        python3 --version
+      displayName: Install Python3
+    - script: |
+        apt-get install -y gcc binutils
+        gcc --version
+        ld --version
+      displayName: Install latest gcc
     - script: |
         cat > llvm.list <<EOF
         # 8
@@ -35,15 +42,8 @@ jobs:
         EOF
         cp llvm.list /etc/apt/sources.list.d/
         apt-get update
-        apt-get install -y llvm-8-dev python3 python3-pip python3-virtualenv zlib1g-dev libterminfo-dev
+        apt-get install -y llvm-8-dev zlib1g-dev libterminfo-dev
       displayName: Install LLVM
-    - script: |
-        apt-get install -y gcc binutils
-        gcc --version
-        ld --version
-      displayName: Install latest gcc
-    # - script: 'pip3 install virtualenv'
-    #   displayName: Virtualenv Install
     - script: "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs -o rustup.sh && sh rustup.sh -y"
       displayName: Rustup
     - script: |
