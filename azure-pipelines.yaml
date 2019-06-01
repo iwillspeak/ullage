@@ -49,6 +49,6 @@ jobs:
     - script: |
         source ~/.cargo/env
         export LLVM_SYS_80_PREFIX=/usr/lib/llvm-8
-        export RUSTFLAGS=-C linker=rust-lld -C linker-flavour=ld.lld
+        export RUSTFLAGS="-C linker=rust-lld -C linker-flavour=ld.lld"
         ./build.sh test
       displayName: './build.sh test'
