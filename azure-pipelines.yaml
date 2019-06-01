@@ -23,6 +23,8 @@ jobs:
         lscpu
         free -h
         who am i
+        su root
+        who am i
       displayName: Dump Box Configuration
     - script: |
         sudo apt-get update
