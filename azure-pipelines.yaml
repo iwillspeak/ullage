@@ -42,7 +42,7 @@ jobs:
         EOF
         sudo cp llvm.list /etc/apt/sources.list.d/
         sudo apt-get update
-        sudo apt-get install -y llvm-8-dev zlib1g-dev
+        sudo apt-get install -y llvm-8
       displayName: Install LLVM
     - script: "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs -o rustup.sh && sh rustup.sh -y"
       displayName: Rustup
