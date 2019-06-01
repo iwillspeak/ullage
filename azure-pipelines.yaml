@@ -30,7 +30,7 @@ jobs:
     - script: 'pip3 install virtualenv'
       displayName: Virtualenv Install
     - script: |
-        sudo apt-get install -y gcc binutils
+        sudo apt-get install -y gcc binutils binutils-gold
         gcc --version
         ld --version
       displayName: Install latest gcc
@@ -49,6 +49,6 @@ jobs:
     - script: |
         source ~/.cargo/env
         export LLVM_SYS_80_PREFIX=/usr/lib/llvm-8
-        export RUSTFLAGS="-C linker=rust-lld -C linker-flavor=ld.lld"
+        export RUSTFLAGS="-C link-args=-fuse-ld=gold"
         ./build.sh test
       displayName: './build.sh test'
