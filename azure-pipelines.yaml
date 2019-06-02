@@ -28,11 +28,12 @@ jobs:
         python3 --version
         pip3 --version
         pip3 install virtualenv
+        virtualenv --version
       displayName: Virtualenv Install
     - script: "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs -o rustup.sh && sh rustup.sh -y"
       displayName: Rustup
     - script: |
         source ~/.cargo/env
         export LLVM_SYS_80_PREFIX=/usr/lib/llvm-8
-        ./build.sh
-      displayName: './build.sh'
+        ./build.sh test
+      displayName: './build.sh test'
