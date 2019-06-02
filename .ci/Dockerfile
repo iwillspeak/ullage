@@ -1,4 +1,7 @@
 FROM ubuntu:18.04
+RUN apt-get update
+RUN apt-get install -y curl gnupg2
+RUN curl -sS https://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add -
 COPY llvm.list /etc/apt/sources.list.d/
 RUN apt-get update
 RUN apt-get install -y sudo
