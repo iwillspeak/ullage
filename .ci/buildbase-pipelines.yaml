@@ -13,7 +13,7 @@ variables:
 steps:
 - script: |
     docker build -t $(dockerId)/$(imageName) .
-    echo $pswd | docker login -u $(dockerId) --password-stdin
+    echo $pswd | docker login -u $(dockerId) --password-stdin docker.io
     docker push $(dockerId)/$(imageName)
   workingDirectory: .ci
   env:
