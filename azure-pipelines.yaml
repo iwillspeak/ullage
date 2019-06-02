@@ -3,6 +3,12 @@ trigger:
     exclude: 
       - '.ci'
 
+resources:
+  containers:
+  - container: buildbase
+    image: 'iwillspeak/ullage-linux-build-base'
+    options: '-m 4G'
+
 jobs:
 - job: macOS
   pool:
@@ -22,7 +28,7 @@ jobs:
 - job: Linux
   pool:
     vmImage: 'ubuntu-16.04'
-  container: 'iwillspeak/ullage-linux-build-base:latest'
+  container: buildbase
   steps:
     - script: |
         python3 --version
