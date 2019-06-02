@@ -22,7 +22,7 @@ jobs:
 - job: Linux
   pool:
     vmImage: 'ubuntu-16.04'
-  container: iwillspeak/ullage-linux-build-base
+  container: 'iwillspeak/ullage-linux-build-base:latest'
   steps:
     - script: |
         python3 --version
