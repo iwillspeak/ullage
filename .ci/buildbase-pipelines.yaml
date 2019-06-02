@@ -10,12 +10,9 @@ variables:
   dockerId: iwlllspeak
   imageName: ullage-linux-build-base
 
-env:
-  pswd: $(dockerPassword)
-
 steps:
 - script: |
     docker build -t $(dockerId)/$(imageName) .
-    docker login -u $(dockerId) -p $(pswd)
+    docker login -u $(dockerId) -p '$(dockerPassword)'
     docker push $(dockerId)/$(imageName)
   workingDirectory: '.ci'
