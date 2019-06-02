@@ -22,37 +22,14 @@ jobs:
 - job: Linux
   pool:
     vmImage: 'ubuntu-16.04'
-  # container: 'ubuntu:bionic'
+  container: iwillspeak/ullage-linux-build-base
   steps:
-    # - script: |
-    #     sudo apt-get update
-    #     sudo apt-get install -y python3 python3-pip python3-virtualenv
-    #     python3 --version
-    #   displayName: Install Python3
-    - task: UsePythonVersion@0
-      inputs:
-        versionSpec: '3.7'
     - script: |
         python3 --version
         pip3 --version
         pip3 install virtualenv
         virtualenv --version
       displayName: Virtualenv Install
-    - script: |
-        sudo apt-get install -y gcc binutils
-        gcc --version
-        ld --version
-      displayName: Install latest gcc
-    - script: |
-        cat > llvm.list <<EOF
-        # 8
-        deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-8 main
-        deb-src http://apt.llvm.org/xenial/ llvm-toolchain-xenial-8 main
-        EOF
-        sudo cp llvm.list /etc/apt/sources.list.d/
-        sudo apt-get update
-        sudo apt-get install -y llvm-8
-      displayName: Install LLVM
     - script: "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs -o rustup.sh && sh rustup.sh -y"
       displayName: Rustup
     - script: |
