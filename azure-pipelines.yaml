@@ -28,7 +28,6 @@ jobs:
         python3 --version
         pip3 --version
         pip3 install virtualenv
-        virtualenv --version
       displayName: Virtualenv Install
     - script: "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs -o rustup.sh && sh rustup.sh -y"
       displayName: Rustup
