@@ -1,6 +1,11 @@
 pool:
   vmImage: 'ubuntu-16.04'
 
+trigger:
+  paths:
+    include: 
+      - '.ci'
+
 variables:
   dockerId: iwlllspeak
   imageName: ullage-linux-build-base
@@ -10,5 +15,6 @@ steps:
     docker build -t $(dockerId)/$(imageName) .
     docker login -u $(dockerId) -p $(pswd)
     docker push $(dockerId)/$(imageName)
+  workingDirectory: .ci
   env:
     pswd: $(dockerPassword)            
