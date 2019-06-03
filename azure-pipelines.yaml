@@ -40,6 +40,9 @@ jobs:
     - script: "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs -o rustup.sh && sh rustup.sh -y"
       displayName: Rustup
     - script: |
+        sudo apt-get update && sudo apt-get install zlib1g
+      displayName: "install zlib"
+    - script: |
         source ~/.cargo/env
         export PATH=${PATH}:~/.local/bin/
         export LLVM_SYS_80_PREFIX=/usr/lib/llvm-8
