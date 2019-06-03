@@ -44,7 +44,7 @@ def parse_spec(path):
     expects = []
     failure_expects = []
     skip_run = False
-    with open(path) as f:
+    with open(path, encoding='utf-8') as f:
         for line in f.readlines():
             add_matches(EXPECT_PATTERN, line, expects)
             add_matches(EXPECT_ERR_PATTERN, line, failure_expects)
