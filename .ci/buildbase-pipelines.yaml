@@ -7,13 +7,13 @@ trigger:
       - '.ci'
 
 variables:
-  dockerId: iwlllspeak
+  dockerId: iwillspeak
   imageName: ullage-linux-build-base
 
 steps:
 - script: |
     docker build -t $(dockerId)/$(imageName) .
-    echo $pswd | docker login -u $(dockerId) --password-stdin docker.io
+    echo $pswd | docker login -u $(dockerId) --password-stdin
     docker push $(dockerId)/$(imageName)
   workingDirectory: .ci
   env:
