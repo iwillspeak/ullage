@@ -40,8 +40,9 @@ jobs:
     - script: "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs -o rustup.sh && sh rustup.sh -y"
       displayName: Rustup
     - script: |
-        sudo apt-get update && sudo apt-get install -y zlib1g-dev
-      displayName: "install zlib"
+        sudo apt-get update && sudo apt-get install -y zlib1g-dev clang
+        clang --version
+      displayName: "install zlib & Clang"
     - script: |
         source ~/.cargo/env
         export PATH=${PATH}:~/.local/bin/
