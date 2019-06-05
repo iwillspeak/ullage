@@ -20,8 +20,10 @@ class Error(Exception):
         self.error = error
 
 class ExitCodeMismatchError(Error):
-    def __init__(self, expected):
-        super(ExitCodeMismatchError, self).__init__(expected)
+    def __init__(self, message, code, output):
+        message = "{} exit={}, out='{}', err='{}'".format(
+            message, code, output[0].decode('utf-8'), output[1].decode('utf-8'))
+        super(ExitCodeMismatchError, self).__init__(message)
 
 class OutputMissingError(Error):
     def __init__(self, output, expected):
@@ -67,16 +69,41 @@ def check_output(lines, expects):
         if actual != expected:
             raise OutputMismatchError(expected, actual)
 
-def check_compilation_failure(output, expectations):
+def check_expected_exit(exit_code, output, expectations):
+    """Check the Exit of a Program
+
+    Given the output and exit status of a program make sure we got a
+    successful exit, or a non-zero exit code with the expected
+    failures in the program's standard error output.
+    """
+
+    # if we got killed by a signal we don't want to check for errors
+    if exit_code < 0:
+        raise ExitCodeMismatchError(
+            "Compilation was killed by signal '{}'".format(-exit_code),
+            exit_code, output)
+
+    # If we were expecting a compilation failure make sure we got it
+    if expectations.failure_expects:
+        if exit_code == 0:
+            raise ExitCodeMismatchError(
+                "Expected failure but compilation succeeded",
+                exit_code, output)
+        check_compilation_failure(
+            output[1].decode('utf-8'), expectations.failure_expects)
+    # No compilation failure but we got one.
+    elif exit_code != 0:
+        raise ExitCodeMismatchError(
+            "Expected successfull exit", exit_code, output)
+
+def check_compilation_failure(output, failure_expects):
     """Check Failure Output
 
     Given the output of a failed compilation command check that any
     failure expectations are met.
     """
 
-    if not expectations.failure_expects:
-        raise ExitCodeMismatchError("Expected successfull exit code")
-    fails = list(expectations.failure_expects)
+    fails = list(failure_expects)
     for line in output.strip().split('\n'):
         if fails and fails[0] in line:
             fails.pop(0)
@@ -101,17 +128,10 @@ def run_spec(path):
         timer.start()
         output = compile_cmd.communicate()
         exit_code = compile_cmd.returncode
-        if exit_code < 0:
-            raise ExitCodeMismatchError(
-                "compilation process was terminated with code '{}'".format(exit_code))
-        if exit_code != 0:
-            check_compilation_failure(output[1].decode('utf-8'), expectations)
-            return
+        check_expected_exit(exit_code, output, expectations)
     finally:
         timer.cancel()
 
-    if expectations.failure_expects:
-        raise ExitCodeMismatchError("Expected failure but compilation succeeded")
     if expectations.skip_run:
         return
     run_cmd = subprocess.Popen(out, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
