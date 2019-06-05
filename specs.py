@@ -132,7 +132,7 @@ def run_spec(path):
     finally:
         timer.cancel()
 
-    if expectations.skip_run:
+    if expectations.skip_run or compile_cmd.returncode != 0:
         return
     run_cmd = subprocess.Popen(out, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     output = run_cmd.communicate()
