@@ -78,7 +78,9 @@ impl Builder {
     ///
     /// The built value produces nothing so no value is returned.
     pub fn build_void_call(&mut self, function: &Function, args: &mut [LLVMValueRef]) {
-        self.build_named_call(function, args, Some("voidcall"));
+        // FIXME: Do we really want to specify an empty name here?
+        // If the name is never empty can we get rid of the option.
+        self.build_named_call(function, args, Some(""));
     }
 
     /// Build a Call Instruction
