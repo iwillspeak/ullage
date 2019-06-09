@@ -99,14 +99,14 @@ impl Builder {
         args: &mut [LLVMValueRef],
         name: Option<&str>,
     ) -> LLVMValueRef {
+        let name = name.map(|n| CString::new(n).unwrap());
         unsafe {
-            let name = name.map(|n| CString::new(n).unwrap());
             let call = core::LLVMBuildCall(
                 self.raw,
                 function.as_raw(),
                 args.as_mut_ptr(),
                 args.len() as c_uint,
-                name.map_or(std::ptr::null(), |n| n.as_ptr()),
+                name.as_ref().map_or(std::ptr::null(), |n| n.as_ptr()),
             );
             core::LLVMSetInstructionCallConv(call, function.call_conv().into());
             call
