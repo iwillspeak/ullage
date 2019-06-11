@@ -1,0 +1,20 @@
+pool:
+  vmImage: 'ubuntu-16.04'
+
+trigger:
+  paths:
+    include: 
+      - '.ci'
+
+variables:
+  dockerId: iwillspeak
+  imageName: ullage-linux-build-base
+
+steps:
+- script: |
+    docker build -t $(dockerId)/$(imageName) .
+    echo $pswd | docker login -u $(dockerId) --password-stdin
+    docker push $(dockerId)/$(imageName)
+  workingDirectory: .ci
+  env:
+    pswd: $(dockerPassword)            

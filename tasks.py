@@ -23,7 +23,7 @@ def docs(ctx):
 @task(build)
 def test(ctx):
     ctx.run("cargo test")
-    ctx.run("python specs.py")
+    ctx.run("python3 specs.py")
 
 @task
 def clippy(ctx):
