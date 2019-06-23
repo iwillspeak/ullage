@@ -1,5 +1,7 @@
 # Ullage
 
+[![Build Status][build_status_image]][build_status]
+
 A statically-typed compiled language defined by a simple grammar.
 
 ## Current Status
@@ -85,3 +87,7 @@ Ullage is open source, under the [MIT License](LICENSE.md).
    * [ ] gold - GNU ld
    * [ ] lld/llvm-link
    * [ ] Microsoft LINK
+
+
+ [build_status_image]: https://dev.azure.com/iwillspeak/GitHub/_apis/build/status/iwillspeak.ullage?branchName=master
+ [build_status]: https://dev.azure.com/iwillspeak/GitHub/_build/latest?definitionId=2&branchName=master
