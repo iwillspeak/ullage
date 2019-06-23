@@ -138,7 +138,7 @@ pub fn dump_targets() {
     println!();
     println!("supported targets:");
     let mut target = unsafe { LLVMGetFirstTarget() };
-    while target.is_null() {
+    while !target.is_null() {
         let name = unsafe { CStr::from_ptr(LLVMGetTargetName(target)) };
         let desc = unsafe { CStr::from_ptr(LLVMGetTargetDescription(target)) };
         println!(" * {} ({})", name.to_str().unwrap(), desc.to_str().unwrap());
