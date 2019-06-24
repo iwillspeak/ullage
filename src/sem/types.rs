@@ -11,7 +11,7 @@ use std::borrow::Cow;
 ///
 /// This enum defines the different type values that each node in the
 /// semantic tree could have.
-#[derive(PartialEq, Eq, Copy, Clone, Hash)]
+#[derive(Debug, PartialEq, Eq, Copy, Clone, Hash)]
 pub enum Typ {
     /// Type yet to be inferred.
     Unknown,
@@ -39,7 +39,7 @@ impl Typ {
 }
 
 /// The fixed builtin types
-#[derive(PartialEq, Eq, Copy, Clone, Hash)]
+#[derive(Debug, PartialEq, Eq, Copy, Clone, Hash)]
 pub enum BuiltinType {
     /// 64 bit numerical value
     Number,
