@@ -364,15 +364,8 @@ fn build_string_concat(
 
     string_set_len(builder, res, buf_size);
 
-    string_copy_guts(
-        ctx,
-        builder,
-        res,
-        pref,
-        pre_len,
-        ctx.llvm_ctx.const_int_width(0, 32),
-    );
-    string_copy_guts(ctx, builder, res, suf, suf_len, pre_len);
+    string_copy_guts(ctx, builder, res, pref, pre_len, None);
+    string_copy_guts(ctx, builder, res, suf, suf_len, Some(pre_len));
 
     res
 }
