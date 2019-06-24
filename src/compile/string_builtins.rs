@@ -15,7 +15,7 @@ pub(crate) fn string_copy_guts(
     dest: LLVMValueRef,
     src: LLVMValueRef,
     len: LLVMValueRef,
-    offset: LLVMValueRef,
+    offset: Option<LLVMValueRef>,
 ) {
     let memcpy = ctx
         .module
@@ -28,6 +28,7 @@ pub(crate) fn string_copy_guts(
         &mut [ctx.llvm_ctx.const_int(0), ctx.llvm_ctx.const_int(0)],
     );
     let dest_buffer = string_get_buffer(builder, dest);
+    let offset = offset.unwrap_or_else(|| ctx.llvm_ctx.const_int(0));
     let dest_buffer = builder.build_gep(dest_buffer, &mut [ctx.llvm_ctx.const_int(0), offset]);
 
     builder.build_void_call(
