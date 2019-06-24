@@ -237,6 +237,11 @@ pub fn transform_expression(ctx: &mut SemCtx, expr: SyntaxExpr) -> CompResult<Ex
 /// Returns the type if it is present, or assumes `Number`
 /// otherwise. This is a hack to deal with partially-typed trees and
 /// should be removed.
+///
+/// HAXX: This should be removed once proper binding takes
+/// place. Failure to resolve the type of an inner expression should
+/// result in an error expression so we never need to deal with
+/// partially typed trees.
 fn relax_ty(maybe_typ: Option<Typ>) -> Typ {
     maybe_typ.unwrap_or(Typ::Builtin(BuiltinType::Number))
 }

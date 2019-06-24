@@ -9,6 +9,7 @@ mod sem_ctx;
 mod transform;
 mod tree;
 mod types;
+mod binder;
 
 pub use self::sem_ctx::SemCtx;
 pub use self::transform::transform_expression;
