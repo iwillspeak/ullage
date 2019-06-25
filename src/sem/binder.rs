@@ -17,7 +17,9 @@ use std::collections::{hash_map::Entry, HashMap};
 use std::default::Default;
 
 use super::Typ;
-use crate::syntax::text::Ident;
+use super::{SemCtx, Expression, ExpressionKind, transform_expression};
+use crate::diag::Diagnostic;
+use crate::syntax::{self, text::{Ident, SourceText, DUMMY_SPAN}};
 
 /// Symbol
 ///
@@ -109,15 +111,44 @@ impl Scope {
 /// binding operation.
 pub struct Binder {
     /// The current scope
-    scope: Scope
+    scope: Scope,
+    /// The diagnostics for the current bind
+    diagnostics: Vec<Diagnostic>,
 }
 
 impl Binder {
     /// Create Binder for the Given Scope
     pub fn new(scope: Scope) -> Self {
         Binder {
-            scope
+            scope,
+            diagnostics: Vec::new()
         }
+    }
+
+    /// Bind an Expression
+    ///
+    /// Converts a syntax expression into a semantic one by binding it
+    /// in the binder's current scope.
+    /// HAXX: we don't watnt to be taking the source here.
+    pub fn bind_expression(&mut self, expr: syntax::Expression, haxx: &SourceText) -> Expression {
+        let mut trans_sess = SemCtx::new(haxx);
+        match transform_expression(&mut trans_sess, expr) {
+            Ok(sem_expr) => {
+                self.diagnostics.extend(trans_sess.into_diagnostics());
+                sem_expr
+            },
+            Err(comp_err) => {
+                let diag = Diagnostic::new(comp_err.to_string(), DUMMY_SPAN);
+                self.diagnostics.push(diag);
+                Expression::new(ExpressionKind::Sequence(Vec::new()), None)
+            }
+        }
+    }
+
+    /// Clears out the diagnostics list and returns any diagnostics
+    /// that have been accumulated.
+    pub fn take_diagnostics(&mut self) -> Vec<Diagnostic> {
+        self.diagnostics.drain(..).collect()
     }
 }
 

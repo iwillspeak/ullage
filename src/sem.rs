@@ -15,3 +15,4 @@ pub use self::sem_ctx::SemCtx;
 pub use self::transform::transform_expression;
 pub use self::tree::{Expression, ExpressionKind};
 pub use self::types::{BuiltinType, Typ};
+pub use self::binder::{Binder, Scope, Symbol};

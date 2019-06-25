@@ -70,13 +70,13 @@ impl Compilation {
         tree: syntax::SyntaxTree,
         opts: CompilationOptions,
     ) -> CompResult<Self> {
-        let mut trans_sess = sem::SemCtx::new(source);
         let (root, _end) = tree.into_parts();
-        let sem_expr = sem::transform_expression(&mut trans_sess, root)?;
+        let mut binder = sem::Binder::new(sem::Scope::new());
+        let sem_expr = binder.bind_expression(root, source);
         Ok(Compilation {
             expr: sem_expr,
             options: opts,
-            diagnostics: trans_sess.into_diagnostics(),
+            diagnostics: binder.take_diagnostics(),
         })
     }
 
