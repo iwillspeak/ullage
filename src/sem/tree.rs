@@ -60,6 +60,15 @@ pub struct Expression {
 /// enum however some information may have been elided or reordered to
 /// better suit the lowering process.
 pub enum ExpressionKind {
+    /// Invalid Expression
+    ///
+    /// Emitted when transformation or binding can't produce a
+    /// properly typed or bound expression. This should only be
+    /// produced if a diagnostic has already been raised. Further
+    /// passes can safely return error if an `Error` expression is
+    /// encountered to avoid error cascades.
+    Error,
+
     /// Identifier
     ///
     /// Variable reference. If this is an lvalue then it represents a
@@ -131,5 +140,13 @@ impl Expression {
     /// expression.
     pub fn new(kind: ExpressionKind, typ: Option<Typ>) -> Self {
         Expression { kind, typ }
+    }
+
+    /// Create an Error Expresion
+    ///
+    /// Convenience function for returning error expressions.
+
+    pub fn error() -> Self {
+        Expression::new(ExpressionKind::Error, None)
     }
 }
