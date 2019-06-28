@@ -60,19 +60,17 @@ pub struct Compilation {
 impl Compilation {
     /// Create a new compilation
     ///
-    /// # Parameters
+    /// # Parameters
     ///  * `source` - The source text for the program
     ///  * `expr` - the expression to compile
     ///  * `opts` - The compilation options
     #[allow(clippy::new_ret_no_self)]
     pub fn new(
-        source: &syntax::text::SourceText,
         tree: syntax::SyntaxTree,
         opts: CompilationOptions,
     ) -> CompResult<Self> {
-        let (root, _end) = tree.into_parts();
         let mut binder = sem::Binder::new(sem::Scope::new());
-        let sem_expr = binder.bind_expression(root, source);
+        let sem_expr = binder.bind_expression(tree);
         Ok(Compilation {
             expr: sem_expr,
             options: opts,

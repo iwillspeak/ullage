@@ -104,6 +104,13 @@ impl<'a> SyntaxTree<'a> {
         (self.root, self.end)
     }
 
+    /// Access the Borrowed Source
+    ///
+    /// Allows access to the source this syntax tree was parsed from.
+    pub fn source(&self) -> &'a SourceText {
+        self.source
+    }
+
     /// Dump the Expression Tree
     ///
     /// Walks the subnodes of this tree and prints a text representation
