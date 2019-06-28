@@ -19,7 +19,7 @@ use std::default::Default;
 use super::Typ;
 use super::{SemCtx, Expression, ExpressionKind, transform_expression};
 use crate::diag::Diagnostic;
-use crate::syntax::{self, text::{Ident, SourceText, DUMMY_SPAN}};
+use crate::syntax::{self, text::{Ident, DUMMY_SPAN}};
 
 /// Symbol
 ///
@@ -129,9 +129,9 @@ impl Binder {
     ///
     /// Converts a syntax expression into a semantic one by binding it
     /// in the binder's current scope.
-    /// HAXX: we don't watnt to be taking the source here.
-    pub fn bind_expression(&mut self, expr: syntax::Expression, haxx: &SourceText) -> Expression {
-        let mut trans_sess = SemCtx::new(haxx);
+    pub fn bind_expression(&mut self, tree: syntax::SyntaxTree<'_>) -> Expression {
+        let mut trans_sess = SemCtx::new(tree.source());
+        let (expr, _end) = tree.into_parts();
         match transform_expression(&mut trans_sess, expr) {
             Ok(sem_expr) => {
                 self.diagnostics.extend(trans_sess.into_diagnostics());

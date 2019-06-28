@@ -206,7 +206,7 @@ fn main() {
             args.flag_optimise
                 .map_or(OptimisationLevel::Off, |o| o.into()),
         );
-    let comp = match Compilation::new(&source, tree, options) {
+    let comp = match Compilation::new(tree, options) {
         Ok(c) => c,
         Err(e) => handle_comp_err(&e),
     };
