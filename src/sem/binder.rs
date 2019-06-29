@@ -85,10 +85,9 @@ impl Scope {
 pub struct ScopeStack(Vec<Scope>);
 
 impl ScopeStack {
-
     /// Create a new scope stack with the given scope as the base
     pub fn new(base: Scope) -> Self {
-        ScopeStack(vec!{ base })
+        ScopeStack(vec![base])
     }
 
     /// Lookup a symbol in the scope stack
@@ -156,6 +155,7 @@ impl Binder {
             Prefix(ref pref) => self.bind_prefix(pref, source),
             Infix(ref innie) => self.bind_infix(innie, source),
             // TODO: bind remainning expression kinds
+            IfThenElse(ref if_else_expr) => self.bind_if_else(if_else_expr, source),
             Function(ref func) => self.bind_function(func, source),
             Loop(ref loop_expr) => self.bind_loop(loop_expr, source),
             Sequence(ref exprs) => self.bind_sequence(&exprs[..], source),
@@ -314,9 +314,48 @@ impl Binder {
         }
     }
 
-    /// Bind a function definition
-    pub fn bind_function(&mut self, func: &syntax::FunctionExpression, source: &SourceText) -> Expression {
+    /// Bind a if then else expression
+    pub fn bind_if_else(
+        &mut self,
+        if_else: &syntax::IfElseExpression,
+        source: &SourceText,
+    ) -> Expression {
+        let cond = self.bind_expression(&if_else.cond, source);
+        let if_true = self.bind_expression(&if_else.if_true, source);
+        let if_false = self.bind_expression(&if_else.if_false, source);
 
+        let cond_ty = cond.typ.unwrap_or(Typ::Unknown);
+        if cond_ty != Typ::Builtin(BuiltinType::Bool) {
+            self.diagnostics.push(Diagnostic::new(
+                format!(
+                    "Condition expression should be 'Bool' but is '{}'",
+                    cond_ty.name()
+                ),
+                if_else.cond.span(),
+            ));
+        }
+
+        let typ = if_true.typ;
+
+        if if_true.typ != if_false.typ {
+            self.diagnostics.push(Diagnostic::new(
+                "If and else have mismatched types",
+                Span::enclosing(if_else.if_true.span(), if_else.if_false.span()),
+            ));
+        }
+
+        Expression::new(
+            ExpressionKind::IfThenElse(Box::new(cond), Box::new(if_true), Box::new(if_false)),
+            typ,
+        )
+    }
+
+    /// Bind a function definition
+    pub fn bind_function(
+        &mut self,
+        func: &syntax::FunctionExpression,
+        source: &SourceText,
+    ) -> Expression {
         // Function binding needs to create a new binder first, then
         // we bind the funciton in that scope and insert a symbol into
         // _our_ scope when done.
@@ -326,22 +365,29 @@ impl Binder {
         add_builtin_types(&mut parent_scope, source);
 
         let mut seen_idents = HashSet::new();
-
-        let params = func.params
+        let params = func
+            .params
             .iter()
             .map(|p| {
                 let p = p.as_inner();
                 let typ = match p.typ.as_ref() {
-                    Some(anno) => {
-                        self.bind_type(&anno.type_ref)
-                    },
+                    Some(anno) => self.bind_type(&anno.type_ref),
                     None => {
-self.diagnostics.push(Diagnostic::new(format!("Parameter '{}' missing type", source.interned_value(p.id)), p.id_tok.span()));
+                        self.diagnostics.push(Diagnostic::new(
+                            format!("Parameter '{}' missing type", source.interned_value(p.id)),
+                            p.id_tok.span(),
+                        ));
                         Typ::Error
                     }
                 };
                 if !seen_idents.insert(p.id) {
-                    self.diagnostics.push(Diagnostic::new(format!("Duplicate function parameter '{}'", source.interned_value(p.id)), p.id_tok.span()));
+                    self.diagnostics.push(Diagnostic::new(
+                        format!(
+                            "Duplicate function parameter '{}'",
+                            source.interned_value(p.id)
+                        ),
+                        p.id_tok.span(),
+                    ));
                 }
                 parent_scope.try_declare(p.id, Symbol::Variable(typ));
                 VarDecl {
@@ -355,14 +401,19 @@ self.diagnostics.push(Diagnostic::new(format!("Parameter '{}' missing type", sou
         let bound_body = binder.bind_block(&func.body, source);
         let ret_ty = self.bind_type(&func.return_type.type_ref);
 
-        self.scopes.current_mut().try_declare(func.identifier, Symbol::Function);
+        self.scopes
+            .current_mut()
+            .try_declare(func.identifier, Symbol::Function);
 
-        Expression::new(ExpressionKind::Function(FnDecl {
-            ident: source.interned_value(func.identifier),
-            ret_ty,
-            params,
-            body: Box::new(bound_body),
-        }), Some(Typ::Error))
+        Expression::new(
+            ExpressionKind::Function(FnDecl {
+                ident: source.interned_value(func.identifier),
+                ret_ty,
+                params,
+                body: Box::new(bound_body),
+            }),
+            Some(Typ::Error),
+        )
     }
 
     /// Bind a loop expression
@@ -380,7 +431,10 @@ self.diagnostics.push(Diagnostic::new(format!("Parameter '{}' missing type", sou
             );
         }
         let body = self.bind_block(&loop_expr.body, source);
-        Expression::new(ExpressionKind::Loop(Box::new(condition), Box::new(body)), Some(Typ::Unit))
+        Expression::new(
+            ExpressionKind::Loop(Box::new(condition), Box::new(body)),
+            Some(Typ::Unit),
+        )
     }
 
     /// Bind a sequence of expressions
@@ -604,25 +658,41 @@ mod test {
     }
 
     #[test]
-    fn scope_stack_current()
-    {
+    fn scope_stack_current() {
         let source = SourceText::new("");
         let mut scopes = ScopeStack::new(Scope::new());
 
-
-        assert!(scopes.current_mut().try_declare(source.intern("foo"), Symbol::Variable(Typ::Builtin(BuiltinType::Bool))));
-        assert!(!scopes.current_mut().try_declare(source.intern("foo"), Symbol::Variable(Typ::Builtin(BuiltinType::Bool))));
+        assert!(scopes.current_mut().try_declare(
+            source.intern("foo"),
+            Symbol::Variable(Typ::Builtin(BuiltinType::Bool))
+        ));
+        assert!(!scopes.current_mut().try_declare(
+            source.intern("foo"),
+            Symbol::Variable(Typ::Builtin(BuiltinType::Bool))
+        ));
 
         scopes.push(Scope::new());
 
-        assert!(scopes.current_mut().try_declare(source.intern("foo"), Symbol::Variable(Typ::Builtin(BuiltinType::Number))));
-        assert!(!scopes.current_mut().try_declare(source.intern("foo"), Symbol::Variable(Typ::Builtin(BuiltinType::String))));
+        assert!(scopes.current_mut().try_declare(
+            source.intern("foo"),
+            Symbol::Variable(Typ::Builtin(BuiltinType::Number))
+        ));
+        assert!(!scopes.current_mut().try_declare(
+            source.intern("foo"),
+            Symbol::Variable(Typ::Builtin(BuiltinType::String))
+        ));
 
-        assert_eq!(Some(Symbol::Variable(Typ::Builtin(BuiltinType::Number))), scopes.lookup(source.intern("foo")));
+        assert_eq!(
+            Some(Symbol::Variable(Typ::Builtin(BuiltinType::Number))),
+            scopes.lookup(source.intern("foo"))
+        );
 
         scopes.pop();
 
-assert_eq!(Some(Symbol::Variable(Typ::Builtin(BuiltinType::Bool))), scopes.lookup(source.intern("foo")));
+        assert_eq!(
+            Some(Symbol::Variable(Typ::Builtin(BuiltinType::Bool))),
+            scopes.lookup(source.intern("foo"))
+        );
     }
 
     #[test]
