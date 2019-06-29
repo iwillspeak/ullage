@@ -20,7 +20,7 @@ use crate::diag::Diagnostic;
 use crate::syntax::{
     self,
     text::{Ident, SourceText, Span},
-    Constant, InfixOp, SyntaxNode, TokenKind, TypeRef, VarStyle,
+    Constant, InfixOp, PrefixOp, SyntaxNode, TokenKind, TypeRef, VarStyle,
 };
 
 /// Symbol
@@ -42,23 +42,10 @@ pub enum Symbol {
 ///
 /// Holds the declared items at a given level in the scope stack
 /// during a bind.
+#[derive(Default)]
 pub struct Scope {
     /// Symbols declared in this scope
     symbols: HashMap<Ident, Symbol>,
-    /// The parent of this scope if there is one. When looking items
-    /// up parent scopes are searched if no matches are found in the
-    /// child scopes.
-    parent: Option<Box<Scope>>,
-}
-
-impl Default for Scope {
-    /// Create the Default Scope
-    fn default() -> Scope {
-        Scope {
-            symbols: Default::default(),
-            parent: None,
-        }
-    }
 }
 
 impl Scope {
@@ -70,28 +57,13 @@ impl Scope {
         Default::default()
     }
 
-    /// Create a Child Scope
-    ///
-    /// Builds a scope which forwards lookups for undefined items to
-    /// the given parent scope.
-    pub fn with_parent(parent: Scope) -> Self {
-        Scope {
-            symbols: Default::default(),
-            parent: Some(Box::new(parent)),
-        }
-    }
-
     /// Lookup a Symbol
     ///
     /// Searches the current scope, and any parent scopes, for the
     /// given identifier. If any symbol is bound to the idnetifier it
     /// is returned otherwise `None` is returned.
     pub fn lookup(&self, ident: Ident) -> Option<Symbol> {
-        if let Some(sym) = self.symbols.get(&ident) {
-            return Some(*sym);
-        }
-
-        self.parent.as_ref().and_then(|p| p.lookup(ident))
+        self.symbols.get(&ident).cloned()
     }
 
     /// Declare a Symbol
@@ -109,13 +81,44 @@ impl Scope {
     }
 }
 
+/// Stack of scopes
+pub struct ScopeStack(Vec<Scope>);
+
+impl ScopeStack {
+
+    /// Create a new scope stack with the given scope as the base
+    pub fn new(base: Scope) -> Self {
+        ScopeStack(vec!{ base })
+    }
+
+    /// Lookup a symbol in the scope stack
+    pub fn lookup(&self, id: Ident) -> Option<Symbol> {
+        self.0.iter().rev().find_map(|s| s.lookup(id))
+    }
+
+    /// Get the scope at the top of the stack
+    pub fn current_mut(&mut self) -> &mut Scope {
+        self.0.last_mut().unwrap()
+    }
+
+    /// Push a new scope
+    pub fn push(&mut self, scope: Scope) {
+        self.0.push(scope)
+    }
+
+    /// Pop the current scope from the stack
+    pub fn pop(&mut self) -> Option<Scope> {
+        self.0.pop()
+    }
+}
+
 /// Syntax Binder
 ///
 /// Holds the scope information and declared items for an ongoing
 /// binding operation.
 pub struct Binder {
     /// The current scope
-    scope: Scope,
+    scopes: ScopeStack,
     /// The diagnostics for the current bind
     diagnostics: Vec<Diagnostic>,
 }
@@ -124,7 +127,7 @@ impl Binder {
     /// Create Binder for the Given Scope
     pub fn new(scope: Scope) -> Self {
         Binder {
-            scope,
+            scopes: ScopeStack::new(scope),
             diagnostics: Vec::new(),
         }
     }
@@ -135,8 +138,8 @@ impl Binder {
     /// in the binder's current scope.
     pub fn bind_tree(&mut self, tree: syntax::SyntaxTree<'_>) -> Expression {
         let source = tree.source();
+        add_builtin_types(self.scopes.current_mut(), source);
         let (expr, _end) = tree.into_parts();
-        add_builtin_types(&mut self.scope, source);
         self.bind_expression(&expr, source)
     }
 
@@ -153,6 +156,7 @@ impl Binder {
             Prefix(ref pref) => self.bind_prefix(pref, source),
             Infix(ref innie) => self.bind_infix(innie, source),
             // TODO: bind remainning expression kinds
+            Loop(ref loop_expr) => self.bind_loop(loop_expr, source),
             Sequence(ref exprs) => self.bind_sequence(&exprs[..], source),
             Print(ref print) => self.bind_print(print, source),
             Declaration(ref decl) => self.bind_declaration(decl, source),
@@ -167,7 +171,7 @@ impl Binder {
         ident: &syntax::IdentifierExpression,
         source: &SourceText,
     ) -> Expression {
-        match self.scope.lookup(ident.ident) {
+        match self.scopes.lookup(ident.ident) {
             Some(Symbol::Variable(typ)) => {
                 let id_str = source.interned_value(ident.ident);
                 Expression::new(ExpressionKind::Identifier(id_str), Some(typ))
@@ -271,7 +275,7 @@ impl Binder {
         infix: &syntax::InfixOperatorExpression,
         source: &SourceText,
     ) -> Expression {
-        match self.scope.lookup(id.ident) {
+        match self.scopes.lookup(id.ident) {
             Some(Symbol::Variable(typ)) => {
                 let rhs = self.bind_expression(&infix.right, source);
                 let resolved_ty = rhs.typ.unwrap_or(typ);
@@ -307,6 +311,24 @@ impl Binder {
                 Expression::error()
             }
         }
+    }
+
+    /// Bind a loop expression
+    pub fn bind_loop(
+        &mut self,
+        loop_expr: &syntax::LoopExpression,
+        source: &SourceText,
+    ) -> Expression {
+        let mut condition = self.bind_expression(&loop_expr.condition, source);
+        if loop_expr.kw_token.kind == TokenKind::Word(Ident::Until) {
+            let typ = condition.typ;
+            condition = Expression::new(
+                ExpressionKind::Prefix(PrefixOp::Not, Box::new(condition)),
+                typ,
+            );
+        }
+        let body = self.bind_block(&loop_expr.body, source);
+        Expression::new(ExpressionKind::Loop(Box::new(condition), Box::new(body)), Some(Typ::Unit))
     }
 
     /// Bind a sequence of expressions
@@ -377,7 +399,8 @@ impl Binder {
             bound_initialiser.typ
         };
 
-        self.scope
+        self.scopes
+            .current_mut()
             .try_declare(id, Symbol::Variable(ty.unwrap_or(Typ::Unknown)));
 
         let is_mut = decl.style == VarStyle::Mutable;
@@ -394,6 +417,21 @@ impl Binder {
         )
     }
 
+    /// Bind a block expression
+    ///
+    /// Creates a new scope and binds the contents of the block in
+    /// that scope before popping that scope from the stack.
+    pub fn bind_block(&mut self, block: &syntax::BlockBody, source: &SourceText) -> Expression {
+        // TODO: Need to push the scope around this
+        // block. Unfortunately Rust isn't too happy about the way
+        // we're trying to have a linked list of scopes. Time to cut
+        // losses and just switch to a stack?
+        self.scopes.push(Scope::new());
+        let bound = self.bind_expression(&block.contents, source);
+        self.scopes.pop();
+        bound
+    }
+
     /// Bind the type in the current scope
     ///
     /// Looks the type up if there is an annotation. If the annotation
@@ -406,7 +444,7 @@ impl Binder {
                     TokenKind::Word(id) => id,
                     _ => panic!("Expected word token"),
                 };
-                match self.scope.lookup(id) {
+                match self.scopes.lookup(id) {
                     Some(Symbol::Type(ty)) => ty.clone(),
                     _ => {
                         self.diagnostics
@@ -456,11 +494,9 @@ mod test {
     fn create_scope() {
         let mut interner = Interner::new();
 
-        let parent = Scope::new();
-        let child = Scope::with_parent(Default::default());
+        let scope = Scope::new();
 
-        assert_eq!(None, parent.lookup(interner.intern("foo")));
-        assert_eq!(None, child.lookup(interner.intern("foo")));
+        assert_eq!(None, scope.lookup(interner.intern("foo")));
     }
 
     #[test]
@@ -487,15 +523,18 @@ mod test {
         assert!(scope.try_declare(foo_id, Symbol::Variable(Typ::Builtin(BuiltinType::Number))));
         assert!(scope.try_declare(bar_id, Symbol::Variable(Typ::Unit)));
 
-        let mut scope = Scope::with_parent(scope);
+        let mut scopes = ScopeStack::new(scope);
+        let mut scope = Scope::new();
 
         assert!(scope.try_declare(bar_id, Symbol::Variable(Typ::Builtin(BuiltinType::String))));
         assert!(scope.try_declare(baz_id, Symbol::Variable(Typ::Builtin(BuiltinType::Bool))));
 
-        let foo_lookup = scope.lookup(foo_id);
-        let bar_lookup = scope.lookup(bar_id);
-        let baz_lookup = scope.lookup(baz_id);
-        let failed = scope.lookup(interner.intern("nothere"));
+        scopes.push(scope);
+
+        let foo_lookup = scopes.lookup(foo_id);
+        let bar_lookup = scopes.lookup(bar_id);
+        let baz_lookup = scopes.lookup(baz_id);
+        let failed = scopes.lookup(interner.intern("nothere"));
 
         assert_eq!(
             Some(Symbol::Variable(Typ::Builtin(BuiltinType::Number))),
@@ -510,6 +549,28 @@ mod test {
             baz_lookup
         );
         assert_eq!(None, failed);
+    }
+
+    #[test]
+    fn scope_stack_current()
+    {
+        let source = SourceText::new("");
+        let mut scopes = ScopeStack::new(Scope::new());
+
+
+        assert!(scopes.current_mut().try_declare(source.intern("foo"), Symbol::Variable(Typ::Builtin(BuiltinType::Bool))));
+        assert!(!scopes.current_mut().try_declare(source.intern("foo"), Symbol::Variable(Typ::Builtin(BuiltinType::Bool))));
+
+        scopes.push(Scope::new());
+
+        assert!(scopes.current_mut().try_declare(source.intern("foo"), Symbol::Variable(Typ::Builtin(BuiltinType::Number))));
+        assert!(!scopes.current_mut().try_declare(source.intern("foo"), Symbol::Variable(Typ::Builtin(BuiltinType::String))));
+
+        assert_eq!(Some(Symbol::Variable(Typ::Builtin(BuiltinType::Number))), scopes.lookup(source.intern("foo")));
+
+        scopes.pop();
+
+assert_eq!(Some(Symbol::Variable(Typ::Builtin(BuiltinType::Bool))), scopes.lookup(source.intern("foo")));
     }
 
     #[test]
