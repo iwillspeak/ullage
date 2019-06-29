@@ -53,7 +53,7 @@ impl Interner {
     pub fn new() -> Self {
         Default::default()
     }
-    
+
     /// Intern a String
     ///
     /// If the string is already in this `Interner` then the existing

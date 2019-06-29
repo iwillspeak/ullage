@@ -65,12 +65,9 @@ impl Compilation {
     ///  * `expr` - the expression to compile
     ///  * `opts` - The compilation options
     #[allow(clippy::new_ret_no_self)]
-    pub fn new(
-        tree: syntax::SyntaxTree,
-        opts: CompilationOptions,
-    ) -> CompResult<Self> {
+    pub fn new(tree: syntax::SyntaxTree, opts: CompilationOptions) -> CompResult<Self> {
         let mut binder = sem::Binder::new(sem::Scope::new());
-        let sem_expr = binder.bind_expression(tree);
+        let sem_expr = binder.bind_tree(tree);
         Ok(Compilation {
             expr: sem_expr,
             options: opts,

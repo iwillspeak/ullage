@@ -127,7 +127,9 @@ pub fn lower_internal(
     expr: Expression,
 ) -> CompResult<LLVMValueRef> {
     match expr.kind {
-        ExpressionKind::Error => Err(CompError::from(format!("ICE: Can't lower `Expression::Error`"))),
+        ExpressionKind::Error => Err(CompError::from(format!(
+            "ICE: Can't lower `Expression::Error`"
+        ))),
         ExpressionKind::Identifier(id) => match vars.get(&id) {
             Some(&(is_mut, val)) => Ok(if is_mut { builder.build_load(val) } else { val }),
             None => Err(CompError::from(format!("Reference to undefined '{}'", id))),
