@@ -14,7 +14,7 @@ use std::collections::{hash_map::Entry, HashMap};
 use std::default::Default;
 
 use super::operators;
-use super::tree::VarDecl;
+use super::tree::{FnDecl, VarDecl};
 use super::{BuiltinType, Expression, ExpressionKind, Typ};
 use crate::diag::Diagnostic;
 use crate::syntax::{
@@ -156,6 +156,7 @@ impl Binder {
             Prefix(ref pref) => self.bind_prefix(pref, source),
             Infix(ref innie) => self.bind_infix(innie, source),
             // TODO: bind remainning expression kinds
+            Function(ref func) => self.bind_function(func, source),
             Loop(ref loop_expr) => self.bind_loop(loop_expr, source),
             Sequence(ref exprs) => self.bind_sequence(&exprs[..], source),
             Print(ref print) => self.bind_print(print, source),
@@ -311,6 +312,52 @@ impl Binder {
                 Expression::error()
             }
         }
+    }
+
+    /// Bind a function definition
+    pub fn bind_function(&mut self, func: &syntax::FunctionExpression, source: &SourceText) -> Expression {
+
+        // Function binding needs to create a new binder first, then
+        // we bind the funciton in that scope and insert a symbol into
+        // _our_ scope when done.
+        let mut parent_scope = Scope::new();
+        // HAXX: Instead we should flatten out the root scope of the
+        //       current stack.
+        add_builtin_types(&mut parent_scope, source);
+
+        let params = func.params
+            .iter()
+            .map(|p| {
+                let p = p.as_inner();
+                let typ = match p.typ.as_ref() {
+                    Some(anno) => {
+                        self.bind_type(&anno.type_ref)
+                    },
+                    None => {
+self.diagnostics.push(Diagnostic::new(format!("Parameter '{}' missing type", source.interned_value(p.id)), p.id_tok.span()));
+                        Typ::Error
+                    }
+                };
+                parent_scope.try_declare(p.id, Symbol::Variable(typ));
+                VarDecl {
+                    ident: source.interned_value(p.id),
+                    ty: Some(typ),
+                }
+            })
+            .collect();
+
+        let mut binder = Binder::new(parent_scope);
+        let bound_body = binder.bind_block(&func.body, source);
+        let ret_ty = self.bind_type(&func.return_type.type_ref);
+
+        self.scopes.current_mut().try_declare(func.identifier, Symbol::Function);
+
+        Expression::new(ExpressionKind::Function(FnDecl {
+            ident: source.interned_value(func.identifier),
+            ret_ty,
+            params,
+            body: Box::new(bound_body),
+        }), Some(Typ::Error))
     }
 
     /// Bind a loop expression
