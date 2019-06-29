@@ -10,7 +10,7 @@
 //! second traveral visits each item and binds symbol and name
 //! information.
 
-use std::collections::{hash_map::Entry, HashMap};
+use std::collections::{hash_map::Entry, HashMap, HashSet};
 use std::default::Default;
 
 use super::operators;
@@ -325,6 +325,8 @@ impl Binder {
         //       current stack.
         add_builtin_types(&mut parent_scope, source);
 
+        let mut seen_idents = HashSet::new();
+
         let params = func.params
             .iter()
             .map(|p| {
@@ -338,6 +340,9 @@ self.diagnostics.push(Diagnostic::new(format!("Parameter '{}' missing type", sou
                         Typ::Error
                     }
                 };
+                if !seen_idents.insert(p.id) {
+                    self.diagnostics.push(Diagnostic::new(format!("Duplicate function parameter '{}'", source.interned_value(p.id)), p.id_tok.span()));
+                }
                 parent_scope.try_declare(p.id, Symbol::Variable(typ));
                 VarDecl {
                     ident: source.interned_value(p.id),

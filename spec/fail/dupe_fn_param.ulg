@@ -1,0 +1,4 @@
+# !> 2:27:error: Duplicate function parameter 'a'
+fn foo(a: Number, b: Bool, a: String): Number
+   100
+end
