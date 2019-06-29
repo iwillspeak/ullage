@@ -80,7 +80,7 @@ impl<T> DelimItem<T> {
 }
 
 /// Literal / Constant Value
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Constant {
     /// A Numeric Value
     Number(i64),

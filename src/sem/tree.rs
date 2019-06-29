@@ -4,8 +4,7 @@
 //! decorated/semantic expression tree.
 
 use super::types::*;
-use crate::syntax::Constant;
-use crate::syntax::{InfixOp, PrefixOp};
+use crate::syntax::{Constant, InfixOp, PrefixOp};
 
 /// A Function Decclaration
 ///
@@ -34,6 +33,8 @@ pub struct FnDecl {
 /// function parameters.
 pub struct VarDecl {
     /// The logical name of the declataion
+    ///
+    /// FIXME: proper idents rather than strings in the bound tree.
     pub ident: String,
 
     /// The type of the identifier, if one was specified or inferred.

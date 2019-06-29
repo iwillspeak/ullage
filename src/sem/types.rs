@@ -13,6 +13,10 @@ use std::borrow::Cow;
 /// semantic tree could have.
 #[derive(Debug, PartialEq, Eq, Copy, Clone, Hash)]
 pub enum Typ {
+    /// The given expression is invalid. Futher binding or inference
+    /// based off this type is meaningless.
+    Error,
+
     /// Type yet to be inferred.
     Unknown,
 
@@ -27,6 +31,7 @@ impl Typ {
     /// Returns the name of a given type
     pub fn name(&self) -> Cow<'_, str> {
         Cow::Borrowed(match *self {
+            Typ::Error => "!ERROR!",
             Typ::Unknown => "_",
             Typ::Unit => "()",
             Typ::Builtin(ref b) => match *b {
