@@ -1,0 +1,6 @@
+print !false # => true
+print !true # => false
+print +100 # => 100
+print -100 # => -100
+print - - 100 # => 100
+print !!false # => false

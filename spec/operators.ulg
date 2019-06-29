@@ -13,3 +13,4 @@ print 5 < 6 # => true
 print 5 <= 5 # => true
 print 5 > 6 # => false
 print 5 >= 5 # => true
+print !!((-100 + + 100) == 0) # => true
