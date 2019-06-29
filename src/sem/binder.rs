@@ -13,13 +13,14 @@
 use std::collections::{hash_map::Entry, HashMap};
 use std::default::Default;
 
+use super::operators;
 use super::tree::VarDecl;
 use super::{BuiltinType, Expression, ExpressionKind, Typ};
 use crate::diag::Diagnostic;
 use crate::syntax::{
     self,
-    text::{Ident, SourceText},
-    Constant, TokenKind, TypeRef, VarStyle,
+    text::{Ident, SourceText, Span},
+    Constant, InfixOp, SyntaxNode, TokenKind, TypeRef, VarStyle,
 };
 
 /// Symbol
@@ -149,6 +150,8 @@ impl Binder {
         match *expression {
             Identifier(ref ident) => self.bind_identifier(ident, source),
             Literal(ref lit) => self.bind_literal(lit),
+            Prefix(ref pref) => self.bind_prefix(pref, source),
+            Infix(ref innie) => self.bind_infix(innie, source),
             // TODO: bind remainning expression kinds
             Sequence(ref exprs) => self.bind_sequence(&exprs[..], source),
             Print(ref print) => self.bind_print(print, source),
@@ -201,6 +204,109 @@ impl Binder {
             Constant::String(_) => BuiltinType::String,
         });
         Expression::new(ExpressionKind::Literal(constant_value), Some(typ))
+    }
+
+    /// Prefix operation
+    pub fn bind_prefix(
+        &mut self,
+        pref: &syntax::PrefixExpression,
+        source: &SourceText,
+    ) -> Expression {
+        let bound_inner = self.bind_expression(&pref.inner, source);
+        // TODO: Do we wnat some kind of type table for these
+        //       operations like we have for infix operators?
+        let typ = bound_inner.typ;
+        Expression::new(ExpressionKind::Prefix(pref.op, Box::new(bound_inner)), typ)
+    }
+
+    /// Bind an infix operator expression
+    pub fn bind_infix(
+        &mut self,
+        infix: &syntax::InfixOperatorExpression,
+        source: &SourceText,
+    ) -> Expression {
+        if infix.op == InfixOp::Assign {
+            if let syntax::Expression::Identifier(ref id) = *infix.left {
+                self.bind_assign(id, infix, source)
+            } else {
+                self.diagnostics.push(Diagnostic::new(
+                    "left hand side of an assignment must be an identifier",
+                    infix.left.span(),
+                ));
+                Expression::error()
+            }
+        } else {
+            let lhs = self.bind_expression(&infix.left, source);
+            let rhs = self.bind_expression(&infix.right, source);
+
+            let lhs_typ = lhs.typ.unwrap_or(Typ::Unknown);
+            let rhs_typ = rhs.typ.unwrap_or(Typ::Unknown);
+
+            // Look the operator up in the operator table to check if
+            // it is permissable and what the reutnr type is.
+            match operators::find_builtin_op(infix.op, lhs_typ, rhs_typ) {
+                Some(operator) => Expression::new(
+                    ExpressionKind::Infix(Box::new(lhs), infix.op, Box::new(rhs)),
+                    Some(operator.result_typ),
+                ),
+                None => {
+                    self.diagnostics.push(Diagnostic::new(
+                        format!("Use of operator `{:?}` with invalid arguments", infix.op),
+                        Span::enclosing(infix.left.span(), infix.right.span()),
+                    ));
+                    Expression::error()
+                }
+            }
+        }
+    }
+
+    /// Bind assignment to a given indentifier expression
+    ///
+    /// The given infix operator should be an assignment
+    /// expression. The bound result is the assignment of the rhs of
+    /// that expression to the given identifier.
+    fn bind_assign(
+        &mut self,
+        id: &syntax::IdentifierExpression,
+        infix: &syntax::InfixOperatorExpression,
+        source: &SourceText,
+    ) -> Expression {
+        match self.scope.lookup(id.ident) {
+            Some(Symbol::Variable(typ)) => {
+                let rhs = self.bind_expression(&infix.right, source);
+                let resolved_ty = rhs.typ.unwrap_or(typ);
+                if resolved_ty != typ {
+                    self.diagnostics.push(Diagnostic::new(
+                        format!(
+                            "Type mismatch in assignment to '{}' ",
+                            source.interned_value(id.ident)
+                        ),
+                        infix.op_token.span(),
+                    ));
+                }
+                Expression::new(
+                    ExpressionKind::Assignment(source.interned_value(id.ident), Box::new(rhs)),
+                    Some(resolved_ty),
+                )
+            }
+            Some(_) => {
+                self.diagnostics.push(Diagnostic::new(
+                    format!(
+                        "Can't write to '{}' as it isn't a variable.",
+                        source.interned_value(id.ident)
+                    ),
+                    id.token.span(),
+                ));
+                Expression::error()
+            }
+            None => {
+                self.diagnostics.push(Diagnostic::new(
+                    format!("Can't assign to '{}'", source.interned_value(id.ident)),
+                    id.token.span(),
+                ));
+                Expression::error()
+            }
+        }
     }
 
     /// Bind a sequence of expressions
