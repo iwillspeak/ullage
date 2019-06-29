@@ -323,7 +323,6 @@ impl Binder {
     }
 }
 
-
 /// Add the Default Type Declarations
 fn add_builtin_types(scope: &mut Scope, source: &SourceText) {
     scope.try_declare(
@@ -345,6 +344,7 @@ mod test {
     use super::super::BuiltinType;
     use super::*;
     use crate::syntax::text::Interner;
+    use crate::syntax::{IdentifierExpression, Literal, LiteralExpression, Token, TokenKind};
 
     #[test]
     fn create_scope() {
@@ -407,25 +407,66 @@ mod test {
     }
 
     #[test]
-    fn test_add_default_types()
-    {
+    fn test_add_default_types() {
         let mut scope = Scope::new();
         let source = SourceText::new("");
 
         add_builtin_types(&mut scope, &source);
 
         let string_lookup = scope.lookup(source.intern("String"));
-        assert_eq!(Some(Symbol::Type(Typ::Builtin(BuiltinType::String))), string_lookup);
+        assert_eq!(
+            Some(Symbol::Type(Typ::Builtin(BuiltinType::String))),
+            string_lookup
+        );
 
         let bool_lookup = scope.lookup(source.intern("Bool"));
-        assert_eq!(Some(Symbol::Type(Typ::Builtin(BuiltinType::Bool))), bool_lookup);
+        assert_eq!(
+            Some(Symbol::Type(Typ::Builtin(BuiltinType::Bool))),
+            bool_lookup
+        );
 
         let num_lookup = scope.lookup(source.intern("Number"));
-        assert_eq!(Some(Symbol::Type(Typ::Builtin(BuiltinType::Number))), num_lookup);
+        assert_eq!(
+            Some(Symbol::Type(Typ::Builtin(BuiltinType::Number))),
+            num_lookup
+        );
     }
 
     #[test]
-    fn create_binder() {
-        let _binder = Binder::new(Scope::new());
+    fn bind_lookup() {
+        let source = SourceText::new("");
+        let mut scope = Scope::new();
+        scope.try_declare(
+            source.intern("melles"),
+            Symbol::Variable(Typ::Builtin(BuiltinType::Bool)),
+        );
+        let mut binder = Binder::new(scope);
+
+        let bound = binder.bind_identifier(
+            &IdentifierExpression {
+                ident: source.intern("melles"),
+                token: Box::new(Token::new(TokenKind::Word(source.intern("melles")))),
+            },
+            &source,
+        );
+
+        assert_eq!(ExpressionKind::Identifier("melles".into()), bound.kind);
+        assert_eq!(Some(Typ::Builtin(BuiltinType::Bool)), bound.typ);
     }
+
+    #[test]
+    fn bind_const() {
+        let mut binder = Binder::new(Scope::new());
+
+        let bound = binder.bind_literal(&LiteralExpression {
+            token: Box::new(Token::new(TokenKind::Literal(Literal::Number(1337)))),
+            value: Constant::Number(1337),
+        });
+
+        assert_eq!(ExpressionKind::Literal(Constant::Number(1337)), bound.kind);
+        assert_eq!(Some(Typ::Builtin(BuiltinType::Number)), bound.typ);
+    }
+
+    // TODO: Do we want some kind of snapshot testing here to check
+    //       the transformation / bind of known parses?
 }
