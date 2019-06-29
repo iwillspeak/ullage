@@ -10,6 +10,7 @@ use crate::syntax::{Constant, InfixOp, PrefixOp};
 ///
 /// Represents the context contained in the semantic tree for a
 /// function declaration. Defined as a struct for convenience.
+#[derive(Debug, PartialEq)]
 pub struct FnDecl {
     /// The declaration's logical name
     pub ident: String,
@@ -31,6 +32,7 @@ pub struct FnDecl {
 /// Represents the binding of a given type to an identifier to create
 /// a variable. Used both for local variable declarations as well as
 /// function parameters.
+#[derive(Debug, PartialEq)]
 pub struct VarDecl {
     /// The logical name of the declataion
     ///
@@ -46,6 +48,7 @@ pub struct VarDecl {
 /// This struct represents the expression tree after semantic
 /// analysis. This is no longer guaranteed to be a a lieral
 /// representation of the code as it was written.
+#[derive(Debug, PartialEq)]
 pub struct Expression {
     /// The contents of this expression.
     pub kind: ExpressionKind,
@@ -60,6 +63,7 @@ pub struct Expression {
 /// in the semantic tree. This is similar to the `syntax::Expression`
 /// enum however some information may have been elided or reordered to
 /// better suit the lowering process.
+#[derive(Debug, PartialEq)]
 pub enum ExpressionKind {
     /// Invalid Expression
     ///
@@ -146,7 +150,6 @@ impl Expression {
     /// Create an Error Expresion
     ///
     /// Convenience function for returning error expressions.
-
     pub fn error() -> Self {
         Expression::new(ExpressionKind::Error, None)
     }
