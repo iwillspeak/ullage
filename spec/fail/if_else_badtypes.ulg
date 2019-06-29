@@ -1,0 +1,5 @@
+# !> 2:13:error: Condition expression should be 'Bool' but is 'Number'
+let a = 1 if 2 else 3
+
+# !> 5:8:error: If and else have mismatched types
+let b = true if 1 != 0 else ''
