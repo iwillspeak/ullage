@@ -109,6 +109,21 @@ impl ScopeStack {
     pub fn pop(&mut self) -> Option<Scope> {
         self.0.pop()
     }
+
+    /// Flatten the current scope into a single target scope. This is
+    /// intended for creating a new base scope for child items
+    /// (functions etc.) Without this import mutual recursion wouldn't
+    /// be possible as the child items wouldn't be able to see their
+    /// siblings.
+    pub fn flatten_into(&self, target: &mut Scope) {
+        for scope in self.0.iter().rev() {
+            for (id, sym) in scope.symbols.iter() {
+                // TODO: Do we really want to import all symbols from
+                //       a given scope into the child?
+                target.try_declare(*id, *sym);
+            }
+        }
+    }
 }
 
 /// Syntax Binder
@@ -139,7 +154,32 @@ impl Binder {
         let source = tree.source();
         add_builtin_types(self.scopes.current_mut(), source);
         let (expr, _end) = tree.into_parts();
+        self.declare_expression(&expr);
         self.bind_expression(&expr, source)
+    }
+
+    /// Declare any items in the current expression that should be visible in this scope.
+    pub fn declare_expression(&mut self, expression: &syntax::Expression) {
+        use syntax::Expression::*;
+        match *expression {
+            Function(ref func) => self.declare_function(func),
+            Sequence(ref seq) => {
+                for expr in seq.iter() {
+                    self.declare_expression(expr);
+                }
+            }
+            Grouping(ref group) => self.declare_expression(&group.inner),
+            _ => {}
+        }
+    }
+
+    /// Declare a funtion in the current scope
+    pub fn declare_function(&mut self, func: &syntax::FunctionExpression) {
+        // TODO: Need to work out the type of the function here and
+        // deal with that properly.
+        self.scopes
+            .current_mut()
+            .try_declare(func.identifier, Symbol::Function);
     }
 
     /// Bind a Single Expression
@@ -154,7 +194,7 @@ impl Binder {
             Literal(ref lit) => self.bind_literal(lit),
             Prefix(ref pref) => self.bind_prefix(pref, source),
             Infix(ref innie) => self.bind_infix(innie, source),
-            // TODO: bind remainning expression kinds
+            Call(ref call) => self.bind_call(call, source),
             Index(ref index) => self.bind_index(index, source),
             IfThenElse(ref if_else_expr) => self.bind_if_else(if_else_expr, source),
             Function(ref func) => self.bind_function(func, source),
@@ -163,7 +203,6 @@ impl Binder {
             Print(ref print) => self.bind_print(print, source),
             Declaration(ref decl) => self.bind_declaration(decl, source),
             Grouping(ref group) => self.bind_expression(&group.inner, source),
-            _ => Expression::error(),
         }
     }
 
@@ -173,31 +212,25 @@ impl Binder {
         ident: &syntax::IdentifierExpression,
         source: &SourceText,
     ) -> Expression {
-        match self.scopes.lookup(ident.ident) {
-            Some(Symbol::Variable(typ)) => {
-                let id_str = source.interned_value(ident.ident);
-                Expression::new(ExpressionKind::Identifier(id_str), Some(typ))
-            }
-            Some(_) => {
-                self.diagnostics.push(Diagnostic::new(
-                    format!(
-                        "Attempt to read from '{}' which isn't a vairable",
-                        source.interned_value(ident.ident)
-                    ),
-                    ident.token.span(),
-                ));
-                Expression::error()
-            }
-            None => {
-                self.diagnostics.push(Diagnostic::new(
-                    format!(
-                        "Reference to undefined item '{}'",
-                        source.interned_value(ident.ident)
-                    ),
-                    ident.token.span(),
-                ));
-                Expression::error()
-            }
+        if let Some(sym) = self.scopes.lookup(ident.ident) {
+            let id_str = source.interned_value(ident.ident);
+            let typ = match sym {
+                Symbol::Variable(t) => Some(t),
+                // FIXME: function types
+                Symbol::Function => None,
+                // FIXME: First-class types?
+                Symbol::Type(_typ) => None,
+            };
+            Expression::new(ExpressionKind::Identifier(id_str), typ)
+        } else {
+            self.diagnostics.push(Diagnostic::new(
+                format!(
+                    "Reference to undefined item '{}'",
+                    source.interned_value(ident.ident)
+                ),
+                ident.token.span(),
+            ));
+            Expression::error()
         }
     }
 
@@ -232,6 +265,7 @@ impl Binder {
         source: &SourceText,
     ) -> Expression {
         if infix.op == InfixOp::Assign {
+            // TODO: can we unify this with call expressions
             if let syntax::Expression::Identifier(ref id) = *infix.left {
                 self.bind_assign(id, infix, source)
             } else {
@@ -315,6 +349,18 @@ impl Binder {
         }
     }
 
+    /// Bind a function call expression
+    pub fn bind_call(&mut self, call: &syntax::CallExpression, source: &SourceText) -> Expression {
+        let callee = self.bind_expression(&call.callee, source);
+        let args = call
+            .arguments
+            .iter()
+            .map(|arg| self.bind_expression(arg, source))
+            .collect();
+
+        Expression::new(ExpressionKind::Call(Box::new(callee), args), None)
+    }
+
     /// Bind an index/slice expression
     pub fn bind_index(
         &mut self,
@@ -325,7 +371,10 @@ impl Binder {
         let _inddex = self.bind_expression(&index.index, source);
 
         // TODO: Index expressions.
-        self.diagnostics.push(Diagnostic::new("Index expressions are not yet supported", Span::enclosing(index.open_bracket.span(), index.close_bracket.span())));
+        self.diagnostics.push(Diagnostic::new(
+            "Index expressions are not yet supported",
+            Span::enclosing(index.open_bracket.span(), index.close_bracket.span()),
+        ));
         Expression::error()
     }
 
@@ -379,9 +428,7 @@ impl Binder {
         // we bind the funciton in that scope and insert a symbol into
         // _our_ scope when done.
         let mut parent_scope = Scope::new();
-        // HAXX: Instead we should flatten out the root scope of the
-        //       current stack.
-        add_builtin_types(&mut parent_scope, source);
+        self.scopes.flatten_into(&mut parent_scope);
 
         let mut seen_idents = HashSet::new();
         let params = func
