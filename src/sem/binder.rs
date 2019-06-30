@@ -155,6 +155,7 @@ impl Binder {
             Prefix(ref pref) => self.bind_prefix(pref, source),
             Infix(ref innie) => self.bind_infix(innie, source),
             // TODO: bind remainning expression kinds
+            Index(ref index) => self.bind_index(index, source),
             IfThenElse(ref if_else_expr) => self.bind_if_else(if_else_expr, source),
             Function(ref func) => self.bind_function(func, source),
             Loop(ref loop_expr) => self.bind_loop(loop_expr, source),
@@ -314,6 +315,20 @@ impl Binder {
         }
     }
 
+    /// Bind an index/slice expression
+    pub fn bind_index(
+        &mut self,
+        index: &syntax::IndexExpression,
+        source: &SourceText,
+    ) -> Expression {
+        let _indexee = self.bind_expression(&index.indexee, source);
+        let _inddex = self.bind_expression(&index.index, source);
+
+        // TODO: Index expressions.
+        self.diagnostics.push(Diagnostic::new("Index expressions are not yet supported", Span::enclosing(index.open_bracket.span(), index.close_bracket.span())));
+        Expression::error()
+    }
+
     /// Bind a if then else expression
     pub fn bind_if_else(
         &mut self,
@@ -324,6 +339,10 @@ impl Binder {
         let if_true = self.bind_expression(&if_else.if_true, source);
         let if_false = self.bind_expression(&if_else.if_false, source);
 
+        // Check that the condition type is bool
+        //
+        // TODO: Bind a conversion to bool here to allow `if` to
+        //       coerce values to `Bool`
         let cond_ty = cond.typ.unwrap_or(Typ::Unknown);
         if cond_ty != Typ::Builtin(BuiltinType::Bool) {
             self.diagnostics.push(Diagnostic::new(
