@@ -66,7 +66,10 @@ impl SourceText {
     pub fn from_path<P: AsRef<Path>>(path: P) -> io::Result<Self> {
         let mut s = String::new();
         File::open(path.as_ref())?.read_to_string(&mut s)?;
-        Ok(SourceText::with_name(s, path.as_ref().display().to_string()))
+        Ok(SourceText::with_name(
+            s,
+            path.as_ref().display().to_string(),
+        ))
     }
 
     /// Get the Starting Position
@@ -127,7 +130,7 @@ impl SourceText {
         let begin_pos = Pos::from(self.line_offsets[index]);
         for line_offset in &self.line_offsets[index..] {
             if *line_offset > end_offset {
-                return (begin_pos, Pos::from(*line_offset))
+                return (begin_pos, Pos::from(*line_offset));
             }
         }
         // if we couldn't find the start of a line after this one then

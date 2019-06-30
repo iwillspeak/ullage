@@ -28,12 +28,12 @@ use crate::syntax::{
 /// Symbols represent the different kinds of items that can be bound
 /// to names in a given scope. Examples are function arguments, local
 /// variables, and function declarations.
-#[derive(Debug, PartialEq, Copy, Clone)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Symbol {
     /// Function argument or local variable
     Variable(Typ),
     /// A Function declaration
-    Function,
+    Function(Vec<Typ>, Typ),
     /// A type
     Type(Typ),
 }
@@ -119,8 +119,8 @@ impl ScopeStack {
         for scope in self.0.iter().rev() {
             for (id, sym) in scope.symbols.iter() {
                 match *sym {
-                    Symbol::Function => {
-                        target.try_declare(*id, *sym);
+                    Symbol::Function(..) => {
+                        target.try_declare(*id, sym.clone());
                     }
                     _ => {}
                 }
@@ -180,9 +180,23 @@ impl Binder {
     pub fn declare_function(&mut self, func: &syntax::FunctionExpression) {
         // TODO: Need to work out the type of the function here and
         // deal with that properly.
+
+        let param_tys = func
+            .params
+            .iter()
+            .map(|param| {
+                param
+                    .as_inner()
+                    .typ
+                    .as_ref()
+                    .map(|t| self.bind_type(&t.type_ref))
+                    .unwrap_or(Typ::Error)
+            })
+            .collect();
+        let ret_ty = self.bind_type(&func.return_type.type_ref);
         self.scopes
             .current_mut()
-            .try_declare(func.identifier, Symbol::Function);
+            .try_declare(func.identifier, Symbol::Function(param_tys, ret_ty));
     }
 
     /// Bind a Single Expression
@@ -220,9 +234,9 @@ impl Binder {
             let typ = match sym {
                 Symbol::Variable(t) => Some(t),
                 // FIXME: function types
-                Symbol::Function => None,
+                Symbol::Function(..) => Some(Typ::Function(ident.ident)),
                 // FIXME: First-class types?
-                Symbol::Type(_typ) => None,
+                Symbol::Type(..) => None,
             };
             Expression::new(ExpressionKind::Identifier(id_str), typ)
         } else {
@@ -361,7 +375,30 @@ impl Binder {
             .map(|arg| self.bind_expression(arg, source))
             .collect();
 
-        Expression::new(ExpressionKind::Call(Box::new(callee), args), None)
+        match callee.typ {
+            Some(Typ::Function(id)) => {
+                match self.scopes.lookup(id) {
+                    Some(Symbol::Function(param_tys, ret_ty)) => {
+                        // TODO: type check this call:
+                        //  * Check that the parameter types match the
+                        //    argument types
+                        //  * Check the argument count matches the
+                        //    called item
+                        Expression::new(ExpressionKind::Call(Box::new(callee), args), Some(ret_ty))
+                    }
+                    _ => {
+                        unreachable!();
+                    }
+                }
+            }
+            _ => {
+                self.diagnostics.push(Diagnostic::new(
+                    "Called item is not a function",
+                    call.callee.span(),
+                ));
+                Expression::error()
+            }
+        }
     }
 
     /// Bind an index/slice expression
@@ -418,8 +455,9 @@ impl Binder {
             self.diagnostics.push(Diagnostic::new(
                 format!(
                     "If and else have mismatched types. '{}' and '{}'",
-                        true_typ.name(), false_typ.name()
-                        ),
+                    true_typ.name(),
+                    false_typ.name()
+                ),
                 Span::enclosing(if_else.if_true.span(), if_else.if_false.span()),
             ));
         }

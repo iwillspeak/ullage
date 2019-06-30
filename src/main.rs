@@ -242,7 +242,13 @@ fn dump_diagnostics(source: &text::SourceText, diagnostics: &[diag::Diagnostic])
             eprintln!("{}:error: {}", source.name(), error.message);
         } else {
             let pos = source.line_pos(error.span.start());
-            eprintln!("{}:{}:{}:error: {}", source.name(), pos.0, pos.1, error.message);
+            eprintln!(
+                "{}:{}:{}:error: {}",
+                source.name(),
+                pos.0,
+                pos.1,
+                error.message
+            );
             let (s, e) = source.line_extents(error.span);
             eprintln!("     |");
             let mut line_no = pos.0;
