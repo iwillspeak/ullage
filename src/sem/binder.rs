@@ -228,7 +228,7 @@ impl Binder {
         } else {
             self.diagnostics.push(Diagnostic::new(
                 format!(
-                    "Reference to undefined item '{}'",
+                    "Can't find '{}' in this scope",
                     source.interned_value(ident.ident)
                 ),
                 ident.token.span(),
@@ -427,9 +427,12 @@ impl Binder {
         func: &syntax::FunctionExpression,
         source: &SourceText,
     ) -> Expression {
-        // Function binding needs to create a new binder first, then
-        // we bind the funciton in that scope and insert a symbol into
-        // _our_ scope when done.
+        // Function binding is done in two parts. First a declaration
+        // symbol for the function is inserted into the scope when
+        // `declare_function` is called. Later when each expression in
+        // the tree is visited again for binding the body of the
+        // function is bound in a new child scope.
+
         let mut parent_scope = Scope::new();
         self.scopes.flatten_decls_into(&mut parent_scope);
 
@@ -470,9 +473,8 @@ impl Binder {
         let bound_body = binder.bind_block(&func.body, source);
         let ret_ty = self.bind_type(&func.return_type.type_ref);
 
-        self.scopes
-            .current_mut()
-            .try_declare(func.identifier, Symbol::Function);
+        // Report any diagnostics from the child binder in this bind.
+        self.diagnostics.append(&mut binder.take_diagnostics());
 
         Expression::new(
             ExpressionKind::Function(FnDecl {
