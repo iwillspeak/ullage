@@ -5,6 +5,7 @@
 //! global type registry which is used during compilation for type
 //! checking and inferrance.
 
+use crate::syntax::text::Ident;
 use std::borrow::Cow;
 
 /// Semantic Type
@@ -25,6 +26,19 @@ pub enum Typ {
 
     /// One of the given basic types in the language.
     Builtin(BuiltinType),
+
+    /// A function. We can't store the type in here properly as that
+    /// would break the `Copy` of `typ`. Instead we just store the
+    /// ident of the function to use later when looking it back up.
+    /// It's major HAXX.
+    ///
+    /// # Issues
+    /// 
+    /// FIXME: We need to create a sepration between the
+    /// trivially-copyable `Typ` and some `TypeInfo` which contains
+    /// the full information for the type rather than using this
+    /// id-stashing workaround
+    Function(Ident),
 }
 
 impl Typ {
@@ -39,6 +53,7 @@ impl Typ {
                 BuiltinType::Bool => "Bool",
                 BuiltinType::String => "String",
             },
+            Typ::Function(id) => return Cow::Owned(format!("Function({:?})", id)),
         })
     }
 }
