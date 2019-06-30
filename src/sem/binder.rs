@@ -407,10 +407,19 @@ impl Binder {
         }
 
         let typ = if_true.typ;
+        let true_typ = if_true.typ.unwrap_or(Typ::Unknown);
+        let false_typ = if_false.typ.unwrap_or(Typ::Unknown);
 
-        if if_true.typ != if_false.typ {
+        // TODO: This doesn't deal with the case of both types beign
+        //       missing. Hopefully we can get rid of optional types
+        //       on the bound tree and rely on Typ::Unknown so we
+        //       don't have to handle such cases.
+        if true_typ != false_typ {
             self.diagnostics.push(Diagnostic::new(
-                "If and else have mismatched types",
+                format!(
+                    "If and else have mismatched types. '{}' and '{}'",
+                        true_typ.name(), false_typ.name()
+                        ),
                 Span::enclosing(if_else.if_true.span(), if_else.if_false.span()),
             ));
         }
