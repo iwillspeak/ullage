@@ -1,0 +1,10 @@
+# Test function to emit invalid calls to
+fn foo(a: Number, b: String): Number
+   a
+end
+
+foo() # !> Too few arguments to call
+foo(100) # !> Too few arguments to call
+foo(100, '', 100) # !> Too many arguments to call
+foo(false, '', 100) # !> Too many arguments to call
+foo(100, '', '', false) # !> Too many arguments to call
