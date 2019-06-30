@@ -4,4 +4,4 @@ fn fib(n: Number): Number
    1 if n <= 1 else fib(n - 1) + fib(n - 2)
 end
 
-print fib(46) # => 
+print fib(46) # => 2971215073

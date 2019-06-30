@@ -21,7 +21,7 @@ class Error(Exception):
 
 class ExitCodeMismatchError(Error):
     def __init__(self, message, code, output):
-        message = "{} exit={}, out='{}', err='{}'".format(
+        message = "{} exit={}, out='{}', err='\n{}'".format(
             message, code, output[0].decode('utf-8'), output[1].decode('utf-8'))
         super(ExitCodeMismatchError, self).__init__(message)
 
