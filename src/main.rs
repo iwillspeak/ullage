@@ -213,6 +213,9 @@ fn main() {
 
     if comp.has_diagnostics() {
         dump_diagnostics(&source, comp.diagnostics());
+        eprintln!("");
+        let diag_count = comp.diagnostics().len();
+        eprintln!("error: compilation failed with {} errors", diag_count);
         exit(1);
     }
 
@@ -228,13 +231,25 @@ fn main() {
 /// Write Dignostics to STDERR
 ///
 fn dump_diagnostics(source: &text::SourceText, diagnostics: &[diag::Diagnostic]) {
+    let mut pad = false;
     for error in diagnostics.iter() {
-        // TODO: Move this formatting into some library code.
+        if pad {
+            eprintln!("");
+        } else {
+            pad = true;
+        }
         if error.span == DUMMY_SPAN {
-            eprintln!("error: {}", error.message);
+            eprintln!("{}:error: {}", source.name(), error.message);
         } else {
             let pos = source.line_pos(error.span.start());
-            eprintln!("{}:{}:error: {}", pos.0, pos.1, error.message);
+            eprintln!("{}:{}:{}:error: {}", source.name(), pos.0, pos.1, error.message);
+            let (s, e) = source.line_extents(error.span);
+            eprintln!("     |");
+            let mut line_no = pos.0;
+            for line in source.slice(s, e).lines() {
+                eprintln!("{:4} | {}", line_no, line);
+                line_no += 1;
+            }
         }
     }
 }

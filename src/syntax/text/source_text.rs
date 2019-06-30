@@ -6,7 +6,7 @@
 //! using `Location`s, and `Location`s can be turned into `(line,
 //! col)` position pairs for displaying in diagnostics.
 
-use super::{Ident, Interner, Pos};
+use super::{Ident, Interner, Pos, Span};
 use std::cell::RefCell;
 use std::fs::File;
 use std::io::{self, prelude::*};
@@ -22,6 +22,8 @@ pub struct SourceText {
     /// The offsets of the beginning of each line. Can be used to
     /// convert a character offset into the (line, column)
     line_offsets: Vec<usize>,
+    /// The name of this source code. Used when reporting diagnostics.
+    name: String,
     /// String interner to create identifiers
     ///
     /// FIXME: Should this live here?
@@ -31,11 +33,18 @@ pub struct SourceText {
 impl SourceText {
     /// Create a `SourceText` for the given string
     pub fn new<T: Into<String>>(source: T) -> Self {
-        let source: String = source.into();
+        SourceText::with_name(source, "<unamed-snippet>")
+    }
+
+    /// Create a `SourceText` with a known name
+    pub fn with_name<T: Into<String>, U: Into<String>>(source: T, name: U) -> Self {
+        let source = source.into();
+        let name = name.into();
         let line_offsets = get_line_offsets(&source[..]);
         SourceText {
             source,
             line_offsets,
+            name,
             interner: Default::default(),
         }
     }
@@ -47,7 +56,7 @@ impl SourceText {
     pub fn from_stdin() -> io::Result<Self> {
         let mut s = String::new();
         io::stdin().read_to_string(&mut s)?;
-        Ok(SourceText::new(s))
+        Ok(SourceText::with_name(s, "<stdin>"))
     }
 
     /// Create a source text from a file
@@ -56,8 +65,8 @@ impl SourceText {
     /// creates a new source text from that.
     pub fn from_path<P: AsRef<Path>>(path: P) -> io::Result<Self> {
         let mut s = String::new();
-        File::open(path)?.read_to_string(&mut s)?;
-        Ok(SourceText::new(s))
+        File::open(path.as_ref())?.read_to_string(&mut s)?;
+        Ok(SourceText::with_name(s, path.as_ref().display().to_string()))
     }
 
     /// Get the Starting Position
@@ -75,6 +84,11 @@ impl SourceText {
     /// Returns the number of lines in the source text.
     pub fn line_count(&self) -> usize {
         self.line_offsets.len()
+    }
+
+    /// Get the name of the source text
+    pub fn name(&self) -> &str {
+        &self.name
     }
 
     /// Intern a String Value
@@ -100,6 +114,25 @@ impl SourceText {
                 (index, offset - nearest_line_start)
             }
         }
+    }
+
+    /// Get the positions at the extents of the given span
+    pub fn line_extents(&self, span: Span) -> (Pos, Pos) {
+        let start_offset = span.start().offset();
+        let end_offset = span.end().offset();
+        let index = match self.line_offsets.binary_search(&start_offset) {
+            Ok(index) => index,
+            Err(index) => index - 1,
+        };
+        let begin_pos = Pos::from(self.line_offsets[index]);
+        for line_offset in &self.line_offsets[index..] {
+            if *line_offset > end_offset {
+                return (begin_pos, Pos::from(*line_offset))
+            }
+        }
+        // if we couldn't find the start of a line after this one then
+        // return to the end of the string.
+        (begin_pos, Pos::from(self.source.len()))
     }
 
     /// Slice into the Source
