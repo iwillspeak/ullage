@@ -33,7 +33,7 @@ pub enum Typ {
     /// It's major HAXX.
     ///
     /// # Issues
-    /// 
+    ///
     /// FIXME: We need to create a sepration between the
     /// trivially-copyable `Typ` and some `TypeInfo` which contains
     /// the full information for the type rather than using this

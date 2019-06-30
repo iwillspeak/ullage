@@ -369,7 +369,7 @@ impl Binder {
     /// Bind a function call expression
     pub fn bind_call(&mut self, call: &syntax::CallExpression, source: &SourceText) -> Expression {
         let callee = self.bind_expression(&call.callee, source);
-        let args = call
+        let args: Vec<_> = call
             .arguments
             .iter()
             .map(|arg| self.bind_expression(arg, source))
@@ -379,11 +379,27 @@ impl Binder {
             Some(Typ::Function(id)) => {
                 match self.scopes.lookup(id) {
                     Some(Symbol::Function(param_tys, ret_ty)) => {
+                        let param_count = param_tys.len();
+                        let arg_count = args.len();
+
+                        if arg_count < param_count {
+                            self.diagnostics.push(Diagnostic::new(
+                                "Too few arguments to call",
+                                Span::enclosing(call.open_paren.span(), call.close_paren.span()),
+                            ));
+                        }
+
+                        if arg_count > param_count {
+                            // FIXME: this could only squiggly the extra arguments...
+                            self.diagnostics.push(Diagnostic::new(
+                                "Too many arguments to call",
+                                Span::enclosing(call.open_paren.span(), call.close_paren.span()),
+                            ))
+                        }
+
                         // TODO: type check this call:
                         //  * Check that the parameter types match the
                         //    argument types
-                        //  * Check the argument count matches the
-                        //    called item
                         Expression::new(ExpressionKind::Call(Box::new(callee), args), Some(ret_ty))
                     }
                     _ => {
