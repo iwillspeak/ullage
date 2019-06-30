@@ -105,6 +105,9 @@ def check_compilation_failure(output, failure_expects):
 
     fails = list(failure_expects)
     for line in output.strip().split('\n'):
+        # Check we haven't found the source printed out again...
+        if EXPECT_ERR_PATTERN.search(line):
+            continue
         if fails and fails[0] in line:
             fails.pop(0)
     if fails:

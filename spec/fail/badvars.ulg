@@ -1,0 +1,6 @@
+# !> 2:4:error: Initialiser doesn't match declaration type for 'foo'
+let foo: String = 100
+
+let baz = foo
+
+let buz: Number = baz # !> 6:4:error: Initialiser doesn't match declaration type for 'buz'
