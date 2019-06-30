@@ -115,12 +115,15 @@ impl ScopeStack {
     /// (functions etc.) Without this import mutual recursion wouldn't
     /// be possible as the child items wouldn't be able to see their
     /// siblings.
-    pub fn flatten_into(&self, target: &mut Scope) {
+    pub fn flatten_decls_into(&self, target: &mut Scope) {
         for scope in self.0.iter().rev() {
             for (id, sym) in scope.symbols.iter() {
-                // TODO: Do we really want to import all symbols from
-                //       a given scope into the child?
-                target.try_declare(*id, *sym);
+                match *sym {
+                    Symbol::Function => {
+                        target.try_declare(*id, *sym);
+                    }
+                    _ => {}
+                }
             }
         }
     }
@@ -428,7 +431,7 @@ impl Binder {
         // we bind the funciton in that scope and insert a symbol into
         // _our_ scope when done.
         let mut parent_scope = Scope::new();
-        self.scopes.flatten_into(&mut parent_scope);
+        self.scopes.flatten_decls_into(&mut parent_scope);
 
         let mut seen_idents = HashSet::new();
         let params = func
