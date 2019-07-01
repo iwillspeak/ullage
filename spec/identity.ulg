@@ -1,0 +1,18 @@
+
+print 0 # => 0
+print 0 == 1 # => false
+print (0 + 1) == 1 # => true
+
+var n: Number = ident(0)
+let m = ident(0 + 1)
+
+print n == 1 # => false
+print m == 1 # => true
+
+print ident(0) == 1 # => false
+print ident(0 + 1) == 1 # => true
+
+# identity function
+fn ident(n: Number): Number
+   n
+end
