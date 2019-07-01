@@ -250,7 +250,7 @@ pub struct PrintExpression {
 }
 
 /// Variable mutability style
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Copy, Clone)]
 pub enum VarStyle {
     /// No modifications can be made
     Immutable,
