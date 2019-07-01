@@ -1,0 +1,5 @@
+let foo = 100
+foo = 101 # !> Can't assign to 'foo', it isn't mutable
+
+var bar = 'a string'
+bar = 4356 # !> Type mismatch in assignment to 'bar'

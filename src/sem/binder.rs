@@ -31,7 +31,7 @@ use crate::syntax::{
 #[derive(Debug, PartialEq, Clone)]
 pub enum Symbol {
     /// Function argument or local variable
-    Variable(Typ),
+    Variable(VarStyle, Typ),
     /// A Function declaration
     Function(Vec<Typ>, Typ),
     /// A type
@@ -232,7 +232,7 @@ impl Binder {
         if let Some(sym) = self.scopes.lookup(ident.ident) {
             let id_str = source.interned_value(ident.ident);
             let typ = match sym {
-                Symbol::Variable(t) => Some(t),
+                Symbol::Variable(_, t) => Some(t),
                 // FIXME: function types
                 Symbol::Function(..) => Some(Typ::Function(ident.ident)),
                 // FIXME: First-class types?
@@ -329,7 +329,16 @@ impl Binder {
         source: &SourceText,
     ) -> Expression {
         match self.scopes.lookup(id.ident) {
-            Some(Symbol::Variable(typ)) => {
+            Some(Symbol::Variable(style, typ)) => {
+                if style != VarStyle::Mutable {
+                    self.diagnostics.push(Diagnostic::new(
+                        format!(
+                            "Can't assign to '{}', it isn't mutable",
+                            source.interned_value(id.ident)
+                        ),
+                        infix.op_token.span(),
+                    ));
+                }
                 let rhs = self.bind_expression(&infix.right, source);
                 let resolved_ty = rhs.typ.unwrap_or(typ);
                 if resolved_ty != typ {
@@ -524,7 +533,7 @@ impl Binder {
                         p.id_tok.span(),
                     ));
                 }
-                parent_scope.try_declare(p.id, Symbol::Variable(typ));
+                parent_scope.try_declare(p.id, Symbol::Variable(VarStyle::Mutable, typ));
                 VarDecl {
                     ident: source.interned_value(p.id),
                     ty: Some(typ),
@@ -641,7 +650,7 @@ impl Binder {
 
         self.scopes
             .current_mut()
-            .try_declare(id, Symbol::Variable(ty.unwrap_or(Typ::Unknown)));
+            .try_declare(id, Symbol::Variable(decl.style, ty.unwrap_or(Typ::Unknown)));
 
         let is_mut = decl.style == VarStyle::Mutable;
         Expression::new(
@@ -745,11 +754,11 @@ mod test {
         let mut scope = Scope::new();
         let id = interner.intern("test§");
 
-        assert!(scope.try_declare(id, Symbol::Variable(Typ::Unit)));
+        assert!(scope.try_declare(id, Symbol::Variable(VarStyle::Mutable, Typ::Unit)));
         let found = scope.lookup(id);
-        assert!(!scope.try_declare(id, Symbol::Variable(Typ::Unit)));
+        assert!(!scope.try_declare(id, Symbol::Variable(VarStyle::Mutable, Typ::Unit)));
 
-        assert_eq!(Some(Symbol::Variable(Typ::Unit)), found);
+        assert_eq!(Some(Symbol::Variable(VarStyle::Mutable, Typ::Unit)), found);
     }
 
     #[test]
@@ -760,14 +769,23 @@ mod test {
         let baz_id = interner.intern("baz");
 
         let mut scope = Scope::new();
-        assert!(scope.try_declare(foo_id, Symbol::Variable(Typ::Builtin(BuiltinType::Number))));
-        assert!(scope.try_declare(bar_id, Symbol::Variable(Typ::Unit)));
+        assert!(scope.try_declare(
+            foo_id,
+            Symbol::Variable(VarStyle::Mutable, Typ::Builtin(BuiltinType::Number))
+        ));
+        assert!(scope.try_declare(bar_id, Symbol::Variable(VarStyle::Mutable, Typ::Unit)));
 
         let mut scopes = ScopeStack::new(scope);
         let mut scope = Scope::new();
 
-        assert!(scope.try_declare(bar_id, Symbol::Variable(Typ::Builtin(BuiltinType::String))));
-        assert!(scope.try_declare(baz_id, Symbol::Variable(Typ::Builtin(BuiltinType::Bool))));
+        assert!(scope.try_declare(
+            bar_id,
+            Symbol::Variable(VarStyle::Mutable, Typ::Builtin(BuiltinType::String))
+        ));
+        assert!(scope.try_declare(
+            baz_id,
+            Symbol::Variable(VarStyle::Mutable, Typ::Builtin(BuiltinType::Bool))
+        ));
 
         scopes.push(scope);
 
@@ -777,15 +795,24 @@ mod test {
         let failed = scopes.lookup(interner.intern("nothere"));
 
         assert_eq!(
-            Some(Symbol::Variable(Typ::Builtin(BuiltinType::Number))),
+            Some(Symbol::Variable(
+                VarStyle::Mutable,
+                Typ::Builtin(BuiltinType::Number)
+            )),
             foo_lookup
         );
         assert_eq!(
-            Some(Symbol::Variable(Typ::Builtin(BuiltinType::String))),
+            Some(Symbol::Variable(
+                VarStyle::Mutable,
+                Typ::Builtin(BuiltinType::String)
+            )),
             bar_lookup
         );
         assert_eq!(
-            Some(Symbol::Variable(Typ::Builtin(BuiltinType::Bool))),
+            Some(Symbol::Variable(
+                VarStyle::Mutable,
+                Typ::Builtin(BuiltinType::Bool)
+            )),
             baz_lookup
         );
         assert_eq!(None, failed);
@@ -798,33 +825,39 @@ mod test {
 
         assert!(scopes.current_mut().try_declare(
             source.intern("foo"),
-            Symbol::Variable(Typ::Builtin(BuiltinType::Bool))
+            Symbol::Variable(VarStyle::Mutable, Typ::Builtin(BuiltinType::Bool))
         ));
         assert!(!scopes.current_mut().try_declare(
             source.intern("foo"),
-            Symbol::Variable(Typ::Builtin(BuiltinType::Bool))
+            Symbol::Variable(VarStyle::Mutable, Typ::Builtin(BuiltinType::Bool))
         ));
 
         scopes.push(Scope::new());
 
         assert!(scopes.current_mut().try_declare(
             source.intern("foo"),
-            Symbol::Variable(Typ::Builtin(BuiltinType::Number))
+            Symbol::Variable(VarStyle::Mutable, Typ::Builtin(BuiltinType::Number))
         ));
         assert!(!scopes.current_mut().try_declare(
             source.intern("foo"),
-            Symbol::Variable(Typ::Builtin(BuiltinType::String))
+            Symbol::Variable(VarStyle::Mutable, Typ::Builtin(BuiltinType::String))
         ));
 
         assert_eq!(
-            Some(Symbol::Variable(Typ::Builtin(BuiltinType::Number))),
+            Some(Symbol::Variable(
+                VarStyle::Mutable,
+                Typ::Builtin(BuiltinType::Number)
+            )),
             scopes.lookup(source.intern("foo"))
         );
 
         scopes.pop();
 
         assert_eq!(
-            Some(Symbol::Variable(Typ::Builtin(BuiltinType::Bool))),
+            Some(Symbol::Variable(
+                VarStyle::Mutable,
+                Typ::Builtin(BuiltinType::Bool)
+            )),
             scopes.lookup(source.intern("foo"))
         );
     }
@@ -861,7 +894,7 @@ mod test {
         let mut scope = Scope::new();
         scope.try_declare(
             source.intern("melles"),
-            Symbol::Variable(Typ::Builtin(BuiltinType::Bool)),
+            Symbol::Variable(VarStyle::Mutable, Typ::Builtin(BuiltinType::Bool)),
         );
         let mut binder = Binder::new(scope);
 
