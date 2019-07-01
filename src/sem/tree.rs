@@ -151,6 +151,6 @@ impl Expression {
     ///
     /// Convenience function for returning error expressions.
     pub fn error() -> Self {
-        Expression::new(ExpressionKind::Error, None)
+        Expression::new(ExpressionKind::Error, Some(Typ::Error))
     }
 }
