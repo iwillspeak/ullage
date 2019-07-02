@@ -118,11 +118,8 @@ impl ScopeStack {
     pub fn flatten_decls_into(&self, target: &mut Scope) {
         for scope in self.0.iter().rev() {
             for (id, sym) in scope.symbols.iter() {
-                match *sym {
-                    Symbol::Function(..) => {
-                        target.try_declare(*id, sym.clone());
-                    }
-                    _ => {}
+                if let Symbol::Function(..) = *sym {
+                    target.try_declare(*id, sym.clone());
                 }
             }
         }
@@ -381,50 +378,52 @@ impl Binder {
     pub fn bind_call(&mut self, call: &syntax::CallExpression, source: &SourceText) -> Expression {
         let callee = self.bind_expression(&call.callee, source);
         match callee.typ {
-            Some(Typ::Function(id)) => {
-                match self.scopes.lookup(id) {
-                    Some(Symbol::Function(param_tys, ret_ty)) => {
-                        let param_count = param_tys.len();
-                        let arg_count = call.arguments.len();
+            Some(Typ::Function(id)) => match self.scopes.lookup(id) {
+                Some(Symbol::Function(param_tys, ret_ty)) => {
+                    let param_count = param_tys.len();
+                    let arg_count = call.arguments.len();
 
-                        if arg_count < param_count {
-                            self.diagnostics.push(Diagnostic::new(
-                                "Too few arguments to call",
-                                Span::enclosing(call.open_paren.span(), call.close_paren.span()),
-                            ));
-                        }
+                    if arg_count < param_count {
+                        self.diagnostics.push(Diagnostic::new(
+                            "Too few arguments to call",
+                            Span::enclosing(call.open_paren.span(), call.close_paren.span()),
+                        ));
+                    }
 
-                        if arg_count > param_count {
-                            let start = call.arguments[param_count].span().start();
-                            self.diagnostics.push(Diagnostic::new(
-                                "Too many arguments to call",
-                                Span::new(start, call.close_paren.span().start()),
-                            ))
-                        }
+                    if arg_count > param_count {
+                        let start = call.arguments[param_count].span().start();
+                        self.diagnostics.push(Diagnostic::new(
+                            "Too many arguments to call",
+                            Span::new(start, call.close_paren.span().start()),
+                        ))
+                    }
 
-                        let args: Vec<_> = call
-                            .arguments
-                            .iter()
-                            .zip(param_tys)
-                            .map(|(arg, param)| {
-                                let bound_arg = self.bind_expression(arg, source);
-                                if bound_arg.typ != Some(param) {
-                                    self.diagnostics.push(Diagnostic::new(format!(
+                    let args: Vec<_> = call
+                        .arguments
+                        .iter()
+                        .zip(param_tys)
+                        .map(|(arg, param)| {
+                            let bound_arg = self.bind_expression(arg, source);
+                            if bound_arg.typ != Some(param) {
+                                self.diagnostics.push(Diagnostic::new(
+                                    format!(
                                         "Invalid argument. Expected '{}' but found '{}'",
-                                        param.name(), bound_arg.typ.unwrap_or(Typ::Unknown).name()),
-                                                                          arg.span()))
-                                }
-                                bound_arg
-                            })
-                            .collect();
+                                        param.name(),
+                                        bound_arg.typ.unwrap_or(Typ::Unknown).name()
+                                    ),
+                                    arg.span(),
+                                ))
+                            }
+                            bound_arg
+                        })
+                        .collect();
 
-                        Expression::new(ExpressionKind::Call(Box::new(callee), args), Some(ret_ty))
-                    }
-                    _ => {
-                        unreachable!();
-                    }
+                    Expression::new(ExpressionKind::Call(Box::new(callee), args), Some(ret_ty))
                 }
-            }
+                _ => {
+                    unreachable!();
+                }
+            },
             _ => {
                 self.diagnostics.push(Diagnostic::new(
                     "Called item is not a function",
@@ -694,7 +693,7 @@ impl Binder {
                     _ => panic!("Expected word token"),
                 };
                 match self.scopes.lookup(id) {
-                    Some(Symbol::Type(ty)) => ty.clone(),
+                    Some(Symbol::Type(ty)) => ty,
                     _ => {
                         self.diagnostics
                             .push(Diagnostic::new("Reference to undefined type", name.span()));
