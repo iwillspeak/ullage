@@ -4,11 +4,20 @@
 //! incoming syntax tree and bind each part to produce the semantic
 //! tree.
 //!
-//! At any given level the bind consists of two main steps. Firs the
+//! At any given level the bind consists of two main steps. First the
 //! list of expressions is walked to define any items that need to be
 //! made available for mutual recursion. Once this walk is complete a
 //! second traveral visits each item and binds symbol and name
-//! information.
+//! information. These two phases are represented in the `declare_*`
+//! and `bind_*` groups of methods.
+//!
+//! A bind of a given tree should always produce _some_ result. Parts
+//! of the tree which can't be properly bound will result in
+//! `Expression::Error` values. If type information can't be resolved
+//! for a given part of the tree then the `Typ::Error` type is
+//! used. Bound trees which contain either of these error values
+//! should also produce diagnostics in the bind. Failure to do so is a
+//! bug in the binder.
 
 use std::collections::{hash_map::Entry, HashMap, HashSet};
 use std::default::Default;
@@ -23,7 +32,7 @@ use crate::syntax::{
     Constant, InfixOp, PrefixOp, SyntaxNode, TokenKind, TypeRef, VarStyle,
 };
 
-/// Symbol
+/// An item that can appear in a `Scope`
 ///
 /// Symbols represent the different kinds of items that can be bound
 /// to names in a given scope. Examples are function arguments, local
@@ -41,7 +50,22 @@ pub enum Symbol {
 /// Declaration Scope
 ///
 /// Holds the declared items at a given level in the scope stack
-/// during a bind.
+/// during a bind. Once a scope has an item with a given name declared
+/// a new item can't be inserted to overwrite it. The return value of
+/// `try_declare` exposes the success or failure of declaring an item.
+///
+/// # Examples
+///
+/// ```
+/// # let interner = Interner::new();
+/// let mut scope = Scope::new();
+/// 
+/// assert!(scope.try_declare(interner.intern("foo"), Symbol::Type(Typ::Unit));
+///
+/// // we can look the symbols up later
+/// assert_eq!(None, scope.lookup(interner.intern("bar")));
+/// assert_eq!(Some(Symbol::Type(Typ::Unit)), scope.lookup(interner.intern("foo")));
+/// ```
 #[derive(Default)]
 pub struct Scope {
     /// Symbols declared in this scope
@@ -49,15 +73,12 @@ pub struct Scope {
 }
 
 impl Scope {
-    /// Create a Scope
-    ///
-    /// The new scope doesn't have a parent scope. This scope is
-    /// effectively a global scope.
+    /// Create an empty scope
     pub fn new() -> Self {
         Default::default()
     }
 
-    /// Lookup a Symbol
+    /// Lookup a Symbol from the scope
     ///
     /// Searches the current scope, and any parent scopes, for the
     /// given identifier. If any symbol is bound to the idnetifier it
@@ -66,10 +87,20 @@ impl Scope {
         self.symbols.get(&ident).cloned()
     }
 
-    /// Declare a Symbol
+    /// Try to declare a Symbol in this scope
     ///
     /// Attempts to insert the given symbol into the symbol
     /// table. Returns `true` if the symbol was inserted succesfully.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # let id = Interner::new().intern("foo");
+    /// # let sym = Symbol::Type(Typ::Unit);
+    /// # let mut scope = Scope::new();
+    /// assert!(scope.try_declare(id), sym);
+    /// assert!(!scope.try_declare(id));
+    /// ```
     pub fn try_declare(&mut self, ident: Ident, sym: Symbol) -> bool {
         match self.symbols.entry(ident) {
             Entry::Occupied(_) => false,
@@ -82,6 +113,18 @@ impl Scope {
 }
 
 /// Stack of scopes
+///
+/// When binding we require a nested stack of scopes. While walking
+/// through a tree the `Binder` will use this stack to record the
+/// currently visible scopes.
+///
+/// Lookups in the scope stack start at the innermost scope and work
+/// outward. Once an item is found it is returned. This allows items
+/// in inner scopes to shadow those in outer ones. Seen as all items
+/// are in the same namespace at the moment this allows variables to
+/// shadow functions with the same name and vice-versa.
+///
+/// The stack is maipulated with the `push()` and `pop()` methods.
 pub struct ScopeStack(Vec<Scope>);
 
 impl ScopeStack {
@@ -91,30 +134,50 @@ impl ScopeStack {
     }
 
     /// Lookup a symbol in the scope stack
+    ///
+    /// Starts at the innermost 'current' scope and walks outward
+    /// searching for a `Symbol` bound to the given `id`. If no symbol
+    /// is found then `None` is returned, otherwise a copy of the
+    /// symbol is returned.
     pub fn lookup(&self, id: Ident) -> Option<Symbol> {
         self.0.iter().rev().find_map(|s| s.lookup(id))
     }
 
     /// Get the scope at the top of the stack
+    ///
+    /// When binding only the current top-most scope can be
+    /// manipulated. This method allows mutable access to the
+    /// innermost scope to insert new symbols.
     pub fn current_mut(&mut self) -> &mut Scope {
         self.0.last_mut().unwrap()
     }
 
-    /// Push a new scope
+    /// Push a new scope on to the stack
+    ///
+    /// Ownership of the scope is passed to the `ScopeStack`. Once the
+    /// scope is popped from the stack ownership is returned.
     pub fn push(&mut self, scope: Scope) {
         self.0.push(scope)
     }
 
     /// Pop the current scope from the stack
+    ///
+    /// The scope that was popped is returned. If the stack is empty
+    /// then `None` is retured. In a normal bind calls to `push` and
+    /// `pop` should be ballanced.
     pub fn pop(&mut self) -> Option<Scope> {
         self.0.pop()
     }
 
-    /// Flatten the current scope into a single target scope. This is
-    /// intended for creating a new base scope for child items
+    /// Flatten the function declarations current scope into a single
+    /// target scope.
+    ///
+    /// This is intended for creating a new base scope for child items
     /// (functions etc.) Without this import mutual recursion wouldn't
     /// be possible as the child items wouldn't be able to see their
     /// siblings.
+    ///
+    /// Scope visibility and shadowing is preserved.
     pub fn flatten_decls_into(&self, target: &mut Scope) {
         for scope in self.0.iter().rev() {
             for (id, sym) in scope.symbols.iter() {
@@ -126,10 +189,10 @@ impl ScopeStack {
     }
 }
 
-/// Syntax Binder
-///
 /// Holds the scope information and declared items for an ongoing
 /// binding operation.
+///
+/// A syntax binder can is used to tranform a syntax expression
 pub struct Binder {
     /// The current scope
     scopes: ScopeStack,
@@ -181,6 +244,12 @@ impl Binder {
 
     /// Builds out the type for the function and creates an entry in
     /// the current symbol table for it.
+    ///
+    /// Function binding is done in two parts. First a declaration
+    /// symbol for the function is inserted into the scope by this
+    /// method. Later when each expression in the tree is visited
+    /// again for binding the body of the function is bound in a new
+    /// child scope.
     pub fn declare_function(&mut self, func: &syntax::FunctionExpression) {
         let param_tys = func
             .params
@@ -201,6 +270,9 @@ impl Binder {
     }
 
     /// Bind a Single Expression
+    ///
+    /// This examines the expression kind and delegates to the
+    /// appropriate `bind_*` method.
     pub fn bind_expression(
         &mut self,
         expression: &syntax::Expression,
@@ -225,6 +297,11 @@ impl Binder {
     }
 
     /// Bind a refernece to an identifier
+    ///
+    /// # Errors
+    ///
+    /// If there is no symbol in the symbol table for the identifier
+    /// then a diagnostic is raised.
     pub fn bind_identifier(
         &mut self,
         ident: &syntax::IdentifierExpression,
@@ -276,6 +353,16 @@ impl Binder {
     }
 
     /// Bind an infix operator expression
+    ///
+    /// There are two main kinds of infix operators, assignment and
+    /// standard. For assignment this method delgates to `bind_assign`
+    /// for the real bind.
+    ///
+    /// # Errors
+    ///
+    /// If an assignment expression has an invalid lvalue or if there
+    /// is no operator which accepts the given arguments then a
+    /// diagnostic is raised.
     pub fn bind_infix(
         &mut self,
         infix: &syntax::InfixOperatorExpression,
@@ -321,6 +408,11 @@ impl Binder {
     /// The given infix operator should be an assignment
     /// expression. The bound result is the assignment of the rhs of
     /// that expression to the given identifier.
+    ///
+    /// # Errors
+    ///
+    /// If the item cannot be assigned to, or the type or mutability
+    /// do not match then a diagnostic is raised.
     fn bind_assign(
         &mut self,
         id: &syntax::IdentifierExpression,
@@ -375,6 +467,15 @@ impl Binder {
     }
 
     /// Bind a function call expression
+    ///
+    /// This binds the arguments to the call and then checks that the
+    /// callee is a function.
+    ///
+    /// # Errors
+    ///
+    /// If the called item is not a function, or the type or arity of
+    /// the function arguments do not match the declared paramters
+    /// then a diagnostic is raised.
     pub fn bind_call(&mut self, call: &syntax::CallExpression, source: &SourceText) -> Expression {
         let callee = self.bind_expression(&call.callee, source);
         match callee.typ {
@@ -480,9 +581,9 @@ impl Binder {
         let true_typ = if_true.typ.unwrap_or(Typ::Unknown);
         let false_typ = if_false.typ.unwrap_or(Typ::Unknown);
 
-        // TODO: This doesn't deal with the case of both types beign
+        // TODO: This doesn't deal with the case of both types being
         //       missing. Hopefully we can get rid of optional types
-        //       on the bound tree and rely on Typ::Unknown so we
+        //       on the bound tree and rely on `Typ::Unknown` so we
         //       don't have to handle such cases.
         if true_typ != false_typ {
             self.diagnostics.push(Diagnostic::new(
@@ -502,17 +603,20 @@ impl Binder {
     }
 
     /// Bind a function definition
+    ///
+    /// This binds the body of the function using a new binder. The
+    /// function type should already have been added to the current
+    /// scope by `declare_function`.
+    ///
+    /// # Errors
+    ///
+    /// Any errors from the bindig of the function body are added to
+    /// this `Binder`'s diagnostics.
     pub fn bind_function(
         &mut self,
         func: &syntax::FunctionExpression,
         source: &SourceText,
     ) -> Expression {
-        // Function binding is done in two parts. First a declaration
-        // symbol for the function is inserted into the scope when
-        // `declare_function` is called. Later when each expression in
-        // the tree is visited again for binding the body of the
-        // function is bound in a new child scope.
-
         let mut parent_scope = Scope::new();
         self.scopes.flatten_decls_into(&mut parent_scope);
 
@@ -615,6 +719,14 @@ impl Binder {
     }
 
     /// Bind Variable Declaration Statement
+    ///
+    /// Declarations are bound in two steps. First the initialiser is
+    /// bound with the current scope, then a new symbol is inserted
+    /// into the scope for the declared variable.
+    ///
+    /// Variable declarations have type inference if the type clause
+    /// is missing. If not the type of the initialiser should be
+    /// convertable to the declaration's type annotation.
     pub fn bind_declaration(
         &mut self,
         decl: &syntax::DeclarationExpression,
@@ -716,6 +828,10 @@ impl Binder {
 }
 
 /// Add the Default Type Declarations
+///
+/// Inserts the builtin types `String`, `Bool`, and `Number` types
+/// into the given scope. Identifiers for each are looked up from
+/// `source`'s interner.
 fn add_builtin_types(scope: &mut Scope, source: &SourceText) {
     scope.try_declare(
         source.intern("String"),
