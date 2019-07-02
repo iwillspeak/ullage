@@ -161,7 +161,13 @@ impl Binder {
         self.bind_expression(&expr, source)
     }
 
-    /// Declare any items in the current expression that should be visible in this scope.
+    /// Declare any items in the current expression that should be
+    /// visible in this scope.
+    ///
+    /// This is called when entering a new block before the body of
+    /// the block is bound. It adds delclarations for any items that
+    /// should be mutually recursive into the scope so that they are
+    /// available to the following bind.
     pub fn declare_expression(&mut self, expression: &syntax::Expression) {
         use syntax::Expression::*;
         match *expression {
@@ -176,11 +182,9 @@ impl Binder {
         }
     }
 
-    /// Declare a funtion in the current scope
+    /// Builds out the type for the function and creates an entry in
+    /// the current symbol table for it.
     pub fn declare_function(&mut self, func: &syntax::FunctionExpression) {
-        // TODO: Need to work out the type of the function here and
-        // deal with that properly.
-
         let param_tys = func
             .params
             .iter()
@@ -233,7 +237,6 @@ impl Binder {
             let id_str = source.interned_value(ident.ident);
             let typ = match sym {
                 Symbol::Variable(_, t) => Some(t),
-                // FIXME: function types
                 Symbol::Function(..) => Some(Typ::Function(ident.ident)),
                 // FIXME: First-class types?
                 Symbol::Type(..) => None,
@@ -282,7 +285,6 @@ impl Binder {
         source: &SourceText,
     ) -> Expression {
         if infix.op == InfixOp::Assign {
-            // TODO: can we unify this with call expressions
             if let syntax::Expression::Identifier(ref id) = *infix.left {
                 self.bind_assign(id, infix, source)
             } else {
@@ -378,18 +380,12 @@ impl Binder {
     /// Bind a function call expression
     pub fn bind_call(&mut self, call: &syntax::CallExpression, source: &SourceText) -> Expression {
         let callee = self.bind_expression(&call.callee, source);
-        let args: Vec<_> = call
-            .arguments
-            .iter()
-            .map(|arg| self.bind_expression(arg, source))
-            .collect();
-
         match callee.typ {
             Some(Typ::Function(id)) => {
                 match self.scopes.lookup(id) {
                     Some(Symbol::Function(param_tys, ret_ty)) => {
                         let param_count = param_tys.len();
-                        let arg_count = args.len();
+                        let arg_count = call.arguments.len();
 
                         if arg_count < param_count {
                             self.diagnostics.push(Diagnostic::new(
@@ -399,16 +395,29 @@ impl Binder {
                         }
 
                         if arg_count > param_count {
-                            // FIXME: this could only squiggly the extra arguments...
+                            let start = call.arguments[param_count].span().start();
                             self.diagnostics.push(Diagnostic::new(
                                 "Too many arguments to call",
-                                Span::enclosing(call.open_paren.span(), call.close_paren.span()),
+                                Span::new(start, call.close_paren.span().start()),
                             ))
                         }
 
-                        // TODO: type check this call:
-                        //  * Check that the parameter types match the
-                        //    argument types
+                        let args: Vec<_> = call
+                            .arguments
+                            .iter()
+                            .zip(param_tys)
+                            .map(|(arg, param)| {
+                                let bound_arg = self.bind_expression(arg, source);
+                                if bound_arg.typ != Some(param) {
+                                    self.diagnostics.push(Diagnostic::new(format!(
+                                        "Invalid argument. Expected '{}' but found '{}'",
+                                        param.name(), bound_arg.typ.unwrap_or(Typ::Unknown).name()),
+                                                                          arg.span()))
+                                }
+                                bound_arg
+                            })
+                            .collect();
+
                         Expression::new(ExpressionKind::Call(Box::new(callee), args), Some(ret_ty))
                     }
                     _ => {
@@ -586,11 +595,6 @@ impl Binder {
         exprs: &[syntax::Expression],
         source: &SourceText,
     ) -> Expression {
-        // TODO: Do we want to two-pass this and allow the option to
-        // declare things? This would allow us to declare the
-        // functions in a given block makign them available to be
-        // called with known types...
-
         let transformed: Vec<_> = exprs
             .iter()
             .map(|e| self.bind_expression(e, source))
@@ -671,10 +675,6 @@ impl Binder {
     /// Creates a new scope and binds the contents of the block in
     /// that scope before popping that scope from the stack.
     pub fn bind_block(&mut self, block: &syntax::BlockBody, source: &SourceText) -> Expression {
-        // TODO: Need to push the scope around this
-        // block. Unfortunately Rust isn't too happy about the way
-        // we're trying to have a linked list of scopes. Time to cut
-        // losses and just switch to a stack?
         self.scopes.push(Scope::new());
         let bound = self.bind_expression(&block.contents, source);
         self.scopes.pop();
