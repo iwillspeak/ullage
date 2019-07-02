@@ -213,7 +213,6 @@ fn main() {
 
     if comp.has_diagnostics() {
         dump_diagnostics(&source, comp.diagnostics());
-        eprintln!("");
         let diag_count = comp.diagnostics().len();
         eprintln!("error: compilation failed with {} errors", diag_count);
         exit(1);
@@ -231,13 +230,7 @@ fn main() {
 /// Write Dignostics to STDERR
 ///
 fn dump_diagnostics(source: &text::SourceText, diagnostics: &[diag::Diagnostic]) {
-    let mut pad = false;
     for error in diagnostics.iter() {
-        if pad {
-            eprintln!("");
-        } else {
-            pad = true;
-        }
         if error.span == DUMMY_SPAN {
             eprintln!("{}:error: {}", source.name(), error.message);
         } else {
@@ -256,6 +249,7 @@ fn dump_diagnostics(source: &text::SourceText, diagnostics: &[diag::Diagnostic])
                 eprintln!("{:4} | {}", line_no, line);
                 line_no += 1;
             }
+            eprintln!("");
         }
     }
 }
