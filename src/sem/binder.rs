@@ -504,7 +504,7 @@ impl Binder {
                         .iter()
                         .zip(param_tys)
                         .map(|(arg, param)| {
-                            let bound_arg = self.bind_expression(arg, source);
+                            let bound_arg = self.bind_expression(arg.as_inner(), source);
                             if bound_arg.typ != Some(param) {
                                 self.diagnostics.push(Diagnostic::new(
                                     format!(
@@ -853,8 +853,7 @@ mod test {
     use super::*;
     use crate::syntax::text::Interner;
     use crate::syntax::{
-        IdentifierExpression, Literal, LiteralExpression,
-        PrefixExpression, Token, TokenKind,
+        IdentifierExpression, Literal, LiteralExpression, PrefixExpression, Token, TokenKind,
     };
 
     #[test]

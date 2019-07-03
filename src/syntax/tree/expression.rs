@@ -8,6 +8,7 @@ use super::super::SyntaxNode;
 use super::operators::{InfixOp, PrefixOp};
 use super::token::{Token, TokenKind};
 use super::types::TypeAnno;
+use std::borrow::Cow;
 
 /// An identifier, with an optional type attached
 #[derive(Debug, PartialEq)]
@@ -77,12 +78,22 @@ impl<T> DelimItem<T> {
             DelimItem::Follow(_, ref t) => t,
         }
     }
+}
 
-    /// Transform the delim item into the inner type
-    pub fn into_inner(self) -> T {
-        match self {
-            DelimItem::First(t) => t,
-            DelimItem::Follow(_, t) => t,
+impl<T: SyntaxNode> SyntaxNode for DelimItem<T> {
+    fn description(&self, source: &SourceText) -> Cow<str> {
+        match *self {
+            DelimItem::First(ref t) => format!("Delim::First({})", t.description(source)).into(),
+            DelimItem::Follow(ref sep, ref t) => {
+                format!("Delim::Follow({}, {})", sep.kind, t.description(source)).into()
+            }
+        }
+    }
+
+    fn span(&self) -> Span {
+        match *self {
+            DelimItem::First(ref t) => t.span(),
+            DelimItem::Follow(ref sep, ref t) => Span::enclosing(sep.span(), t.span()),
         }
     }
 }
@@ -159,10 +170,6 @@ pub struct CallExpression {
     /// The opening `(` of this call
     pub open_paren: Box<Token>,
     /// The list of arguments to the call. This could be empty.
-    ///
-    /// FIXME: This should be a delimited list rather than a palin
-    /// vec. We are missing the `,` between arguments to the call from
-    /// the tree otherwise.
     pub arguments: Vec<DelimItem<Expression>>,
     /// THe closing `)` of this call
     pub close_paren: Box<Token>,
