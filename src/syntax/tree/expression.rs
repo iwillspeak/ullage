@@ -151,6 +151,10 @@ pub struct CallExpression {
     /// The opening `(` of this call
     pub open_paren: Box<Token>,
     /// The list of arguments to the call. This could be empty.
+    ///
+    /// FIXME: This should be a delimited list rather than a palin
+    /// vec. We are missing the `,` between arguments to the call from
+    /// the tree otherwise.
     pub arguments: Vec<Expression>,
     /// THe closing `)` of this call
     pub close_paren: Box<Token>,
