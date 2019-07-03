@@ -59,7 +59,7 @@ pub enum Symbol {
 /// ```
 /// # let interner = Interner::new();
 /// let mut scope = Scope::new();
-/// 
+///
 /// assert!(scope.try_declare(interner.intern("foo"), Symbol::Type(Typ::Unit));
 ///
 /// // we can look the symbols up later
@@ -852,7 +852,10 @@ mod test {
     use super::super::BuiltinType;
     use super::*;
     use crate::syntax::text::Interner;
-    use crate::syntax::{IdentifierExpression, Literal, LiteralExpression, Token, TokenKind};
+    use crate::syntax::{
+        IdentifierExpression, InfixOperatorExpression, Literal, LiteralExpression,
+        PrefixExpression, Token, TokenKind,
+    };
 
     #[test]
     fn create_scope() {
@@ -1004,7 +1007,7 @@ mod test {
     }
 
     #[test]
-    fn bind_lookup() {
+    fn bind_identifier_lookup() {
         let source = SourceText::new("");
         let mut scope = Scope::new();
         scope.try_declare(
@@ -1026,7 +1029,7 @@ mod test {
     }
 
     #[test]
-    fn bind_const() {
+    fn bind_const_value() {
         let mut binder = Binder::new(Scope::new());
 
         let bound = binder.bind_literal(&LiteralExpression {
@@ -1038,6 +1041,48 @@ mod test {
         assert_eq!(Some(Typ::Builtin(BuiltinType::Number)), bound.typ);
     }
 
-    // TODO: Do we want some kind of snapshot testing here to check
-    //       the transformation / bind of known parses?
+    #[test]
+    fn bind_prefix_expression() {
+        let source = SourceText::new("");
+        let mut binder = Binder::new(Scope::new());
+
+        let bound = binder.bind_prefix(
+            &PrefixExpression {
+                op_token: Box::new(Token::new(TokenKind::Minus)),
+                op: PrefixOp::Negate,
+                inner: Box::new(syntax::Expression::constant_num(
+                    Token::new(TokenKind::Literal(Literal::Number(23))),
+                    23,
+                )),
+            },
+            &source,
+        );
+
+        assert_eq!(
+            ExpressionKind::Prefix(
+                PrefixOp::Negate,
+                Box::new(Expression::new(
+                    ExpressionKind::Literal(Constant::Number(23)),
+                    Some(Typ::Builtin(BuiltinType::Number))
+                ))
+            ),
+            bound.kind
+        );
+        assert_eq!(Some(Typ::Builtin(BuiltinType::Number)), bound.typ);
+    }
+
+    // TODO: need a better way of creating the expression trees to run
+    //       the binder over for these tests. More complex tests may
+    //       also benefit from snapshot testing.
+
+    // Infix(ref innie)
+    // Call(ref call)
+    // Index(ref index)
+    // IfThenElse(ref if_else_expr)
+    // Function(ref func)
+    // Loop(ref loop_expr)
+    // Sequence(ref exprs)
+    // Print(ref print)
+    // Declaration(ref decl)
+    // Grouping(ref group)
 }
