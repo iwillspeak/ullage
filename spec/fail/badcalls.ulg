@@ -14,3 +14,11 @@ foo(100, 100) # !> 12:9:error: Invalid argument. Expected 'String' but found 'Nu
 # !> 16:4:error: Invalid argument. Expected 'Number' but found 'String'
 # !> 16:13:error: Invalid argument. Expected 'String' but found 'Bool'
 foo('hello', false)
+
+let bar = 100
+
+# !> 21:0:error: Called item is not a function
+bar()
+
+# !> 24:0:error: Called item is not a function
+false()
