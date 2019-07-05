@@ -409,9 +409,17 @@ impl<'a> Parser<'a> {
         if !self.current_is(&close) {
             res.push(DelimItem::First(p(self)));
         }
+        let mut last_span = self.current.as_ref().map(|t| t.span());
         while !self.current_is(&close) {
             let delim = self.expect(&delimiter);
             res.push(DelimItem::Follow(delim, p(self)));
+
+            let cur_span =  self.current.as_ref().map(|t| t.span());
+            if cur_span.is_some() && last_span == cur_span {
+                break;
+            } else {
+                last_span = cur_span;
+            }
         }
         res
     }
