@@ -9,10 +9,10 @@ foo(100, '', 100) # !> Too many arguments to call
 foo(false, '', 100) # !> Too many arguments to call
 foo(100, '', '', false) # !> Too many arguments to call
 
-foo(100, 100) # !> 12:7:error: Invalid argument. Expected 'String' but found 'Number'
+foo(100, 100) # !> 12:9:error: Invalid argument. Expected 'String' but found 'Number'
 
 # !> 16:4:error: Invalid argument. Expected 'Number' but found 'String'
-# !> 16:11:error: Invalid argument. Expected 'String' but found 'Bool'
+# !> 16:13:error: Invalid argument. Expected 'String' but found 'Bool'
 foo('hello', false)
 
 let bar = 100

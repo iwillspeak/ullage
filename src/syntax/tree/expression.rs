@@ -8,7 +8,7 @@ use super::super::SyntaxNode;
 use super::operators::{InfixOp, PrefixOp};
 use super::token::{Token, TokenKind};
 use super::types::TypeAnno;
-use std::borrow::Cow;
+use super::SepList;
 
 /// An identifier, with an optional type attached
 #[derive(Debug, PartialEq)]
@@ -53,47 +53,6 @@ impl TypedId {
             TypedId { typ, id, id_tok }
         } else {
             panic!("Creating a `TypedId` requires an `Word` token")
-        }
-    }
-}
-
-/// Delimited Item
-///
-/// A single element in a list of token-delimited values.
-#[derive(Debug, PartialEq)]
-pub enum DelimItem<T> {
-    /// The first item in a list. Doesn't have a corresponding
-    /// dlimiter token.
-    First(T),
-    /// The follwing items in the list. Carries the token which
-    /// separated it from the previous element.
-    Follow(Token, T),
-}
-
-impl<T> DelimItem<T> {
-    /// Borrow in inner item
-    pub fn as_inner(&self) -> &T {
-        match *self {
-            DelimItem::First(ref t) => t,
-            DelimItem::Follow(_, ref t) => t,
-        }
-    }
-}
-
-impl<T: SyntaxNode> SyntaxNode for DelimItem<T> {
-    fn description(&self, source: &SourceText) -> Cow<str> {
-        match *self {
-            DelimItem::First(ref t) => format!("Delim::First({})", t.description(source)).into(),
-            DelimItem::Follow(ref sep, ref t) => {
-                format!("Delim::Follow({}, {})", sep.kind, t.description(source)).into()
-            }
-        }
-    }
-
-    fn span(&self) -> Span {
-        match *self {
-            DelimItem::First(ref t) => t.span(),
-            DelimItem::Follow(ref sep, ref t) => Span::enclosing(sep.span(), t.span()),
         }
     }
 }
@@ -170,7 +129,7 @@ pub struct CallExpression {
     /// The opening `(` of this call
     pub open_paren: Box<Token>,
     /// The list of arguments to the call. This could be empty.
-    pub arguments: Vec<DelimItem<Expression>>,
+    pub arguments: SepList<Expression>,
     /// THe closing `)` of this call
     pub close_paren: Box<Token>,
 }
@@ -222,7 +181,7 @@ pub struct FunctionExpression {
     /// The open `(` before the parameter list
     pub params_open: Box<Token>,
     /// Function parameters
-    pub params: Vec<DelimItem<TypedId>>,
+    pub params: SepList<TypedId>,
     /// The closing `)` after the parameter list
     pub params_close: Box<Token>,
     /// Function return type
@@ -427,7 +386,7 @@ impl Expression {
     pub fn call(
         callee: Expression,
         open_paren: Token,
-        args: Vec<DelimItem<Expression>>,
+        args: SepList<Expression>,
         close_paren: Token,
     ) -> Self {
         Expression::Call(CallExpression {
@@ -479,7 +438,7 @@ impl Expression {
         fn_kw: Token,
         identifier: Ident,
         params_open: Token,
-        params: Vec<DelimItem<TypedId>>,
+        params: SepList<TypedId>,
         params_close: Token,
         return_type: TypeAnno,
         body: BlockBody,

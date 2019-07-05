@@ -6,6 +6,7 @@
 
 pub mod expression;
 pub mod operators;
+mod seplist;
 mod token;
 mod trivia;
 pub mod types;
@@ -16,11 +17,12 @@ use crate::diag::Diagnostic;
 use crate::parse::Parser;
 use crate::text::SourceText;
 
+pub use self::seplist::{SepList, SepListBuilder};
 pub use self::token::{Literal, Token, TokenKind};
 pub use self::trivia::{TriviaToken, TriviaTokenKind};
 
+use self::expression::Expression;
 use super::SyntaxNode;
-use expression::Expression;
 
 /// Syntax tree
 ///
@@ -46,12 +48,12 @@ impl<'a> SyntaxTree<'a> {
     /// # Parameters
     ///
     ///  * `root`: The body of the file. This could be an empty
-    ///  sequence if the file is empty
+    ///            sequence if the file is empty
     ///  * `diagnostics`: Diagnostics raised in the parsing of the
-    ///  source.
+    ///                   source.
     ///  * `end`: The closing EOF token. This may have some leading
-    ///  trivia attached and is therefore required for a full-fidelity
-    ///  tree.
+    ///           trivia attached and is therefore required for a
+    ///           full-fidelity tree.
     pub fn new(
         source: &'a SourceText,
         root: Expression,
@@ -144,7 +146,7 @@ where
         Expression::Prefix(p) => vec![&p.inner],
         Expression::Infix(i) => vec![&i.left, &i.right],
         Expression::Call(c) => std::iter::once(&*c.callee)
-            .chain(c.arguments.iter().map(|a| a.as_inner()))
+            .chain(c.arguments.iter())
             .collect(),
         Expression::Index(i) => vec![&i.index, &i.indexee],
         Expression::IfThenElse(i) => vec![&i.cond, &i.if_true, &i.if_false],

@@ -5,5 +5,9 @@ end
 # !> 6:4:error: unexpected token: expected expression but found ','
 foo(,)
 
-# !> 9:15:error: unexpected token: expected expression but found ')'
+# it's OK to have a trailing `,`
 foo(100, false,)
+
+# don't go nuts though...
+# !> 13:15:error: unexpected token: expected expression but found ','
+foo(969, true, ,)

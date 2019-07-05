@@ -215,7 +215,7 @@ fn parse_simple_call() {
     check_parse!("foo()", |s| Expression::call(
         mk_ident(&s, "foo"),
         Token::new(TokenKind::OpenBracket),
-        Vec::new(),
+        SepList::empty(),
         Token::new(TokenKind::CloseBracket)
     ));
 }
@@ -225,32 +225,25 @@ fn parse_complex_call() {
     check_parse!("hello(1, 1 + 23, -world)", |s| Expression::call(
         mk_ident(&s, "hello"),
         Token::new(TokenKind::OpenBracket),
-        vec![
-            DelimItem::First(Expression::constant_num(
+        SepList::builder()
+            .push_item(Expression::constant_num(
                 Token::new(TokenKind::Literal(Literal::Number(1))),
                 1
-            )),
-            DelimItem::Follow(
-                Token::new(TokenKind::Comma),
-                Expression::infix(
-                    Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(1))), 1),
-                    Token::new(TokenKind::Plus),
-                    InfixOp::Add,
-                    Expression::constant_num(
-                        Token::new(TokenKind::Literal(Literal::Number(23))),
-                        23
-                    ),
-                )
-            ),
-            DelimItem::Follow(
-                Token::new(TokenKind::Comma),
-                Expression::prefix(
-                    Token::new(TokenKind::Minus),
-                    PrefixOp::Negate,
-                    mk_ident(&s, "world"),
-                )
-            ),
-        ],
+            ))
+            .push_sep(Token::new(TokenKind::Comma))
+            .push_item(Expression::infix(
+                Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(1))), 1),
+                Token::new(TokenKind::Plus),
+                InfixOp::Add,
+                Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(23))), 23),
+            ))
+            .push_sep(Token::new(TokenKind::Comma))
+            .push_item(Expression::prefix(
+                Token::new(TokenKind::Minus),
+                PrefixOp::Negate,
+                mk_ident(&s, "world"),
+            ))
+            .build(),
         Token::new(TokenKind::CloseBracket),
     ));
 }
@@ -287,21 +280,19 @@ fn parse_indexing() {
             Token::new(TokenKind::CloseSqBracket)
         ),
         Token::new(TokenKind::OpenBracket),
-        vec![
-            DelimItem::First(Expression::constant_num(
+        SepList::builder()
+            .push_item(Expression::constant_num(
                 Token::new(TokenKind::Literal(Literal::Number(1))),
                 1
-            )),
-            DelimItem::Follow(
-                Token::new(TokenKind::Comma),
-                Expression::index(
-                    Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(2))), 2),
-                    Token::new(TokenKind::OpenSqBracket),
-                    Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(3))), 3),
-                    Token::new(TokenKind::CloseSqBracket)
-                )
-            ),
-        ],
+            ))
+            .push_sep(Token::new(TokenKind::Comma))
+            .push_item(Expression::index(
+                Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(2))), 2),
+                Token::new(TokenKind::OpenSqBracket),
+                Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(3))), 3),
+                Token::new(TokenKind::CloseSqBracket)
+            ))
+            .build(),
         Token::new(TokenKind::CloseBracket),
     ));
 }
@@ -327,10 +318,12 @@ fn parse_ternary_if() {
             Expression::call(
                 mk_ident(&s, "hello"),
                 Token::new(TokenKind::OpenBracket),
-                vec![DelimItem::First(Expression::constant_num(
-                    Token::new(TokenKind::Literal(Literal::Number(1))),
-                    1,
-                ))],
+                SepList::builder()
+                    .push_item(Expression::constant_num(
+                        Token::new(TokenKind::Literal(Literal::Number(1))),
+                        1,
+                    ))
+                    .build(),
                 Token::new(TokenKind::CloseBracket),
             ),
             Token::new(TokenKind::Word(s.intern("else"))),
@@ -376,7 +369,7 @@ fn parse_function_def() {
         Token::new(TokenKind::Word(s.intern("fn"))),
         s.intern("test"),
         Token::new(TokenKind::OpenBracket),
-        Vec::new(),
+        SepList::empty(),
         Token::new(TokenKind::CloseBracket),
         mk_simple_ty_anno(&s, "Num"),
         blockify(vec![Expression::constant_num(
@@ -392,7 +385,7 @@ fn parse_function_def() {
             Token::new(TokenKind::Word(s.intern("fn"))),
             s.intern("ünécød3"),
             Token::new(TokenKind::OpenBracket),
-            Vec::new(),
+            SepList::empty(),
             Token::new(TokenKind::CloseBracket),
             mk_simple_ty_anno(&s, "Num"),
             blockify(vec![Expression::if_then_else(
@@ -429,10 +422,12 @@ fn parse_function_with_args() {
         Token::new(TokenKind::Word(s.intern("fn"))),
         s.intern("neg"),
         Token::new(TokenKind::OpenBracket),
-        vec![DelimItem::First(TypedId::new(
-            Token::new(TokenKind::Word(s.intern("i"))),
-            mk_simple_ty_anno(&s, "Num")
-        ))],
+        SepList::builder()
+            .push_item(TypedId::new(
+                Token::new(TokenKind::Word(s.intern("i"))),
+                mk_simple_ty_anno(&s, "Num")
+            ))
+            .build(),
         Token::new(TokenKind::CloseBracket),
         mk_simple_ty_anno(&s, "Num"),
         blockify(vec![Expression::prefix(
@@ -447,23 +442,21 @@ fn parse_function_with_args() {
             Token::new(TokenKind::Word(s.intern("fn"))),
             s.intern("test"),
             Token::new(TokenKind::OpenBracket),
-            vec![
-                DelimItem::First(TypedId::new(
+            SepList::builder()
+                .push_item(TypedId::new(
                     Token::new(TokenKind::Word(s.intern("i"))),
                     mk_simple_ty_anno(&s, "Num"),
-                )),
-                DelimItem::Follow(
-                    Token::new(TokenKind::Comma),
-                    TypedId::new_without_type(Token::new(TokenKind::Word(s.intern("j")))),
-                ),
-                DelimItem::Follow(
-                    Token::new(TokenKind::Comma),
-                    TypedId::new(
-                        Token::new(TokenKind::Word(s.intern("k"))),
-                        mk_simple_ty_anno(&s, "String"),
-                    ),
-                ),
-            ],
+                ))
+                .push_sep(Token::new(TokenKind::Comma))
+                .push_item(TypedId::new_without_type(Token::new(TokenKind::Word(
+                    s.intern("j"),
+                ))))
+                .push_sep(Token::new(TokenKind::Comma))
+                .push_item(TypedId::new(
+                    Token::new(TokenKind::Word(s.intern("k"))),
+                    mk_simple_ty_anno(&s, "String"),
+                ))
+                .build(),
             Token::new(TokenKind::CloseBracket),
             mk_simple_ty_anno(&s, "String"),
             blockify(vec![Expression::infix(
@@ -523,7 +516,9 @@ fn parse_simple_tuple() {
                 Token::new(TokenKind::Colon),
                 TypeRef::tuple(
                     Token::new(TokenKind::OpenBracket),
-                    vec![DelimItem::First(mk_simple_ty(&s, "Num"))],
+                    SepList::builder()
+                        .push_item(mk_simple_ty(&s, "Num"))
+                        .build(),
                     Token::new(TokenKind::CloseBracket)
                 )
             )),
@@ -540,17 +535,15 @@ fn parse_simple_tuple() {
                 Token::new(TokenKind::Colon),
                 TypeRef::tuple(
                     Token::new(TokenKind::OpenBracket),
-                    vec![
-                        DelimItem::First(mk_simple_ty(&s, "Num")),
-                        DelimItem::Follow(
-                            Token::new(TokenKind::Comma),
-                            TypeRef::array(
-                                Token::new(TokenKind::OpenSqBracket),
-                                mk_simple_ty(&s, "String"),
-                                Token::new(TokenKind::CloseSqBracket)
-                            )
-                        ),
-                    ],
+                    SepList::builder()
+                        .push_item(mk_simple_ty(&s, "Num"))
+                        .push_sep(Token::new(TokenKind::Comma))
+                        .push_item(TypeRef::array(
+                            Token::new(TokenKind::OpenSqBracket),
+                            mk_simple_ty(&s, "String"),
+                            Token::new(TokenKind::CloseSqBracket)
+                        ))
+                        .build(),
                     Token::new(TokenKind::CloseBracket)
                 )
             )),

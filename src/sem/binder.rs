@@ -256,7 +256,6 @@ impl Binder {
             .iter()
             .map(|param| {
                 param
-                    .as_inner()
                     .typ
                     .as_ref()
                     .map(|t| self.bind_type(&t.type_ref))
@@ -501,7 +500,7 @@ impl Binder {
                         .iter()
                         .zip(param_tys)
                         .map(|(arg, param)| {
-                            let bound_arg = self.bind_expression(arg.as_inner(), source);
+                            let bound_arg = self.bind_expression(arg, source);
                             if bound_arg.typ != param {
                                 self.diagnostics.push(Diagnostic::new(
                                     format!(
@@ -616,7 +615,6 @@ impl Binder {
             .params
             .iter()
             .map(|p| {
-                let p = p.as_inner();
                 let ty = match p.typ.as_ref() {
                     Some(anno) => self.bind_type(&anno.type_ref),
                     None => {
