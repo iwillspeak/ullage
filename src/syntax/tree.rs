@@ -96,12 +96,12 @@ impl<'a> SyntaxTree<'a> {
         !self.diagnostics.is_empty()
     }
 
-    /// Returns the root of the expression tree and the EOF token
+    /// Get the Root Expression
     ///
-    /// FIXME: should root and token just be public and remove this,
-    /// `root()`, and `end()`?
-    pub fn into_parts(self) -> (Expression, Token) {
-        (self.root, self.end)
+    /// Accesses the base of the expression tree. The only other part
+    /// of the tree is the `end` token.
+    pub fn root_expression(&self) -> &Expression {
+        &self.root
     }
 
     /// Access the Borrowed Source
@@ -125,7 +125,6 @@ impl<'a> SyntaxTree<'a> {
     }
 }
 
-///
 /// Walks the subnodes of this tree and prints a text representation
 /// of them as an ASCII tree.
 fn pretty_tree<W>(

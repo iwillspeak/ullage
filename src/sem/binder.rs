@@ -216,9 +216,9 @@ impl Binder {
     pub fn bind_tree(&mut self, tree: syntax::SyntaxTree<'_>) -> Expression {
         let source = tree.source();
         add_builtin_types(self.scopes.current_mut(), source);
-        let (expr, _end) = tree.into_parts();
-        self.declare_expression(&expr);
-        self.bind_expression(&expr, source)
+        let expr = tree.root_expression();
+        self.declare_expression(expr);
+        self.bind_expression(expr, source)
     }
 
     /// Declare any items in the current expression that should be
