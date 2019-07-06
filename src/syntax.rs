@@ -6,7 +6,7 @@
 
 mod node;
 pub mod parse;
-pub mod syntaxfact;
+pub mod syntax_builder;
 pub mod text;
 pub mod tree;
 
