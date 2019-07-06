@@ -5,8 +5,8 @@
 //! Used for building expression trees by hand in code rather than the
 //! parser.
 
-use super::*;
 use super::text::Ident;
+use super::*;
 
 /// Build a raw string literal
 ///
@@ -22,15 +22,19 @@ pub fn raw_string<S: Into<String>>(value: S) -> Expression {
 
 /// Constant Boolean Expression
 ///
-/// Taks a given bool value and builds a stubbed-out token for it. The
-/// token will contain a dummy span.
+/// Takes a given bool value and builds a stubbed-out token for
+/// it. The token will contain a dummy span.
 pub fn const_bool(value: bool) -> Expression {
-    Expression::constant_bool(
-        word(if value {
-            Ident::True
-        } else {
-            Ident::False
-        }),
+    Expression::constant_bool(word(if value { Ident::True } else { Ident::False }), value)
+}
+
+/// Constant numeric value
+///
+/// Takes a given numeric value and builds a stubbed-out token for
+/// it. The token will contain a dummy span.
+pub fn const_num(value: i64) -> Expression {
+    Expression::constant_num(
+        Token::new(TokenKind::Literal(Literal::Number(value))),
         value,
     )
 }
