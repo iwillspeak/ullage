@@ -35,6 +35,12 @@ pub fn const_bool(value: bool) -> Expression {
     )
 }
 
+/// Identifier Expression. Reads a value from a variable or provides a
+/// reference to a function or other named item.
+pub fn ident_expr(value: Ident) -> Expression {
+    Expression::identifier(word(value), value)
+}
+
 /// Word token from identifier. Wraps the identifier in a token with
 /// missing position information
 pub fn word(id: Ident) -> Token {

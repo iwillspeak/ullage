@@ -22,17 +22,6 @@ macro_rules! check_parse {
     };
 }
 
-/// Creates an Identifier Expression
-///
-/// This funciton handles interning the indentifier and creating a
-/// mock token for the idnetifier expression to use.
-///
-/// FIXME: Replace with a proper builder API for trees
-fn mk_ident(source: &SourceText, id: &str) -> Expression {
-    let id = source.intern(id);
-    Expression::identifier(Token::new(TokenKind::Word(id)), id)
-}
-
 /// Create a Simple TypeRef
 ///
 /// Takes the given string, interns it and creates a type reference to
@@ -40,7 +29,7 @@ fn mk_ident(source: &SourceText, id: &str) -> Expression {
 ///
 /// FIXME: Replace with a proper builder API for trees
 fn mk_simple_ty(source: &SourceText, simple_name: &str) -> TypeRef {
-    TypeRef::simple(Token::new(TokenKind::Word(source.intern(simple_name))))
+    TypeRef::simple(syntaxfact::word(source.intern(simple_name)))
 }
 
 /// Stub a Type Annotation
@@ -59,14 +48,14 @@ fn mk_simple_ty_anno(source: &SourceText, simple_name: &str) -> TypeAnno {
 fn blockify(contents: Vec<Expression>) -> BlockBody {
     BlockBody {
         contents: Box::new(Expression::Sequence(contents)),
-        close: Box::new(Token::new(TokenKind::Word(Ident::End))),
+        close: Box::new(syntaxfact::word(Ident::End)),
     }
 }
 
 #[test]
 fn parse_simple_string() {
     check_parse!("hello + 123", |s| Expression::infix(
-        mk_ident(&s, "hello"),
+        syntaxfact::ident_expr(s.intern("hello")),
         Token::new(TokenKind::Plus),
         InfixOp::Add,
         Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(123))), 123),
@@ -76,70 +65,70 @@ fn parse_simple_string() {
 #[test]
 fn parse_operators() {
     check_parse!("a = b", |s| Expression::infix(
-        mk_ident(&s, "a"),
+        syntaxfact::ident_expr(s.intern("a")),
         Token::new(TokenKind::Equals),
         InfixOp::Assign,
-        mk_ident(&s, "b"),
+        syntaxfact::ident_expr(s.intern("b")),
     ));
     check_parse!("a + b", |s| Expression::infix(
-        mk_ident(&s, "a"),
+        syntaxfact::ident_expr(s.intern("a")),
         Token::new(TokenKind::Plus),
         InfixOp::Add,
-        mk_ident(&s, "b"),
+        syntaxfact::ident_expr(s.intern("b")),
     ));
     check_parse!("a - b", |s| Expression::infix(
-        mk_ident(&s, "a"),
+        syntaxfact::ident_expr(s.intern("a")),
         Token::new(TokenKind::Minus),
         InfixOp::Sub,
-        mk_ident(&s, "b"),
+        syntaxfact::ident_expr(s.intern("b")),
     ));
     check_parse!("a * b", |s| Expression::infix(
-        mk_ident(&s, "a"),
+        syntaxfact::ident_expr(s.intern("a")),
         Token::new(TokenKind::Star),
         InfixOp::Mul,
-        mk_ident(&s, "b"),
+        syntaxfact::ident_expr(s.intern("b")),
     ));
     check_parse!("a / b", |s| Expression::infix(
-        mk_ident(&s, "a"),
+        syntaxfact::ident_expr(s.intern("a")),
         Token::new(TokenKind::Slash),
         InfixOp::Div,
-        mk_ident(&s, "b"),
+        syntaxfact::ident_expr(s.intern("b")),
     ));
     check_parse!("a == b", |s| Expression::infix(
-        mk_ident(&s, "a"),
+        syntaxfact::ident_expr(s.intern("a")),
         Token::new(TokenKind::DoubleEquals),
         InfixOp::Eq,
-        mk_ident(&s, "b"),
+        syntaxfact::ident_expr(s.intern("b")),
     ));
     check_parse!("a != b", |s| Expression::infix(
-        mk_ident(&s, "a"),
+        syntaxfact::ident_expr(s.intern("a")),
         Token::new(TokenKind::BangEquals),
         InfixOp::NotEq,
-        mk_ident(&s, "b"),
+        syntaxfact::ident_expr(s.intern("b")),
     ));
     check_parse!("a < b", |s| Expression::infix(
-        mk_ident(&s, "a"),
+        syntaxfact::ident_expr(s.intern("a")),
         Token::new(TokenKind::LessThan),
         InfixOp::Lt,
-        mk_ident(&s, "b"),
+        syntaxfact::ident_expr(s.intern("b")),
     ));
     check_parse!("a <= b", |s| Expression::infix(
-        mk_ident(&s, "a"),
+        syntaxfact::ident_expr(s.intern("a")),
         Token::new(TokenKind::LessThanEqual),
         InfixOp::LtEq,
-        mk_ident(&s, "b"),
+        syntaxfact::ident_expr(s.intern("b")),
     ));
     check_parse!("a > b", |s| Expression::infix(
-        mk_ident(&s, "a"),
+        syntaxfact::ident_expr(s.intern("a")),
         Token::new(TokenKind::MoreThan),
         InfixOp::Gt,
-        mk_ident(&s, "b"),
+        syntaxfact::ident_expr(s.intern("b")),
     ));
     check_parse!("a >= b", |s| Expression::infix(
-        mk_ident(&s, "a"),
+        syntaxfact::ident_expr(s.intern("a")),
         Token::new(TokenKind::MoreThanEqual),
         InfixOp::GtEq,
-        mk_ident(&s, "b"),
+        syntaxfact::ident_expr(s.intern("b")),
     ));
 }
 
@@ -192,20 +181,20 @@ fn parse_prefix_expressions() {
     check_parse!("!a", |s| Expression::prefix(
         Token::new(TokenKind::Bang),
         PrefixOp::Not,
-        mk_ident(&s, "a")
+        syntaxfact::ident_expr(s.intern("a"))
     ));
     check_parse!("!a != !b", |s| Expression::infix(
         Expression::prefix(
             Token::new(TokenKind::Bang),
             PrefixOp::Not,
-            mk_ident(&s, "a")
+            syntaxfact::ident_expr(s.intern("a"))
         ),
         Token::new(TokenKind::BangEquals),
         InfixOp::NotEq,
         Expression::prefix(
             Token::new(TokenKind::Bang),
             PrefixOp::Not,
-            mk_ident(&s, "b")
+            syntaxfact::ident_expr(s.intern("b"))
         ),
     ));
 }
@@ -213,7 +202,7 @@ fn parse_prefix_expressions() {
 #[test]
 fn parse_simple_call() {
     check_parse!("foo()", |s| Expression::call(
-        mk_ident(&s, "foo"),
+        syntaxfact::ident_expr(s.intern("foo")),
         Token::new(TokenKind::OpenBracket),
         SepList::empty(),
         Token::new(TokenKind::CloseBracket)
@@ -223,7 +212,7 @@ fn parse_simple_call() {
 #[test]
 fn parse_complex_call() {
     check_parse!("hello(1, 1 + 23, -world)", |s| Expression::call(
-        mk_ident(&s, "hello"),
+        syntaxfact::ident_expr(s.intern("hello")),
         Token::new(TokenKind::OpenBracket),
         SepList::builder()
             .push_item(Expression::constant_num(
@@ -241,7 +230,7 @@ fn parse_complex_call() {
             .push_item(Expression::prefix(
                 Token::new(TokenKind::Minus),
                 PrefixOp::Negate,
-                mk_ident(&s, "world"),
+                syntaxfact::ident_expr(s.intern("world")),
             ))
             .build(),
         Token::new(TokenKind::CloseBracket),
@@ -274,9 +263,9 @@ fn parse_groups_with_parens() {
 fn parse_indexing() {
     check_parse!("hello[world](1, 2[3])", |s| Expression::call(
         Expression::index(
-            mk_ident(&s, "hello"),
+            syntaxfact::ident_expr(s.intern("hello")),
             Token::new(TokenKind::OpenSqBracket),
-            mk_ident(&s, "world"),
+            syntaxfact::ident_expr(s.intern("world")),
             Token::new(TokenKind::CloseSqBracket)
         ),
         Token::new(TokenKind::OpenBracket),
@@ -300,23 +289,23 @@ fn parse_indexing() {
 #[test]
 fn parse_ternary_if() {
     check_parse!("1 if 2 else 3", |s| Expression::if_then_else(
-        Token::new(TokenKind::Word(s.intern("if"))),
+        syntaxfact::word(s.intern("if")),
         Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(2))), 2),
         Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(1))), 1),
-        Token::new(TokenKind::Word(s.intern("else"))),
+        syntaxfact::word(s.intern("else")),
         Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(3))), 3),
     ));
     check_parse!("hello(1) if foo[23] else world[1 if foo else 2]", |s| {
         Expression::if_then_else(
-            Token::new(TokenKind::Word(s.intern("if"))),
+            syntaxfact::word(s.intern("if")),
             Expression::index(
-                mk_ident(&s, "foo"),
+                syntaxfact::ident_expr(s.intern("foo")),
                 Token::new(TokenKind::OpenSqBracket),
                 Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(23))), 23),
                 Token::new(TokenKind::CloseSqBracket),
             ),
             Expression::call(
-                mk_ident(&s, "hello"),
+                syntaxfact::ident_expr(s.intern("hello")),
                 Token::new(TokenKind::OpenBracket),
                 SepList::builder()
                     .push_item(Expression::constant_num(
@@ -326,15 +315,15 @@ fn parse_ternary_if() {
                     .build(),
                 Token::new(TokenKind::CloseBracket),
             ),
-            Token::new(TokenKind::Word(s.intern("else"))),
+            syntaxfact::word(s.intern("else")),
             Expression::index(
-                mk_ident(&s, "world"),
+                syntaxfact::ident_expr(s.intern("world")),
                 Token::new(TokenKind::OpenSqBracket),
                 Expression::if_then_else(
-                    Token::new(TokenKind::Word(s.intern("if"))),
-                    mk_ident(&s, "foo"),
+                    syntaxfact::word(s.intern("if")),
+                    syntaxfact::ident_expr(s.intern("foo")),
                     Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(1))), 1),
-                    Token::new(TokenKind::Word(s.intern("else"))),
+                    syntaxfact::word(s.intern("else")),
                     Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(2))), 2),
                 ),
                 Token::new(TokenKind::CloseSqBracket),
@@ -344,10 +333,10 @@ fn parse_ternary_if() {
     check_parse!(
         "0 unless 1 else 2",
         Expression::if_then_else(
-            Token::new(TokenKind::Word(s.intern("unless"))),
+            syntaxfact::word(s.intern("unless")),
             Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(1))), 1),
             Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(2))), 2),
-            Token::new(TokenKind::Word(s.intern("else"))),
+            syntaxfact::word(s.intern("else")),
             Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(0))), 0),
         )
     );
@@ -356,17 +345,17 @@ fn parse_ternary_if() {
 #[test]
 fn parse_unicode_identifiers() {
     check_parse!("  übåℝ * ßeåk  ", |s| Expression::infix(
-        mk_ident(&s, "übåℝ"),
+        syntaxfact::ident_expr(s.intern("übåℝ")),
         Token::new(TokenKind::Star),
         InfixOp::Mul,
-        mk_ident(&s, "ßeåk"),
+        syntaxfact::ident_expr(s.intern("ßeåk")),
     ));
 }
 
 #[test]
 fn parse_function_def() {
     check_parse!("fn test() :Num 100 end", |s| Expression::function(
-        Token::new(TokenKind::Word(s.intern("fn"))),
+        syntaxfact::word(s.intern("fn")),
         s.intern("test"),
         Token::new(TokenKind::OpenBracket),
         SepList::empty(),
@@ -382,17 +371,17 @@ fn parse_function_def() {
                 0 if 74 else 888
              end",
         |s| Expression::function(
-            Token::new(TokenKind::Word(s.intern("fn"))),
+            syntaxfact::word(s.intern("fn")),
             s.intern("ünécød3"),
             Token::new(TokenKind::OpenBracket),
             SepList::empty(),
             Token::new(TokenKind::CloseBracket),
             mk_simple_ty_anno(&s, "Num"),
             blockify(vec![Expression::if_then_else(
-                Token::new(TokenKind::Word(s.intern("if"))),
+                syntaxfact::word(s.intern("if")),
                 Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(74))), 74),
                 Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(0))), 0),
-                Token::new(TokenKind::Word(s.intern("else"))),
+                syntaxfact::word(s.intern("else")),
                 Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(888))), 888),
             )])
         )
@@ -402,12 +391,12 @@ fn parse_function_def() {
 #[test]
 fn parse_while_loop() {
     check_parse!("while 1 end", |s| Expression::loop_while(
-        Token::new(TokenKind::Word(s.intern("while"))),
+        syntaxfact::word(s.intern("while")),
         Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(1))), 1),
         blockify(Vec::new())
     ));
     check_parse!("while 0 44 234 end", |s| Expression::loop_while(
-        Token::new(TokenKind::Word(s.intern("while"))),
+        syntaxfact::word(s.intern("while")),
         Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(0))), 0),
         blockify(vec![
             Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(44))), 44),
@@ -419,12 +408,12 @@ fn parse_while_loop() {
 #[test]
 fn parse_function_with_args() {
     check_parse!("fn neg(i: Num): Num - i end", |s| Expression::function(
-        Token::new(TokenKind::Word(s.intern("fn"))),
+        syntaxfact::word(s.intern("fn")),
         s.intern("neg"),
         Token::new(TokenKind::OpenBracket),
         SepList::builder()
             .push_item(TypedId::new(
-                Token::new(TokenKind::Word(s.intern("i"))),
+                syntaxfact::word(s.intern("i")),
                 mk_simple_ty_anno(&s, "Num")
             ))
             .build(),
@@ -433,27 +422,25 @@ fn parse_function_with_args() {
         blockify(vec![Expression::prefix(
             Token::new(TokenKind::Minus),
             PrefixOp::Negate,
-            mk_ident(&s, "i"),
+            syntaxfact::ident_expr(s.intern("i")),
         )])
     ));
 
     check_parse!("fn test(i: Num, j, k: String): String i + j + k end", |s| {
         Expression::function(
-            Token::new(TokenKind::Word(s.intern("fn"))),
+            syntaxfact::word(s.intern("fn")),
             s.intern("test"),
             Token::new(TokenKind::OpenBracket),
             SepList::builder()
                 .push_item(TypedId::new(
-                    Token::new(TokenKind::Word(s.intern("i"))),
+                    syntaxfact::word(s.intern("i")),
                     mk_simple_ty_anno(&s, "Num"),
                 ))
                 .push_sep(Token::new(TokenKind::Comma))
-                .push_item(TypedId::new_without_type(Token::new(TokenKind::Word(
-                    s.intern("j"),
-                ))))
+                .push_item(TypedId::new_without_type(syntaxfact::word(s.intern("j"))))
                 .push_sep(Token::new(TokenKind::Comma))
                 .push_item(TypedId::new(
-                    Token::new(TokenKind::Word(s.intern("k"))),
+                    syntaxfact::word(s.intern("k")),
                     mk_simple_ty_anno(&s, "String"),
                 ))
                 .build(),
@@ -461,14 +448,14 @@ fn parse_function_with_args() {
             mk_simple_ty_anno(&s, "String"),
             blockify(vec![Expression::infix(
                 Expression::infix(
-                    mk_ident(&s, "i"),
+                    syntaxfact::ident_expr(s.intern("i")),
                     Token::new(TokenKind::Plus),
                     InfixOp::Add,
-                    mk_ident(&s, "j"),
+                    syntaxfact::ident_expr(s.intern("j")),
                 ),
                 Token::new(TokenKind::Plus),
                 InfixOp::Add,
-                mk_ident(&s, "k"),
+                syntaxfact::ident_expr(s.intern("k")),
             )]),
         )
     });
@@ -477,9 +464,9 @@ fn parse_function_with_args() {
 #[test]
 fn parse_simple_array_type() {
     check_parse!("let f: [Num] = 100", |s| Expression::declaration(
-        Token::new(TokenKind::Word(s.intern("let"))),
+        syntaxfact::word(s.intern("let")),
         TypedId::from_parts(
-            Token::new(TokenKind::Word(s.intern("f"))),
+            syntaxfact::word(s.intern("f")),
             Some(TypeAnno::new(
                 Token::new(TokenKind::Colon),
                 TypeRef::array(
@@ -498,8 +485,8 @@ fn parse_simple_array_type() {
 #[test]
 fn parse_simple_let() {
     check_parse!("let foo = 100", |s| Expression::declaration(
-        Token::new(TokenKind::Word(s.intern("let"))),
-        TypedId::from_parts(Token::new(TokenKind::Word(s.intern("foo"))), None),
+        syntaxfact::word(s.intern("let")),
+        TypedId::from_parts(syntaxfact::word(s.intern("foo")), None),
         VarStyle::Immutable,
         Token::new(TokenKind::Equals),
         Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(100))), 100),
@@ -509,9 +496,9 @@ fn parse_simple_let() {
 #[test]
 fn parse_simple_tuple() {
     check_parse!("let f: (Num) = 100", |s| Expression::declaration(
-        Token::new(TokenKind::Word(s.intern("let"))),
+        syntaxfact::word(s.intern("let")),
         TypedId::from_parts(
-            Token::new(TokenKind::Word(s.intern("f"))),
+            syntaxfact::word(s.intern("f")),
             Some(TypeAnno::new(
                 Token::new(TokenKind::Colon),
                 TypeRef::tuple(
@@ -528,9 +515,9 @@ fn parse_simple_tuple() {
         Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(100))), 100),
     ));
     check_parse!("let f: (Num, [String]) = 100", |s| Expression::declaration(
-        Token::new(TokenKind::Word(s.intern("let"))),
+        syntaxfact::word(s.intern("let")),
         TypedId::from_parts(
-            Token::new(TokenKind::Word(s.intern("f"))),
+            syntaxfact::word(s.intern("f")),
             Some(TypeAnno::new(
                 Token::new(TokenKind::Colon),
                 TypeRef::tuple(
@@ -557,16 +544,16 @@ fn parse_simple_tuple() {
 #[test]
 fn parse_variable_decl() {
     check_parse!("var foo = 93", |s| Expression::declaration(
-        Token::new(TokenKind::Word(s.intern("var"))),
-        TypedId::from_parts(Token::new(TokenKind::Word(s.intern("foo"))), None),
+        syntaxfact::word(s.intern("var")),
+        TypedId::from_parts(syntaxfact::word(s.intern("foo")), None),
         VarStyle::Mutable,
         Token::new(TokenKind::Equals),
         Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(93))), 93),
     ));
     check_parse!("var foo_bar: Number = -99999", |s| Expression::declaration(
-        Token::new(TokenKind::Word(s.intern("var"))),
+        syntaxfact::word(s.intern("var")),
         TypedId::from_parts(
-            Token::new(TokenKind::Word(s.intern("foo_bar"))),
+            syntaxfact::word(s.intern("foo_bar")),
             Some(mk_simple_ty_anno(&s, "Number"))
         ),
         VarStyle::Mutable,
@@ -585,25 +572,13 @@ fn parse_variable_decl() {
 #[test]
 fn parse_print_operator() {
     check_parse!("print 1334", |s| Expression::print(
-        Token::new(TokenKind::Word(s.intern("print"))),
+        syntaxfact::word(s.intern("print")),
         Expression::constant_num(Token::new(TokenKind::Literal(Literal::Number(1334))), 1334)
     ));
 }
 
 #[test]
 fn parse_bool_literal() {
-    check_parse!("true", |s| Expression::constant_bool(
-        Token::new(TokenKind::Word(s.intern("true"))),
-        true
-    ));
-    check_parse!("false", |s| Expression::constant_bool(
-        Token::new(TokenKind::Word(s.intern("false"))),
-        false
-    ));
-}
-
-#[test]
-fn parse_bool_literal_syntaxfact() {
     check_parse!("true", |s| Expression::constant_bool(
         syntaxfact::word(s.intern("true")),
         true
