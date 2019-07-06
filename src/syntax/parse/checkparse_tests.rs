@@ -603,6 +603,20 @@ fn parse_bool_literal() {
 }
 
 #[test]
+fn parse_bool_literal_syntaxfact() {
+    check_parse!("true", |s| Expression::constant_bool(
+        syntaxfact::word(s.intern("true")),
+        true
+    ));
+    check_parse!("false", |s| Expression::constant_bool(
+        syntaxfact::word(s.intern("false")),
+        false
+    ));
+    check_parse!("true", syntaxfact::const_bool(true));
+    check_parse!("false", syntaxfact::const_bool(false));
+}
+
+#[test]
 fn parse_string_literal() {
     check_parse!(
         "'hello'",
@@ -620,4 +634,10 @@ fn parse_string_literal() {
             "über ∂elta"
         )
     );
+}
+
+#[test]
+fn parse_string_literal_syntaxfact() {
+    check_parse!("'foobar'", syntaxfact::raw_string("foobar"));
+    check_parse!("'münchen'", syntaxfact::raw_string("münchen"));
 }

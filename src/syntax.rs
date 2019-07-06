@@ -8,6 +8,7 @@ mod node;
 pub mod parse;
 pub mod text;
 pub mod tree;
+pub mod syntaxfact;
 
 pub use self::node::*;
 pub use self::tree::expression::*;
