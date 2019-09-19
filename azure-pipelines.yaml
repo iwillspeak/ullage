@@ -13,12 +13,11 @@ jobs:
       displayName: Brew install LLVM
     - script: "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs -o rustup.sh && sh rustup.sh -y"
       displayName: Rustup
-    - script: "cargo install just"
-      displayName: Just
     - script: |
         export PATH=/usr/local/bin:$PATH             # Local bin (brew)
         source ~/.cargo/env
         export LLVM_SYS_80_PREFIX=/usr/local/opt/llvm
+        cargo install just
         ./build.sh test
       displayName: './build.sh test'
 - job: Linux
@@ -32,11 +31,10 @@ jobs:
       displayName: Python
     - script: "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs -o rustup.sh && sh rustup.sh -y"
       displayName: Rustup
-    - script: "cargo install just"
-      displayName: Just
     - script: |
         source ~/.cargo/env
         export PATH=${PATH}:~/.local/bin/
         export LLVM_SYS_80_PREFIX=/usr/lib/llvm-8
+        cargo install just
         ./build.sh test
       displayName: './build.sh test'
