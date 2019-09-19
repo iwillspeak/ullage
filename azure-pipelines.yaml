@@ -29,8 +29,7 @@ jobs:
     - script: |
         python3 --version
         export PATH=${PATH}:~/.local/bin/
-        virtualenv --version
-      displayName: Virtualenv Install
+      displayName: Python
     - script: "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs -o rustup.sh && sh rustup.sh -y"
       displayName: Rustup
     - script: "cargo install just"
