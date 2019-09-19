@@ -17,7 +17,6 @@ jobs:
         export PATH=/usr/local/bin:$PATH             # Local bin (brew)
         source ~/.cargo/env
         export LLVM_SYS_80_PREFIX=/usr/local/opt/llvm
-        pip3 install virtualenv
         ./build.sh test
       displayName: './build.sh test'
 - job: Linux
@@ -27,8 +26,6 @@ jobs:
   steps:
     - script: |
         python3 --version
-        pip3 --version
-        pip3 install virtualenv
         export PATH=${PATH}:~/.local/bin/
         virtualenv --version
       displayName: Virtualenv Install

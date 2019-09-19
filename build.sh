@@ -10,16 +10,5 @@ function check_for()
 }
 
 check_for python3
-check_for pip3
-check_for virtualenv
 
-if [ ! -d ${DIR}/venv ]
-then
-	# make sure to use a Python3 interpreter
-	virtualenv -p python3 venv
-fi
-
-source ${DIR}/venv/bin/activate
-pip3 install -r ${DIR}/requirements.txt
-
-invoke "$@"
+just "$@"
