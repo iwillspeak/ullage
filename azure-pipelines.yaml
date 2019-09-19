@@ -13,6 +13,8 @@ jobs:
       displayName: Brew install LLVM
     - script: "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs -o rustup.sh && sh rustup.sh -y"
       displayName: Rustup
+    - script: "cargo install just"
+      displayName: Just
     - script: |
         export PATH=/usr/local/bin:$PATH             # Local bin (brew)
         source ~/.cargo/env
@@ -31,6 +33,8 @@ jobs:
       displayName: Virtualenv Install
     - script: "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs -o rustup.sh && sh rustup.sh -y"
       displayName: Rustup
+    - script: "cargo install just"
+      displayName: Just
     - script: |
         source ~/.cargo/env
         export PATH=${PATH}:~/.local/bin/
