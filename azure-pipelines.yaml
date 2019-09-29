@@ -17,7 +17,7 @@ jobs:
         export PATH=/usr/local/bin:$PATH             # Local bin (brew)
         source ~/.cargo/env
         export LLVM_SYS_80_PREFIX=/usr/local/opt/llvm
-        pip3 install virtualenv
+        cargo install just
         ./build.sh test
       displayName: './build.sh test'
 - job: Linux
@@ -27,16 +27,14 @@ jobs:
   steps:
     - script: |
         python3 --version
-        pip3 --version
-        pip3 install virtualenv
         export PATH=${PATH}:~/.local/bin/
-        virtualenv --version
-      displayName: Virtualenv Install
+      displayName: Python
     - script: "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs -o rustup.sh && sh rustup.sh -y"
       displayName: Rustup
     - script: |
         source ~/.cargo/env
         export PATH=${PATH}:~/.local/bin/
         export LLVM_SYS_80_PREFIX=/usr/lib/llvm-8
+        cargo install just
         ./build.sh test
       displayName: './build.sh test'

@@ -3,6 +3,7 @@
 This is only known to work on my machine at the moment. I'm running macOS and stable Rust If you'd still like to give it a go then make sure you have:
 
  * Rust - to compile the compiler
+ * Just - to run help commands
  * Python - to run the functional tests
  * Clang - Used to link the output to create the final executables.
 

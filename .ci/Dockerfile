@@ -5,7 +5,7 @@ RUN apt-get update && \
 COPY llvm.list /etc/apt/sources.list.d/
 RUN apt-get update && \
 	apt-get install -y sudo && \
-	apt-get install -y python3 python3-pip && \
+	apt-get install -y python3 && \
 	apt-get install -y clang binutils && \
 	apt-get install -y llvm-8-dev && \
 	apt-get install -y zlib1g-dev

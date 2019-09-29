@@ -36,7 +36,7 @@ You can also mess around with constant strings:
 ## Building and Testing
 
 The main build is performed by `cargo`. For running the functional
-tests and benchmarks you'll need Python. The suggested process is to
+tests and benchmarks you'll need Python and to `cargo install just`. The suggested process is to
 use the `build.sh` script:
 
  * `$ ./build.sh` will build the compiler `target/release/ullage`.

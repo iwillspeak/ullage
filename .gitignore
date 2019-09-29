@@ -5,5 +5,3 @@ docs/build/
 # Binaries for spec tests
 specbin/
 a.out
-# Python virtual env for `invoke`
-venv/
