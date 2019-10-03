@@ -12,7 +12,7 @@ categories = [ "parsing" ]
 edition = "2018"
 
 [dependencies]
-llvm-sys = "80"
+llvm-sys = "90"
 docopt = "1.0"
 serde = { version = "1.0", features = ["derive"] }
 tempfile = "3.0"

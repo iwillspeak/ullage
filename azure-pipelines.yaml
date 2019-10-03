@@ -16,7 +16,7 @@ jobs:
     - script: |
         export PATH=/usr/local/bin:$PATH             # Local bin (brew)
         source ~/.cargo/env
-        export LLVM_SYS_80_PREFIX=/usr/local/opt/llvm
+        export LLVM_SYS_90_PREFIX=/usr/local/opt/llvm
         cargo install just
         ./build.sh test
       displayName: './build.sh test'
@@ -34,7 +34,7 @@ jobs:
     - script: |
         source ~/.cargo/env
         export PATH=${PATH}:~/.local/bin/
-        export LLVM_SYS_80_PREFIX=/usr/lib/llvm-8
+        export LLVM_SYS_90_PREFIX=/usr/lib/llvm-9
         cargo install just
         ./build.sh test
       displayName: './build.sh test'
