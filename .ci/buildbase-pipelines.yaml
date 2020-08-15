@@ -3,7 +3,7 @@ pool:
 
 trigger:
   paths:
-    include: 
+    include:
       - '.ci'
 
 variables:
@@ -17,4 +17,4 @@ steps:
     docker push $(dockerId)/$(imageName)
   workingDirectory: .ci
   env:
-    pswd: $(dockerPassword)            
+    pswd: $(dockerPassword)
