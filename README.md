@@ -89,5 +89,5 @@ Ullage is open source, under the [MIT License](LICENSE.md).
    * [ ] Microsoft LINK
 
 
- [build_status_image]: https://dev.azure.com/iwillspeak/GitHub/_apis/build/status/iwillspeak.ullage?branchName=master
- [build_status]: https://dev.azure.com/iwillspeak/GitHub/_build/latest?definitionId=2&branchName=master
+ [build_status_image]: https://dev.azure.com/iwillspeak/GitHub/_apis/build/status/iwillspeak.ullage?branchName=main
+ [build_status]: https://dev.azure.com/iwillspeak/GitHub/_build/latest?definitionId=2&branchName=main
