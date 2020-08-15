@@ -19,9 +19,9 @@ use std::os::raw::c_uint;
 /// If any of the LLVM subsystems can't be successfully initialised
 /// then this function will panic.
 pub(crate) fn ensure_initialised() {
-    use std::sync::{Once, ONCE_INIT};
+    use std::sync::Once;
 
-    static INIT: Once = ONCE_INIT;
+    static INIT: Once = Once::new();
 
     INIT.call_once(|| {
         unsafe {

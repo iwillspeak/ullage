@@ -94,7 +94,7 @@ impl<'t> RawTokeniser<'t> {
     /// Evaluates the predicate to find the end of a given token
     /// stream. Used to find the end of comments, whitespace and other
     /// variable-length tokens that we don't need to store values for.
-    fn skip_over<P>(&mut self, chars: &mut Iterator<Item = (char, Pos)>, mut pred: P)
+    fn skip_over<P>(&mut self, chars: &mut dyn Iterator<Item = (char, Pos)>, mut pred: P)
     where
         P: FnMut(char) -> bool,
     {
@@ -119,7 +119,7 @@ impl<'t> RawTokeniser<'t> {
     /// taken on its own.
     fn ch_choice<T, U>(
         &mut self,
-        chars: &mut Iterator<Item = (char, Pos)>,
+        chars: &mut dyn Iterator<Item = (char, Pos)>,
         maybe_next: char,
         single: T,
         double: U,
