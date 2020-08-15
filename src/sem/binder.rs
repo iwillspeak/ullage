@@ -853,7 +853,7 @@ mod test {
     use super::*;
     use crate::syntax::text::Interner;
     use crate::syntax::{
-        IdentifierExpression, InfixOperatorExpression, Literal, LiteralExpression,
+        IdentifierExpression, Literal, LiteralExpression,
         PrefixExpression, Token, TokenKind,
     };
 
