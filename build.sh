@@ -11,4 +11,10 @@ function check_for()
 
 check_for python3
 
+echo "Clang version:"
+clang --version
+
+echo "Rust version"
+rustc --version
+
 just "$@"
