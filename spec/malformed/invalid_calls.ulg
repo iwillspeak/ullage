@@ -1,0 +1,13 @@
+fn foo(n: Number, b: Bool): Number
+   n if b else 2
+end
+
+# !> 6:4:error: unexpected token: expected expression but found ','
+foo(,)
+
+# it's OK to have a trailing `,`
+foo(100, false,)
+
+# don't go nuts though...
+# !> 13:15:error: unexpected token: expected expression but found ','
+foo(969, true, ,)

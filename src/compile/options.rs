@@ -4,6 +4,7 @@
 //! compilation output.
 
 use crate::low_loader::pass_manager as pm;
+use super::linker::Linker;
 
 /// Compilation Options
 ///
@@ -14,6 +15,8 @@ pub struct CompilationOptions {
     pub dump_ir: bool,
     /// Optimisation level to use when emitting code
     pub opt_level: OptimisationLevel,
+    /// Linker option
+    pub linker: Option<Linker>,
 }
 
 /// Optimisation levels
@@ -48,6 +51,11 @@ impl CompilationOptions {
     /// Controls the optimisation level for the given options.
     pub fn with_opt_level(self, opt_level: OptimisationLevel) -> Self {
         CompilationOptions { opt_level, ..self }
+    }
+
+    /// Set the linker command to use
+    pub fn with_linker(self, linker: Linker) -> Self {
+        CompilationOptions { linker: Some(linker), ..self }
     }
 }
 

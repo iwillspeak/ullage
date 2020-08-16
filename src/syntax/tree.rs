@@ -6,6 +6,7 @@
 
 pub mod expression;
 pub mod operators;
+mod seplist;
 mod token;
 mod trivia;
 pub mod types;
@@ -16,11 +17,12 @@ use crate::diag::Diagnostic;
 use crate::parse::Parser;
 use crate::text::SourceText;
 
+pub use self::seplist::{SepList, SepListBuilder};
 pub use self::token::{Literal, Token, TokenKind};
 pub use self::trivia::{TriviaToken, TriviaTokenKind};
 
+use self::expression::Expression;
 use super::SyntaxNode;
-use expression::Expression;
 
 /// Syntax tree
 ///
@@ -46,12 +48,12 @@ impl<'a> SyntaxTree<'a> {
     /// # Parameters
     ///
     ///  * `root`: The body of the file. This could be an empty
-    ///  sequence if the file is empty
+    ///            sequence if the file is empty
     ///  * `diagnostics`: Diagnostics raised in the parsing of the
-    ///  source.
+    ///                   source.
     ///  * `end`: The closing EOF token. This may have some leading
-    ///  trivia attached and is therefore required for a full-fidelity
-    ///  tree.
+    ///           trivia attached and is therefore required for a
+    ///           full-fidelity tree.
     pub fn new(
         source: &'a SourceText,
         root: Expression,
@@ -96,12 +98,12 @@ impl<'a> SyntaxTree<'a> {
         !self.diagnostics.is_empty()
     }
 
-    /// Returns the root of the expression tree and the EOF token
+    /// Get the Root Expression
     ///
-    /// FIXME: should root and token just be public and remove this,
-    /// `root()`, and `end()`?
-    pub fn into_parts(self) -> (Expression, Token) {
-        (self.root, self.end)
+    /// Accesses the base of the expression tree. The only other part
+    /// of the tree is the `end` token.
+    pub fn root_expression(&self) -> &Expression {
+        &self.root
     }
 
     /// Access the Borrowed Source
@@ -125,7 +127,6 @@ impl<'a> SyntaxTree<'a> {
     }
 }
 
-///
 /// Walks the subnodes of this tree and prints a text representation
 /// of them as an ASCII tree.
 fn pretty_tree<W>(

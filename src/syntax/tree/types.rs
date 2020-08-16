@@ -4,8 +4,7 @@
 //! reference types.
 
 use super::super::text::{SourceText, Span, DUMMY_SPAN};
-use super::super::SyntaxNode;
-use super::expression::DelimItem;
+use super::super::{SepList, SyntaxNode};
 use super::Token;
 use std::borrow::Cow;
 
@@ -20,7 +19,7 @@ pub enum TypeRef {
     /// The Unit Type
     Unit(Box<Token>, Box<Token>),
     /// A non-empty Tuple
-    Tuple(Box<Token>, Vec<DelimItem<TypeRef>>, Box<Token>),
+    Tuple(Box<Token>, SepList<TypeRef>, Box<Token>),
     /// An Array Type
     Array(Box<Token>, Box<TypeRef>, Box<Token>),
     /// Missing type. Used to represent type information being missing
@@ -63,7 +62,7 @@ impl TypeRef {
     ///
     /// A tuple type is an ordered collection of values. Each value
     /// can be of a different type.
-    pub fn tuple(open: Token, inner: Vec<DelimItem<TypeRef>>, close: Token) -> Self {
+    pub fn tuple(open: Token, inner: SepList<TypeRef>, close: Token) -> Self {
         if inner.is_empty() {
             Self::unit(open, close)
         } else {
