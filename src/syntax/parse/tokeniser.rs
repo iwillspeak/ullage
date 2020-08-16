@@ -435,10 +435,7 @@ mod test {
             "# longer comment",
             RawTokenKind::Trivia(TriviaTokenKind::Comment)
         );
-        check_lex!(
-            "# ∆¬∞€#",
-            RawTokenKind::Trivia(TriviaTokenKind::Comment)
-        );
+        check_lex!("# ∆¬∞€#", RawTokenKind::Trivia(TriviaTokenKind::Comment));
 
         // We recognise _all_ denominations of newline
         check_lex!("\n", RawTokenKind::Trivia(TriviaTokenKind::Newline));

@@ -106,11 +106,11 @@ impl Compilation {
         module.verify_or_panic();
 
         // Create a tempdir to write the LLVM IR or bitcode to
-		let suffix = if cfg!(feature="bitcode_link") {
-			".bc"
-		} else {
-			".ll"
-		};
+        let suffix = if cfg!(feature = "bitcode_link") {
+            ".bc"
+        } else {
+            ".ll"
+        };
         let temp_file = Builder::new().prefix("ullage").suffix(suffix).tempfile()?;
 
         // check if we have optimiation enabled and run the

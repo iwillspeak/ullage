@@ -603,9 +603,7 @@ fn parse_string_literal() {
     check_parse!(
         "'über ∂elta'",
         Expression::constant_string(
-            Token::new(TokenKind::Literal(Literal::RawString(
-                "über ∂elta".into()
-            ))),
+            Token::new(TokenKind::Literal(Literal::RawString("über ∂elta".into()))),
             "über ∂elta"
         )
     );
