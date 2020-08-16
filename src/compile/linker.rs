@@ -53,6 +53,17 @@ impl LinkerCommand {
     pub fn default_asset_ty(&self) -> LinkerAssetType {
         LinkerAssetType::LlvmBc
     }
+
+    /// Get the executable this command should call.
+    ///
+    pub fn executable(&self) -> &str {
+        // FIXME: instead of exposing a &str. We should
+        //        make the linker buidl the command
+        //        rather than the compiler.
+        match *self {
+            LinkerCommand::Clang => "clang"
+        }
+    }
 }
 
 impl Default for LinkerCommand {

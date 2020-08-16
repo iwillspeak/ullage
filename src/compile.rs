@@ -125,7 +125,7 @@ impl Compilation {
         module.write_to_file(temp_file.path())?;
 
         // Shell out to Clang to link the final assembly
-        let output = Command::new("clang")
+        let output = Command::new(linker.cmd.executable())
             .arg(temp_file.path())
             .arg(format!("--target={}", target.triple()))
             .arg("-o")
