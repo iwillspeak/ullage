@@ -8,12 +8,14 @@ use crate::syntax;
 use std::path::Path;
 use std::process::Command;
 use tempfile::Builder;
+use linker::Linker;
 
 pub use self::error::{CompError, CompResult};
 pub use self::options::{CompilationOptions, OptimisationLevel};
 
 pub mod error;
 pub mod options;
+pub mod linker;
 
 mod lower;
 mod lower_context;
@@ -105,13 +107,10 @@ impl Compilation {
         fun.verify_or_panic();
         module.verify_or_panic();
 
+        let linker = self.options.linker.unwrap_or_else(Linker::default);
+
         // Create a tempdir to write the LLVM IR or bitcode to
-        let suffix = if cfg!(feature = "bitcode_link") {
-            ".bc"
-        } else {
-            ".ll"
-        };
-        let temp_file = Builder::new().prefix("ullage").suffix(suffix).tempfile()?;
+        let temp_file = Builder::new().prefix("ullage").suffix(linker.asset_ty.extension()).tempfile()?;
 
         // check if we have optimiation enabled and run the
         // corresponding optimisations if we do.
