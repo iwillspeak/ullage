@@ -3,6 +3,7 @@
 //! This module defines the options structure used to tweak
 //! compilation output.
 
+use serde::Deserialize;
 use crate::low_loader::pass_manager as pm;
 
 /// Compilation Options
@@ -14,6 +15,26 @@ pub struct CompilationOptions {
     pub dump_ir: bool,
     /// Optimisation level to use when emitting code
     pub opt_level: OptimisationLevel,
+	/// How to perform the link
+	pub link_kind: LinkKind,
+}
+
+/// Kinds of linking supported by the compiler. Maybe LTO supported in
+/// the future.
+#[derive(Debug,Deserialize)]
+pub enum LinkKind {
+	/// LLVM IL emit
+	IL,
+	/// LLVM Bitcode
+	Bitcode,
+	/// Object files
+	Object,
+}
+
+impl std::default::Default for LinkKind {
+	fn default() -> Self {
+		LinkKind::Bitcode
+	}
 }
 
 /// Optimisation levels
@@ -49,6 +70,11 @@ impl CompilationOptions {
     pub fn with_opt_level(self, opt_level: OptimisationLevel) -> Self {
         CompilationOptions { opt_level, ..self }
     }
+
+	/// Set the link kind for the compiler
+	pub fn with_link_kind(self, link_kind: LinkKind) -> Self {
+		CompilationOptions { link_kind, ..self }
+	}
 }
 
 impl Default for OptimisationLevel {

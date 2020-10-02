@@ -11,6 +11,7 @@ import threading
 
 Expectations = collections.namedtuple('Expectations', ['expects', 'failure_expects', 'skip_run'])
 
+LINKER_KIND = "Object"
 EXPECT_PATTERN = re.compile(r'#\s?=>\s?(.+)')
 EXPECT_ERR_PATTERN = re.compile(r'#\s?!>\s?(.+)')
 SKIP_PATTERN = re.compile(r'#\s?!!skip')
@@ -123,7 +124,7 @@ def run_spec(path):
 
     expectations = parse_spec(path)
     out = "specbin/{}".format(os.path.basename(path).split('.')[0])
-    compile_cmd = subprocess.Popen(["target/release/ullage", path, "-o", out], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    compile_cmd = subprocess.Popen(["target/release/ullage", path, "--link-kind", LINKER_KIND, "-o", out], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
     # Give the compiler 5 seconds to run, and return an error on timeout
     timer = threading.Timer(5, compile_cmd.kill)
