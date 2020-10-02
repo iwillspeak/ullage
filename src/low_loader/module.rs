@@ -4,10 +4,10 @@
 
 use super::function::Function;
 use super::llvm_sys::prelude::*;
+use super::llvm_sys::target_machine;
 use super::llvm_sys::{analysis, bit_writer, core};
 use super::pass_manager::{OptLevel, OptSize, PassManagerBuilder};
 use super::targets::Target;
-use super::llvmext;
 
 use std::ffi::{CStr, CString};
 use std::path::Path;
@@ -28,12 +28,12 @@ pub struct Module {
 /// Used when writing modules to disk.
 #[derive(Debug, PartialEq)]
 pub enum OutputFileKind {
-	/// LLVM IL files
-	LLVMIl,
-	/// LLVM Bitcode file
-	Bitcode,
-	/// Native executable object files
-	NativeObject
+    /// LLVM IL files
+    LLVMIl,
+    /// LLVM Bitcode file
+    Bitcode,
+    /// Native executable object files
+    NativeObject,
 }
 
 impl Module {
@@ -105,15 +105,48 @@ impl Module {
     /// Write the Module to the Given File as LLVM IR or Bitcode
     ///
     /// The kind of file written depends on `kind`.
-    pub fn write_to_file(&self, path: &Path, kind: OutputFileKind) -> Result<(), String> {
+    pub fn write_to_file(
+        &self,
+        target: &Target,
+        path: &Path,
+        kind: OutputFileKind,
+    ) -> Result<(), String> {
         let path = path.to_str().and_then(|s| CString::new(s).ok()).unwrap();
 
         unsafe {
             let mut message = ptr::null_mut();
             let r = match kind {
-                OutputFileKind::LLVMIl => core::LLVMPrintModuleToFile(self.raw, path.as_ptr(), &mut message),
-				OutputFileKind::Bitcode => bit_writer::LLVMWriteBitcodeToFile(self.raw, path.as_ptr()),
-				OutputFileKind::NativeObject => llvmext::LLVMExtWriteModuleToObjectFile(),
+                OutputFileKind::LLVMIl => {
+                    core::LLVMPrintModuleToFile(self.raw, path.as_ptr(), &mut message)
+                }
+                OutputFileKind::Bitcode => {
+                    bit_writer::LLVMWriteBitcodeToFile(self.raw, path.as_ptr())
+                }
+                OutputFileKind::NativeObject => {
+                    let trip = CString::new(target.triple()).unwrap();
+                    // To emit code we need to do a few things:
+                    //  * Create an LLVM TargetMachine from our target.
+                    //  * Create a pass manager
+                    //  * Call targetMachine emit to file
+                    let tm = target_machine::LLVMCreateTargetMachine(
+                        target.as_llvm_target(),
+                        trip.as_ptr(),
+                        target_machine::LLVMGetHostCPUName(),
+                        target_machine::LLVMGetHostCPUFeatures(),
+                        target_machine::LLVMCodeGenOptLevel::LLVMCodeGenLevelDefault,
+                        target_machine::LLVMRelocMode::LLVMRelocDefault,
+                        target_machine::LLVMCodeModel::LLVMCodeModelJITDefault,
+                    );
+                    let r = target_machine::LLVMTargetMachineEmitToFile(
+                        tm,
+                        self.as_raw(),
+                        path.as_ptr() as *mut _,
+                        target_machine::LLVMCodeGenFileType::LLVMObjectFile,
+                        &mut message,
+                    );
+                    target_machine::LLVMDisposeTargetMachine(tm);
+                    r
+                }
             };
             if r == 0 {
                 Ok(())

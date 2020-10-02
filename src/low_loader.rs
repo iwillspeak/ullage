@@ -33,7 +33,6 @@ pub mod pass_manager;
 pub mod targets;
 pub mod types;
 pub mod value;
-pub mod llvmext;
 
 /// Prelude Module
 ///
