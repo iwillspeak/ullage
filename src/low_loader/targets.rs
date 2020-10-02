@@ -73,6 +73,11 @@ impl Target {
         })
     }
 
+	/// Get the underlying LLVM target reference from the target
+	pub unsafe fn as_llvm_target(&self) -> LLVMTargetRef {
+		self.llvm_target
+	}
+
     /// Get the Target name
     ///
     /// Retrieves the logical name for this target

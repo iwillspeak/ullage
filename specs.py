@@ -141,7 +141,7 @@ def run_spec(path):
     run_cmd = subprocess.Popen(out, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     output = run_cmd.communicate()
     if run_cmd.returncode != 0:
-        raise ExitCodeMismatchError("Expected successfull exit code")
+        raise ExitCodeMismatchError("Expected successfull exit code", run_cmd.returncode, output)
     check_output(output[0].decode('utf-8'), expectations.expects)
 
 

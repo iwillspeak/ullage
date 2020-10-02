@@ -123,7 +123,7 @@ impl Compilation {
         if self.options.dump_ir {
             module.dump();
         }
-        module.write_to_file(temp_file.path(), kind)?;
+        module.write_to_file(&target, temp_file.path(), kind)?;
 
         // Shell out to Clang to link the final assembly
         let output = Command::new("clang")
