@@ -135,7 +135,7 @@ impl Module {
                         target_machine::LLVMGetHostCPUFeatures(),
                         target_machine::LLVMCodeGenOptLevel::LLVMCodeGenLevelDefault,
                         target_machine::LLVMRelocMode::LLVMRelocDefault,
-                        target_machine::LLVMCodeModel::LLVMCodeModelJITDefault,
+                        target_machine::LLVMCodeModel::LLVMCodeModelSmall,
                     );
                     let r = target_machine::LLVMTargetMachineEmitToFile(
                         tm,
