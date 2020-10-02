@@ -33,6 +33,7 @@ pub mod pass_manager;
 pub mod targets;
 pub mod types;
 pub mod value;
+pub mod llvmext;
 
 /// Prelude Module
 ///
@@ -43,7 +44,7 @@ pub mod prelude {
     pub use super::builder::Predicate;
     pub use super::context::Context;
     pub use super::function::{CallConvention, Function};
-    pub use super::module::Module;
+    pub use super::module::{Module, OutputFileKind};
     pub use super::targets::{Target, TargetLookupError};
     pub use super::types::Type;
     pub use super::value::Value;

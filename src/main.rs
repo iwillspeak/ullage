@@ -40,6 +40,7 @@ Options:
   -O, --optimise=<lvl>   Set the compilation optimisation level.
                          0 = off, 1 = low, 2 = medium, 3 = high, s = size.
   -o, --output=<out>     Write the output to <out>.
+  --link-kind=<type>     Set the link type to perform.
   --target=<triple>      Set the compilation target triple.
   --dumpir               Dump the LLVM IR for the module.
   --dumpast              Dump the syntax tree to stdout and exit.
@@ -57,6 +58,7 @@ struct Args {
     flag_output: Option<String>,
     flag_optimise: Option<OptFlag>,
     flag_target: Option<String>,
+	flag_link_kind: Option<LinkKind>,
     arg_file: Option<String>,
 
     // TODO: maybe move these dump options into a single flag?
@@ -202,6 +204,7 @@ fn main() {
 
     let options = CompilationOptions::default()
         .with_dump_ir(args.flag_dumpir)
+		.with_link_kind(args.flag_link_kind.unwrap_or_default())
         .with_opt_level(
             args.flag_optimise
                 .map_or(OptimisationLevel::Off, |o| o.into()),

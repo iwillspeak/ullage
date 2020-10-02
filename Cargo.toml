@@ -12,23 +12,18 @@ categories = [ "parsing" ]
 edition = "2018"
 
 [features]
-
-# bitcode link feature outputs intermediate files as bitcode rather than
-# LLMV IR.
-# FIXME: This should be a CLI flag
-bitcode_link = []
-
 default = [ "llvm-9" ]
 
 [dependencies]
-# FIXME: Want to upgrade to LLVM 10, but Clang doesn't seem capable of linking
-#        the IL or Bitcode output from it. Do we need to wait for LLVM 11? Is
-#        It time to stop relying on `cc` for linking?
 llvm-9 = { package = "llvm-sys", version = "90", optional = true }
-llvm-10 = { package = "llvm-sys", version = "100", optional = true, git = "https://gitlab.com/iwillspeak/llvm-sys.rs.git", branch = "macos-tbd-link" }
+llvm-10 = { package = "llvm-sys", version = "100", optional = true }
 docopt = "1.1"
 serde = { version = "1.0", features = ["derive"] }
 tempfile = "3.1"
 failure = "0.1"
 libc = "0.2"
 indexmap = "1.5"
+
+[build-dependencies]
+cc = "1.0"
+bindgen = "0.53"

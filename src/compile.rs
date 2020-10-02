@@ -10,7 +10,7 @@ use std::process::Command;
 use tempfile::Builder;
 
 pub use self::error::{CompError, CompResult};
-pub use self::options::{CompilationOptions, OptimisationLevel};
+pub use self::options::{CompilationOptions, OptimisationLevel, LinkKind};
 
 pub mod error;
 pub mod options;
@@ -106,10 +106,10 @@ impl Compilation {
         module.verify_or_panic();
 
         // Create a tempdir to write the LLVM IR or bitcode to
-		let suffix = if cfg!(feature="bitcode_link") {
-			".bc"
-		} else {
-			".ll"
+		let (suffix, kind) = match self.options.link_kind {
+			LinkKind::IL => (".il", OutputFileKind::LLVMIl),
+			LinkKind::Bitcode => (".bc", OutputFileKind::Bitcode),
+			LinkKind::Object => (".o", OutputFileKind::NativeObject),
 		};
         let temp_file = Builder::new().prefix("ullage").suffix(suffix).tempfile()?;
 
@@ -123,7 +123,7 @@ impl Compilation {
         if self.options.dump_ir {
             module.dump();
         }
-        module.write_to_file(temp_file.path())?;
+        module.write_to_file(temp_file.path(), kind)?;
 
         // Shell out to Clang to link the final assembly
         let output = Command::new("clang")

@@ -4,9 +4,10 @@
 
 use super::function::Function;
 use super::llvm_sys::prelude::*;
-use super::llvm_sys::{analysis, core, bit_writer};
+use super::llvm_sys::{analysis, bit_writer, core};
 use super::pass_manager::{OptLevel, OptSize, PassManagerBuilder};
 use super::targets::Target;
+use super::llvmext;
 
 use std::ffi::{CStr, CString};
 use std::path::Path;
@@ -20,6 +21,19 @@ use std::ptr;
 #[derive(Debug, PartialEq)]
 pub struct Module {
     raw: LLVMModuleRef,
+}
+
+/// The kind of output file to write
+///
+/// Used when writing modules to disk.
+#[derive(Debug, PartialEq)]
+pub enum OutputFileKind {
+	/// LLVM IL files
+	LLVMIl,
+	/// LLVM Bitcode file
+	Bitcode,
+	/// Native executable object files
+	NativeObject
 }
 
 impl Module {
@@ -89,20 +103,18 @@ impl Module {
     }
 
     /// Write the Module to the Given File as LLVM IR or Bitcode
-	///
-	/// If the path's extension is `.ll` then the file is written as
-	/// LLVM IR, otherwise the file is written as bitcode.
-    pub fn write_to_file(&self, path: &Path) -> Result<(), String> {
-		let is_il = path.extension().map(|e| e == "ll").unwrap_or(false);
+    ///
+    /// The kind of file written depends on `kind`.
+    pub fn write_to_file(&self, path: &Path, kind: OutputFileKind) -> Result<(), String> {
         let path = path.to_str().and_then(|s| CString::new(s).ok()).unwrap();
 
         unsafe {
             let mut message = ptr::null_mut();
-            let r = if is_il {
-				core::LLVMPrintModuleToFile(self.raw, path.as_ptr(), &mut message)
-			} else {
-				bit_writer::LLVMWriteBitcodeToFile(self.raw, path.as_ptr())
-			};
+            let r = match kind {
+                OutputFileKind::LLVMIl => core::LLVMPrintModuleToFile(self.raw, path.as_ptr(), &mut message),
+				OutputFileKind::Bitcode => bit_writer::LLVMWriteBitcodeToFile(self.raw, path.as_ptr()),
+				OutputFileKind::NativeObject => llvmext::LLVMExtWriteModuleToObjectFile(),
+            };
             if r == 0 {
                 Ok(())
             } else {
