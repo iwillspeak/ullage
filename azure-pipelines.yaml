@@ -8,18 +8,26 @@ jobs:
 - job: macOS
   pool:
     vmImage: 'macOS-10.15'
+  strategy:
+    matrix:
+      LLVM9:
+        llvm_tag: 'llvm\@9'
+        features: 'llvm-9'
+      LLVM10:
+        llvm_tag: 'llvm'
+        features: 'llvm-10'
   steps:
-    - script: 'brew install llvm\@9'
+    - script: 'brew install $(llvm_tag)'
       displayName: Brew install LLVM
     - script: "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs -o rustup.sh && sh rustup.sh -y"
       displayName: Rustup
     - script: |
         export PATH=/usr/local/bin:$PATH             # Local bin (brew)
         source ~/.cargo/env
-        export LLVM_SYS_90_PREFIX=/usr/local/opt/llvm\@9
+        export LLVM_SYS_90_PREFIX=/usr/local/opt/$(llvm_tag)
         export LLVM_CONFIG_PATH=${LLVM_SYS_90_PREFIX}/bin/llvm-config
         cargo install just
-        ./build.sh test
+        ./build.sh test $(features)
       displayName: './build.sh test'
 - job: Linux
   pool:
