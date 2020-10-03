@@ -1,8 +1,10 @@
+features := "llvm-10"
+
 build:
-    cargo build --release
+    cargo build --release --no-default-features --features={{features}}
 
 test: build
-    cargo test
+    cargo test --no-default-features --features={{features}}
     python3 specs.py
 
 clean:
