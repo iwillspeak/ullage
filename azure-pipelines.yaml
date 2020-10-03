@@ -27,7 +27,7 @@ jobs:
         export LLVM_SYS_90_PREFIX=/usr/local/opt/$(llvm_tag)
         export LLVM_CONFIG_PATH=${LLVM_SYS_90_PREFIX}/bin/llvm-config
         cargo install just
-        ./build.sh test $(features)
+        ./build.sh features=$(features) test
       displayName: './build.sh test'
 - job: Linux
   pool:
