@@ -10,7 +10,7 @@ use std::process::Command;
 use tempfile::Builder;
 
 pub use self::error::{CompError, CompResult};
-pub use self::options::{CompilationOptions, OptimisationLevel, LinkKind};
+pub use self::options::{CompilationOptions, LinkKind, OptimisationLevel};
 
 pub mod error;
 pub mod options;
@@ -106,11 +106,11 @@ impl Compilation {
         module.verify_or_panic();
 
         // Create a tempdir to write the LLVM IR or bitcode to
-		let (suffix, kind) = match self.options.link_kind {
-			LinkKind::IL => (".il", OutputFileKind::LLVMIl),
-			LinkKind::Bitcode => (".bc", OutputFileKind::Bitcode),
-			LinkKind::Object => (".o", OutputFileKind::NativeObject),
-		};
+        let (suffix, kind) = match self.options.link_kind {
+            LinkKind::IL => (".il", OutputFileKind::LLVMIl),
+            LinkKind::Bitcode => (".bc", OutputFileKind::Bitcode),
+            LinkKind::Object => (".o", OutputFileKind::NativeObject),
+        };
         let temp_file = Builder::new().prefix("ullage").suffix(suffix).tempfile()?;
 
         // check if we have optimiation enabled and run the
