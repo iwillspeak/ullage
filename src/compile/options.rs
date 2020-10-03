@@ -33,7 +33,7 @@ pub enum LinkKind {
 
 impl std::default::Default for LinkKind {
 	fn default() -> Self {
-		LinkKind::Bitcode
+		LinkKind::Object
 	}
 }
 
