@@ -3,7 +3,6 @@
 use super::llvm_sys::core::LLVMDisposeMessage;
 use super::llvm_sys::target_machine::*;
 use failure::Fail;
-use libc;
 use std::ffi::{CStr, CString};
 use std::{fmt, ptr};
 
@@ -74,6 +73,11 @@ impl Target {
     }
 
 	/// Get the underlying LLVM target reference from the target
+	///
+	/// # Safety
+	///
+	/// The lifetime of the returned reference is tied to the lifetime of
+	/// the `Target`. It should not be used outside that scope.
 	pub unsafe fn as_llvm_target(&self) -> LLVMTargetRef {
 		self.llvm_target
 	}

@@ -167,9 +167,9 @@ pub fn lower_internal(
                     Typ::Builtin(BuiltinType::String) => {
                         build_string_concat(ctx, builder, lhs_val, rhs_val)
                     }
-                    _ => Err(CompError::from(
+                    _ => return Err(CompError::from(
                         "invalid operand types for `Add`".to_string(),
-                    ))?,
+                    )),
                 },
                 InfixOp::Sub => builder.build_sub(lhs_val, rhs_val),
                 InfixOp::Mul => builder.build_mul(lhs_val, rhs_val),

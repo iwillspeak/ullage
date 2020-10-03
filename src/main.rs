@@ -3,8 +3,6 @@
 
 #![warn(missing_docs)]
 
-use failure;
-
 pub mod compile;
 pub mod diag;
 pub mod low_loader;
