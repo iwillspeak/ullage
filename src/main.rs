@@ -40,6 +40,8 @@ Options:
   -o, --output=<out>     Write the output to <out>.
   --link-kind=<type>     Set the link type to perform.
   --target=<triple>      Set the compilation target triple.
+  --link-mode=<mode>     Set the type of intermediate assets to produce
+                         for linking. Use `llvmIr`, or `llvmBc`.
   --dumpir               Dump the LLVM IR for the module.
   --dumpast              Dump the syntax tree to stdout and exit.
   --prettytree           Dump a prettified summary of the syntax tree.
@@ -56,7 +58,7 @@ struct Args {
     flag_output: Option<String>,
     flag_optimise: Option<OptFlag>,
     flag_target: Option<String>,
-	flag_link_kind: Option<LinkKind>,
+    flag_link_mode: Option<LinkMode>,
     arg_file: Option<String>,
 
     // TODO: maybe move these dump options into a single flag?
@@ -76,6 +78,23 @@ enum OptFlag {
     Numeric(u64),
     /// size optimisation
     Size,
+}
+
+/// Liker Mode
+///
+/// Chose the type of intermediate assets to produce when
+/// performnig the link.
+#[derive(Debug, Deserialize)]
+enum LinkMode {
+    /// Intermediate langauge files
+    #[serde(rename = "il")]
+    LlvmIr,
+    /// Bitcode files
+    #[serde(rename = "bc")]
+    LlvmBc,
+    /// Native Objects
+    #[serde(rename = "obj")]
+    Objects,
 }
 
 /// Custom Deserialiser for Optimisation Flags
@@ -132,6 +151,19 @@ impl From<OptFlag> for OptimisationLevel {
             },
             OptFlag::Size => OptimisationLevel::Size,
         }
+    }
+}
+
+impl From<LinkMode> for linker::Linker {
+    fn from(mode: LinkMode) -> Self {
+        linker::Linker::new(
+            linker::LinkerCommand::default(),
+            match mode {
+                LinkMode::LlvmIr => linker::LinkerAssetType::LlvmIr,
+                LinkMode::LlvmBc => linker::LinkerAssetType::LlvmBc,
+                LinkMode::Objects => linker::LinkerAssetType::Object,
+            },
+        )
     }
 }
 
@@ -200,13 +232,17 @@ fn main() {
         exit(0);
     }
 
-    let options = CompilationOptions::default()
+    let mut options = CompilationOptions::default()
         .with_dump_ir(args.flag_dumpir)
-		.with_link_kind(args.flag_link_kind.unwrap_or_default())
         .with_opt_level(
             args.flag_optimise
                 .map_or(OptimisationLevel::Off, |o| o.into()),
         );
+    if let Some(link_mode) = args.flag_link_mode {
+        let linker = linker::Linker::from(link_mode);
+        options = options.with_linker(linker);
+    }
+
     let comp = match Compilation::new(tree, options) {
         Ok(c) => c,
         Err(e) => handle_comp_err(&e),

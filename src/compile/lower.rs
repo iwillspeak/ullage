@@ -103,7 +103,7 @@ fn add_decls(ctx: &mut LowerContext<'_>, expr: &Expression) {
                 .params
                 .iter()
                 .map(|p| {
-                    ctx.llvm_type(p.ty.unwrap_or(Typ::Builtin(BuiltinType::Number)))
+                    ctx.llvm_type(p.ty)
                         .expect("no type in context for function param")
                 })
                 .collect::<Vec<_>>();
@@ -145,7 +145,7 @@ pub fn lower_internal(
                 let global = ctx.module.add_global(initialiser, "s_const");
 
                 let string_ty = ctx
-                    .llvm_type(expr.typ.unwrap())
+                    .llvm_type(expr.typ)
                     .expect("no type in context for string literal");
                 Ok(builder.build_bitcast(global, string_ty, "string_const"))
             }
@@ -162,14 +162,16 @@ pub fn lower_internal(
             let lhs_val = lower_internal(ctx, fun, builder, vars, *lhs)?;
             let rhs_val = lower_internal(ctx, fun, builder, vars, *rhs)?;
             let val = match op {
-                InfixOp::Add => match expr.typ.unwrap() {
+                InfixOp::Add => match expr.typ {
                     Typ::Builtin(BuiltinType::Number) => builder.build_add(lhs_val, rhs_val),
                     Typ::Builtin(BuiltinType::String) => {
                         build_string_concat(ctx, builder, lhs_val, rhs_val)
                     }
-                    _ => return Err(CompError::from(
-                        "invalid operand types for `Add`".to_string(),
-                    )),
+                    _ => {
+                        return Err(CompError::from(
+                            "invalid operand types for `Add`".to_string(),
+                        ))
+                    }
                 },
                 InfixOp::Sub => builder.build_sub(lhs_val, rhs_val),
                 InfixOp::Mul => builder.build_mul(lhs_val, rhs_val),
@@ -217,9 +219,8 @@ pub fn lower_internal(
         ExpressionKind::IfThenElse(iff, then, els) => {
             let cond = lower_internal(ctx, fun, builder, vars, *iff)?;
 
-            let typ = expr
-                .typ
-                .and_then(|t| ctx.llvm_type(t))
+            let typ = ctx
+                .llvm_type(expr.typ)
                 .ok_or_else(|| CompError::from("No type for if expression".to_string()))?;
             let ret = builder.build_alloca(typ, "if");
 
@@ -257,7 +258,7 @@ pub fn lower_internal(
                 .enumerate()
                 .map(|(i, p)| {
                     let typ = ctx
-                        .llvm_type(p.ty.unwrap_or(Typ::Builtin(BuiltinType::Number)))
+                        .llvm_type(p.ty)
                         .expect("no type in context for function parameter");
                     let param = builder.build_alloca(typ, &p.ident);
                     builder.build_store(fun.get_param(i as u32), param);
@@ -304,27 +305,22 @@ pub fn lower_internal(
             // do this so that some values, such as `bool`s can be
             // converted before printing.
             //
-            // There are a few TODOs with this though:
             // TODO: Once Strings become available we should switch to
-            //       `to_string` here
-            // TODO: Stop falling back to the LLVM type here.
-            let (to_format, format) = expr
-                .typ
-                .and_then(|t| fmt_from_type(t, ctx, fun, builder, val))
-                .unwrap_or_else(|| fmt_from_llvm(ctx, fun, builder, val));
-            fmt(ctx, builder, to_format, format);
+            //       `to_string` here rather than `fmt_from_type`.
+            if let Some((to_format, format)) = fmt_from_type(expr.typ, ctx, fun, builder, val) {
+                fmt(ctx, builder, to_format, format);
+            } else {
+                eprintln!("Can't format value of type: {:?}", expr.typ);
+                unimplemented!();
+            }
             Ok(val)
         }
         ExpressionKind::Declaration(decl, is_mut, initialiser) => {
             let initialiser = lower_internal(ctx, fun, builder, vars, *initialiser)?;
             let value = if is_mut {
-                let typ = decl.ty.map_or_else(
-                    || ctx.llvm_ctx.get_type(initialiser),
-                    |ty| {
-                        ctx.llvm_type(ty)
-                            .expect("no type in context for declaration")
-                    },
-                );
+                let typ = ctx
+                    .llvm_type(decl.ty)
+                    .expect("no type in context for declaration");
 
                 let stackloc = builder.build_alloca(typ, &decl.ident);
                 builder.build_store(initialiser, stackloc);
@@ -465,26 +461,4 @@ fn fmt_convert_bool(
     builder.position_at_end(join_bb);
 
     builder.build_load(temp)
-}
-
-/// Format from LLVM Type
-///
-/// Gets a format string specifier from the LLVM type. This is only
-/// used as a fallback.
-///
-/// FIXME: Stop falling back to this function for printing.
-fn fmt_from_llvm(
-    ctx: &mut LowerContext<'_>,
-    fun: &mut Function,
-    builder: &mut Builder,
-    val: LLVMValueRef,
-) -> (Vec<LLVMValueRef>, &'static str) {
-    match Type::from(ctx.llvm_ctx.get_type(val)) {
-        Type::Int(1) => {
-            let formatted = fmt_convert_bool(ctx, fun, builder, val);
-            (vec![formatted], "printf_cstr_format")
-        }
-        Type::Int(_) => (vec![val], "printf_num_format"),
-        _ => unimplemented!(),
-    }
 }

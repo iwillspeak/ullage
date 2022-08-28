@@ -22,8 +22,12 @@
 
 #![deny(missing_docs)]
 
-#[cfg(feature = "llvm-9")] use llvm_9 as llvm_sys;
-#[cfg(feature = "llvm-10")] use llvm_10 as llvm_sys;
+#[cfg(feature = "llvm-10")]
+use llvm_10 as llvm_sys;
+#[cfg(feature = "llvm-13")]
+use llvm_13 as llvm_sys;
+#[cfg(feature = "llvm-9")]
+use llvm_9 as llvm_sys;
 
 pub mod builder;
 pub mod context;

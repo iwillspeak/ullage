@@ -1,24 +1,40 @@
 //! Compilation error module. Contains the Result and Error types for
 //! the compile module.
 
-use failure::Fail;
-use std::io;
+use std::{fmt::Display, io};
 
 /// Represents the different types of errors which can be encountered
 /// when compiling.
-#[derive(Fail, Debug)]
+#[derive(Debug)]
 pub enum CompError {
     /// Generic Error String
-    #[fail(display = "compilation error: {}", _0)]
     Generic(String),
 
     /// Linker Failure
-    #[fail(display = "linker failed: {}", _0)]
-    Linker(#[cause] LinkerError),
+    Linker(LinkerError),
 
     /// Wrapped IO Error
-    #[fail(display = "IO error: {}", _0)]
-    IO(#[cause] ::std::io::Error),
+    IO(io::Error),
+}
+
+impl std::error::Error for CompError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            CompError::Linker(e) => Some(e),
+            CompError::IO(e) => Some(e),
+            _ => None,
+        }
+    }
+}
+
+impl Display for CompError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            CompError::Generic(msg) => write!(f, "compilation error: {}", msg),
+            CompError::Linker(cause) => write!(f, "linker failed.: {}", cause),
+            CompError::IO(cause) => write!(f, "IO error: {}", cause),
+        }
+    }
 }
 
 /// Compilation result. Returned from each compilation stage.
@@ -27,15 +43,26 @@ pub type CompResult<T> = Result<T, CompError>;
 /// Link Failure Type
 ///
 /// Used to group together the different failure modes for the linker.
-#[derive(Fail, Debug)]
+#[derive(Debug)]
 pub enum LinkerError {
     /// The linker failed with a known exit status
-    #[fail(display = "linker returned exit status {}: {}", _0, _1)]
     WithExitStatus(i32, String),
 
     /// The linker failed with an unknown exit status
-    #[fail(display = "unknown linker error: {}", _0)]
     UnknownFailure(String),
+}
+
+impl std::error::Error for LinkerError {}
+
+impl Display for LinkerError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            LinkerError::WithExitStatus(status, msg) => {
+                write!(f, "linker returned exit status {}: {}", status, msg)
+            }
+            LinkerError::UnknownFailure(msg) => write!(f, "unknown linker error: {}", msg),
+        }
+    }
 }
 
 impl From<String> for CompError {

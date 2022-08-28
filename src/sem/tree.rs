@@ -40,7 +40,7 @@ pub struct VarDecl {
     pub ident: String,
 
     /// The type of the identifier, if one was specified or inferred.
-    pub ty: Option<Typ>,
+    pub ty: Typ,
 }
 
 /// A Semantically Decorated Expression
@@ -50,11 +50,22 @@ pub struct VarDecl {
 /// representation of the code as it was written.
 #[derive(Debug, PartialEq)]
 pub struct Expression {
-    /// The contents of this expression.
+    /// The contents of this expression
+    ///
+    /// This is a union of the different expression kinds.
     pub kind: ExpressionKind,
 
-    /// The type of this node, if known
-    pub typ: Option<Typ>,
+    /// The type of this node
+    ///
+    /// All expressions in the tree will have some form of type. Error
+    /// expressions or expressions where the type can't be calculated
+    /// due to a syntax or semantic error in the program are typed
+    /// `Typ::Error`. Parts of the tree where the type has yet to be
+    /// inferred are typed `Typ::Unknown`.
+    ///
+    /// Before lowering a well-formed tree should contain neither of
+    /// these types.
+    pub typ: Typ,
 }
 
 /// The Expression Kind Enum
@@ -141,16 +152,19 @@ impl Expression {
     ///
     /// Constructs a new semantic expression tree node from
     /// constituent parts. The type information for a given node can
-    /// be set to none if no type inference has yet been run for this
-    /// expression.
-    pub fn new(kind: ExpressionKind, typ: Option<Typ>) -> Self {
+    /// be set to `Typ::Unknown` if no type inference has yet been run
+    /// for this expression.
+    pub fn new(kind: ExpressionKind, typ: Typ) -> Self {
         Expression { kind, typ }
     }
 
     /// Create an Error Expresion
     ///
-    /// Convenience function for returning error expressions.
+    /// Convenience function for returning error expressions. Error
+    /// expressions have a kind of `ExpressionKind::Error` and a type
+    /// of `Typ::Error`. They are used to mark invalid or
+    /// uncalculateable portions of the bound tree.
     pub fn error() -> Self {
-        Expression::new(ExpressionKind::Error, Some(Typ::Error))
+        Expression::new(ExpressionKind::Error, Typ::Error)
     }
 }

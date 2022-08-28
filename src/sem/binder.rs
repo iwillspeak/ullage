@@ -216,9 +216,9 @@ impl Binder {
     pub fn bind_tree(&mut self, tree: syntax::SyntaxTree<'_>) -> Expression {
         let source = tree.source();
         add_builtin_types(self.scopes.current_mut(), source);
-        let (expr, _end) = tree.into_parts();
-        self.declare_expression(&expr);
-        self.bind_expression(&expr, source)
+        let expr = tree.root_expression();
+        self.declare_expression(expr);
+        self.bind_expression(expr, source)
     }
 
     /// Declare any items in the current expression that should be
@@ -256,7 +256,6 @@ impl Binder {
             .iter()
             .map(|param| {
                 param
-                    .as_inner()
                     .typ
                     .as_ref()
                     .map(|t| self.bind_type(&t.type_ref))
@@ -310,10 +309,10 @@ impl Binder {
         if let Some(sym) = self.scopes.lookup(ident.ident) {
             let id_str = source.interned_value(ident.ident);
             let typ = match sym {
-                Symbol::Variable(_, t) => Some(t),
-                Symbol::Function(..) => Some(Typ::Function(ident.ident)),
+                Symbol::Variable(_, t) => t,
+                Symbol::Function(..) => Typ::Function(ident.ident),
                 // FIXME: First-class types?
-                Symbol::Type(..) => None,
+                Symbol::Type(..) => Typ::Error,
             };
             Expression::new(ExpressionKind::Identifier(id_str), typ)
         } else {
@@ -336,7 +335,7 @@ impl Binder {
             Constant::Number(_) => BuiltinType::Number,
             Constant::String(_) => BuiltinType::String,
         });
-        Expression::new(ExpressionKind::Literal(constant_value), Some(typ))
+        Expression::new(ExpressionKind::Literal(constant_value), typ)
     }
 
     /// Prefix operation
@@ -382,15 +381,12 @@ impl Binder {
             let lhs = self.bind_expression(&infix.left, source);
             let rhs = self.bind_expression(&infix.right, source);
 
-            let lhs_typ = lhs.typ.unwrap_or(Typ::Unknown);
-            let rhs_typ = rhs.typ.unwrap_or(Typ::Unknown);
-
             // Look the operator up in the operator table to check if
             // it is permissable and what the reutnr type is.
-            match operators::find_builtin_op(infix.op, lhs_typ, rhs_typ) {
+            match operators::find_builtin_op(infix.op, lhs.typ, rhs.typ) {
                 Some(operator) => Expression::new(
                     ExpressionKind::Infix(Box::new(lhs), infix.op, Box::new(rhs)),
-                    Some(operator.result_typ),
+                    operator.result_typ,
                 ),
                 None => {
                     self.diagnostics.push(Diagnostic::new(
@@ -431,7 +427,7 @@ impl Binder {
                     ));
                 }
                 let rhs = self.bind_expression(&infix.right, source);
-                let resolved_ty = rhs.typ.unwrap_or(typ);
+                let resolved_ty = rhs.typ;
                 if resolved_ty != typ {
                     self.diagnostics.push(Diagnostic::new(
                         format!(
@@ -443,7 +439,7 @@ impl Binder {
                 }
                 Expression::new(
                     ExpressionKind::Assignment(source.interned_value(id.ident), Box::new(rhs)),
-                    Some(resolved_ty),
+                    resolved_ty,
                 )
             }
             Some(_) => {
@@ -479,7 +475,7 @@ impl Binder {
     pub fn bind_call(&mut self, call: &syntax::CallExpression, source: &SourceText) -> Expression {
         let callee = self.bind_expression(&call.callee, source);
         match callee.typ {
-            Some(Typ::Function(id)) => match self.scopes.lookup(id) {
+            Typ::Function(id) => match self.scopes.lookup(id) {
                 Some(Symbol::Function(param_tys, ret_ty)) => {
                     let param_count = param_tys.len();
                     let arg_count = call.arguments.len();
@@ -505,12 +501,12 @@ impl Binder {
                         .zip(param_tys)
                         .map(|(arg, param)| {
                             let bound_arg = self.bind_expression(arg, source);
-                            if bound_arg.typ != Some(param) {
+                            if bound_arg.typ != param {
                                 self.diagnostics.push(Diagnostic::new(
                                     format!(
                                         "Invalid argument. Expected '{}' but found '{}'",
                                         param.name(),
-                                        bound_arg.typ.unwrap_or(Typ::Unknown).name()
+                                        bound_arg.typ.name()
                                     ),
                                     arg.span(),
                                 ))
@@ -519,7 +515,7 @@ impl Binder {
                         })
                         .collect();
 
-                    Expression::new(ExpressionKind::Call(Box::new(callee), args), Some(ret_ty))
+                    Expression::new(ExpressionKind::Call(Box::new(callee), args), ret_ty)
                 }
                 _ => {
                     unreachable!();
@@ -566,7 +562,7 @@ impl Binder {
         //
         // TODO: Bind a conversion to bool here to allow `if` to
         //       coerce values to `Bool`
-        let cond_ty = cond.typ.unwrap_or(Typ::Unknown);
+        let cond_ty = cond.typ;
         if cond_ty != Typ::Builtin(BuiltinType::Bool) {
             self.diagnostics.push(Diagnostic::new(
                 format!(
@@ -578,19 +574,13 @@ impl Binder {
         }
 
         let typ = if_true.typ;
-        let true_typ = if_true.typ.unwrap_or(Typ::Unknown);
-        let false_typ = if_false.typ.unwrap_or(Typ::Unknown);
 
-        // TODO: This doesn't deal with the case of both types being
-        //       missing. Hopefully we can get rid of optional types
-        //       on the bound tree and rely on `Typ::Unknown` so we
-        //       don't have to handle such cases.
-        if true_typ != false_typ {
+        if if_true.typ != if_false.typ {
             self.diagnostics.push(Diagnostic::new(
                 format!(
                     "If and else have mismatched types. '{}' and '{}'",
-                    true_typ.name(),
-                    false_typ.name()
+                    if_true.typ.name(),
+                    if_false.typ.name()
                 ),
                 Span::enclosing(if_else.if_true.span(), if_else.if_false.span()),
             ));
@@ -625,8 +615,7 @@ impl Binder {
             .params
             .iter()
             .map(|p| {
-                let p = p.as_inner();
-                let typ = match p.typ.as_ref() {
+                let ty = match p.typ.as_ref() {
                     Some(anno) => self.bind_type(&anno.type_ref),
                     None => {
                         self.diagnostics.push(Diagnostic::new(
@@ -645,10 +634,10 @@ impl Binder {
                         p.id_tok.span(),
                     ));
                 }
-                parent_scope.try_declare(p.id, Symbol::Variable(VarStyle::Mutable, typ));
+                parent_scope.try_declare(p.id, Symbol::Variable(VarStyle::Mutable, ty));
                 VarDecl {
                     ident: source.interned_value(p.id),
-                    ty: Some(typ),
+                    ty,
                 }
             })
             .collect();
@@ -667,7 +656,7 @@ impl Binder {
                 params,
                 body: Box::new(bound_body),
             }),
-            Some(Typ::Error),
+            Typ::Error,
         )
     }
 
@@ -688,7 +677,7 @@ impl Binder {
         let body = self.bind_block(&loop_expr.body, source);
         Expression::new(
             ExpressionKind::Loop(Box::new(condition), Box::new(body)),
-            Some(Typ::Unit),
+            Typ::Unit,
         )
     }
 
@@ -702,8 +691,8 @@ impl Binder {
             .iter()
             .map(|e| self.bind_expression(e, source))
             .collect();
-        let typ = transformed.last().and_then(|e| e.typ).unwrap_or(Typ::Unit);
-        Expression::new(ExpressionKind::Sequence(transformed), Some(typ))
+        let typ = transformed.last().map(|e| e.typ).unwrap_or(Typ::Unit);
+        Expression::new(ExpressionKind::Sequence(transformed), typ)
     }
 
     /// Bind a `print` expression
@@ -744,20 +733,19 @@ impl Binder {
         // If we don't have a type annotation in the declaration then
         // infer the type from the initialiser
         let ty = if decl_type != Typ::Unknown {
-            match bound_initialiser.typ {
-                Some(t) if t != decl_type => {
-                    // The declaration type doesn't match the
-                    // expression being used to initialise it.
-                    self.diagnostics.push(Diagnostic::new(
-                        format!(
-                            "Initialiser doesn't match declaration type for '{}'",
-                            source.interned_value(id)
-                        ),
-                        decl.id.id_tok.span(),
-                    ));
-                    Some(Typ::Error)
-                }
-                _ => Some(decl_type),
+            if bound_initialiser.typ != decl_type {
+                // The declaration type doesn't match the
+                // expression being used to initialise it.
+                self.diagnostics.push(Diagnostic::new(
+                    format!(
+                        "Initialiser doesn't match declaration type for '{}'",
+                        source.interned_value(id)
+                    ),
+                    decl.id.id_tok.span(),
+                ));
+                Typ::Error
+            } else {
+                decl_type
             }
         } else {
             bound_initialiser.typ
@@ -765,7 +753,7 @@ impl Binder {
 
         self.scopes
             .current_mut()
-            .try_declare(id, Symbol::Variable(decl.style, ty.unwrap_or(Typ::Unknown)));
+            .try_declare(id, Symbol::Variable(decl.style, ty));
 
         let is_mut = decl.style == VarStyle::Mutable;
         Expression::new(
@@ -853,8 +841,7 @@ mod test {
     use super::*;
     use crate::syntax::text::Interner;
     use crate::syntax::{
-        IdentifierExpression, Literal, LiteralExpression,
-        PrefixExpression, Token, TokenKind,
+        IdentifierExpression, Literal, LiteralExpression, PrefixExpression, Token, TokenKind,
     };
 
     #[test]
@@ -1025,7 +1012,7 @@ mod test {
         );
 
         assert_eq!(ExpressionKind::Identifier("melles".into()), bound.kind);
-        assert_eq!(Some(Typ::Builtin(BuiltinType::Bool)), bound.typ);
+        assert_eq!(Typ::Builtin(BuiltinType::Bool), bound.typ);
     }
 
     #[test]
@@ -1038,7 +1025,7 @@ mod test {
         });
 
         assert_eq!(ExpressionKind::Literal(Constant::Number(1337)), bound.kind);
-        assert_eq!(Some(Typ::Builtin(BuiltinType::Number)), bound.typ);
+        assert_eq!(Typ::Builtin(BuiltinType::Number), bound.typ);
     }
 
     #[test]
@@ -1063,12 +1050,12 @@ mod test {
                 PrefixOp::Negate,
                 Box::new(Expression::new(
                     ExpressionKind::Literal(Constant::Number(23)),
-                    Some(Typ::Builtin(BuiltinType::Number))
+                    Typ::Builtin(BuiltinType::Number)
                 ))
             ),
             bound.kind
         );
-        assert_eq!(Some(Typ::Builtin(BuiltinType::Number)), bound.typ);
+        assert_eq!(Typ::Builtin(BuiltinType::Number), bound.typ);
     }
 
     // TODO: need a better way of creating the expression trees to run

@@ -222,14 +222,15 @@ impl Drop for Module {
 }
 
 impl From<Module> for LLVMModuleRef {
-    /// Convert from Module
-    ///
     /// Consume the wrapped module and return it's interal module
     /// reference. This transfers the ownership of the module back to
     /// the caller preventing the it from being automaticaly freed.
     fn from(m: Module) -> LLVMModuleRef {
-        let mod_ref = m.raw;
-        ::std::mem::forget(m);
-        mod_ref
+        unsafe {
+            // an apparently nicer alterantive to calling `forget` we
+            // instead create a `ManuallyDrop` item and then don't
+            // drop it here.
+            std::mem::ManuallyDrop::new(m).as_raw()
+        }
     }
 }

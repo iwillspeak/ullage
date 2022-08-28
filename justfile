@@ -1,4 +1,4 @@
-features := "llvm-10"
+features := "llvm-13"
 
 build:
     cargo build --release --no-default-features --features={{features}}

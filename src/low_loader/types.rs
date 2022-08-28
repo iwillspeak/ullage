@@ -93,6 +93,8 @@ impl From<LLVMTypeRef> for Type {
             LLVMMetadataTypeKind => Type::Metadata,
             LLVMX86_MMXTypeKind => Type::MMX,
             LLVMTokenTypeKind => Type::Token,
+            // Other types are not yet supported.
+            _ => unimplemented!(),
         }
     }
 }

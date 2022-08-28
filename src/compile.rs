@@ -5,14 +5,16 @@ use crate::diag::Diagnostic;
 use crate::low_loader::prelude::*;
 use crate::sem;
 use crate::syntax;
+use linker::Linker;
 use std::path::Path;
 use std::process::Command;
 use tempfile::Builder;
 
 pub use self::error::{CompError, CompResult};
-pub use self::options::{CompilationOptions, LinkKind, OptimisationLevel};
+pub use self::options::{CompilationOptions, OptimisationLevel};
 
 pub mod error;
+pub mod linker;
 pub mod options;
 
 mod lower;
@@ -105,13 +107,13 @@ impl Compilation {
         fun.verify_or_panic();
         module.verify_or_panic();
 
+        let linker = self.options.linker.unwrap_or_else(Linker::default);
+
         // Create a tempdir to write the LLVM IR or bitcode to
-        let (suffix, kind) = match self.options.link_kind {
-            LinkKind::IL => (".il", OutputFileKind::LLVMIl),
-            LinkKind::Bitcode => (".bc", OutputFileKind::Bitcode),
-            LinkKind::Object => (".o", OutputFileKind::NativeObject),
-        };
-        let temp_file = Builder::new().prefix("ullage").suffix(suffix).tempfile()?;
+        let temp_file = Builder::new()
+            .prefix("ullage")
+            .suffix(linker.asset_ty.extension())
+            .tempfile()?;
 
         // check if we have optimiation enabled and run the
         // corresponding optimisations if we do.
@@ -123,10 +125,10 @@ impl Compilation {
         if self.options.dump_ir {
             module.dump();
         }
-        module.write_to_file(&target, temp_file.path(), kind)?;
+        module.write_to_file(&target, temp_file.path(), linker.asset_ty.file_kind())?;
 
         // Shell out to Clang to link the final assembly
-        let output = Command::new("clang")
+        let output = Command::new(linker.cmd.executable())
             .arg(temp_file.path())
             .arg(format!("--target={}", target.triple()))
             .arg("-o")

@@ -20,10 +20,8 @@ mod tokeniser;
 mod checkparse_tests;
 
 use super::text::{Ident, SourceText, DUMMY_SPAN};
-use super::tree::{Literal, SyntaxTree, Token, TokenKind};
-use super::{
-    BlockBody, DelimItem, Expression, InfixOp, PrefixOp, TypeAnno, TypeRef, TypedId, VarStyle,
-};
+use super::tree::{Literal, SepList, SyntaxTree, Token, TokenKind};
+use super::{BlockBody, Expression, InfixOp, PrefixOp, TypeAnno, TypeRef, TypedId, VarStyle};
 use crate::diag::Diagnostic;
 use std::iter::Iterator;
 use tokeniser::{TokenStream, Tokeniser};
@@ -367,17 +365,7 @@ impl<'a> Parser<'a> {
             // Function call
             TokenKind::OpenBracket => {
                 let open = token;
-                let mut params = Vec::new();
-                while !self.current_is(&TokenKind::CloseBracket) {
-                    let param = self.top_level_expression();
-                    params.push(param);
-                    if !self.current_is(&TokenKind::CloseBracket) {
-                        // FIXME: Delimited lists. Should fit in with
-                        // tuple parsing. Currently this delimiter
-                        // token is getting lost.
-                        let _delim = self.expect(&TokenKind::Comma);
-                    }
-                }
+                let params = self.delimited(|p| p.top_level_expression(), TokenKind::Comma, TokenKind::CloseBracket);
                 let close = self.expect(&TokenKind::CloseBracket);
                 Expression::call(lhs, open, params, close)
             }
@@ -411,19 +399,28 @@ impl<'a> Parser<'a> {
     /// Returns a list of zero or more elemnets delimited by the given
     /// tokens. Used to parse the parameter list for a function and
     /// the argument list for a call site.
-    fn delimited<P, T>(&mut self, p: P, delimiter: TokenKind, close: TokenKind) -> Vec<DelimItem<T>>
+    fn delimited<P, T>(&mut self, p: P, delimiter: TokenKind, close: TokenKind) -> SepList<T>
     where
         P: Fn(&mut Parser) -> T,
     {
-        let mut res = Vec::new();
-        if !self.current_is(&close) {
-            res.push(DelimItem::First(p(self)));
-        }
+        let mut builder = SepList::builder();
+        let mut last_span = self.current.as_ref().map(|t| t.span());
         while !self.current_is(&close) {
-            let delim = self.expect(&delimiter);
-            res.push(DelimItem::Follow(delim, p(self)));
+            let with_item = builder.push_item(p(self));
+            if !self.current_is(&close) {
+                builder = with_item.push_sep(self.expect(&delimiter));
+            } else {
+                return with_item.build();
+            }
+
+            let cur_span = self.current.as_ref().map(|t| t.span());
+            if cur_span.is_some() && last_span == cur_span {
+                break;
+            } else {
+                last_span = cur_span;
+            }
         }
-        res
+        builder.build()
     }
 
     /// Parse Null Denotation
