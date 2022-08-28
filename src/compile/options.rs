@@ -3,8 +3,8 @@
 //! This module defines the options structure used to tweak
 //! compilation output.
 
-use crate::low_loader::pass_manager as pm;
 use super::linker::Linker;
+use crate::low_loader::pass_manager as pm;
 
 /// Compilation Options
 ///
@@ -55,7 +55,10 @@ impl CompilationOptions {
 
     /// Set the linker command to use
     pub fn with_linker(self, linker: Linker) -> Self {
-        CompilationOptions { linker: Some(linker), ..self }
+        CompilationOptions {
+            linker: Some(linker),
+            ..self
+        }
     }
 }
 

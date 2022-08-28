@@ -6,6 +6,8 @@
 
 use std::default::Default;
 
+use crate::low_loader::prelude::OutputFileKind;
+
 /// The information for performing a link
 pub struct Linker {
     /// The linker command. Currently only `clang` is supported.
@@ -15,19 +17,21 @@ pub struct Linker {
 }
 
 /// The executable type to use for linking
-#[derive(Debug,Copy,Clone)]
+#[derive(Debug, Copy, Clone)]
 pub enum LinkerCommand {
     /// The Clang c compiler
     Clang,
 }
 
 /// The intermediate asset type to pass to the linker
-#[derive(Debug,Copy,Clone)]
+#[derive(Debug, Copy, Clone)]
 pub enum LinkerAssetType {
     /// LLVM IR text files
     LlvmIr,
     /// LLVM IR bticode files
     LlvmBc,
+    /// Native object
+    Object,
 }
 
 impl Linker {
@@ -38,7 +42,10 @@ impl Linker {
 
     /// Create a linker from the given command
     pub fn from_command(cmd: LinkerCommand) -> Self {
-        Linker { cmd, asset_ty: cmd.default_asset_ty() }
+        Linker {
+            cmd,
+            asset_ty: cmd.default_asset_ty(),
+        }
     }
 }
 
@@ -61,7 +68,7 @@ impl LinkerCommand {
         //        make the linker buidl the command
         //        rather than the compiler.
         match *self {
-            LinkerCommand::Clang => "clang"
+            LinkerCommand::Clang => "clang",
         }
     }
 }
@@ -73,12 +80,21 @@ impl Default for LinkerCommand {
 }
 
 impl LinkerAssetType {
-
     /// Get the file extension for the asset type
     pub fn extension(&self) -> &str {
         match *self {
             LinkerAssetType::LlvmIr => ".ll",
             LinkerAssetType::LlvmBc => ".bc",
+            LinkerAssetType::Object => ".o",
+        }
+    }
+
+    /// Get the file kind for this asset type
+    pub(crate) fn file_kind(&self) -> OutputFileKind {
+        match *self {
+            LinkerAssetType::LlvmIr => OutputFileKind::LLVMIl,
+            LinkerAssetType::LlvmBc => OutputFileKind::Bitcode,
+            LinkerAssetType::Object => OutputFileKind::NativeObject,
         }
     }
 }

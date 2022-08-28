@@ -5,17 +5,17 @@ use crate::diag::Diagnostic;
 use crate::low_loader::prelude::*;
 use crate::sem;
 use crate::syntax;
+use linker::Linker;
 use std::path::Path;
 use std::process::Command;
 use tempfile::Builder;
-use linker::Linker;
 
 pub use self::error::{CompError, CompResult};
 pub use self::options::{CompilationOptions, OptimisationLevel};
 
 pub mod error;
-pub mod options;
 pub mod linker;
+pub mod options;
 
 mod lower;
 mod lower_context;
@@ -110,7 +110,10 @@ impl Compilation {
         let linker = self.options.linker.unwrap_or_else(Linker::default);
 
         // Create a tempdir to write the LLVM IR or bitcode to
-        let temp_file = Builder::new().prefix("ullage").suffix(linker.asset_ty.extension()).tempfile()?;
+        let temp_file = Builder::new()
+            .prefix("ullage")
+            .suffix(linker.asset_ty.extension())
+            .tempfile()?;
 
         // check if we have optimiation enabled and run the
         // corresponding optimisations if we do.
@@ -122,7 +125,7 @@ impl Compilation {
         if self.options.dump_ir {
             module.dump();
         }
-        module.write_to_file(temp_file.path())?;
+        module.write_to_file(&target, temp_file.path(), linker.asset_ty.file_kind())?;
 
         // Shell out to Clang to link the final assembly
         let output = Command::new(linker.cmd.executable())

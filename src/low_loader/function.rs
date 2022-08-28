@@ -52,6 +52,10 @@ impl Function {
     ///
     /// Takes ownership of the given function and provides more
     /// stronlgy typed access to it.
+    ///
+    /// # Safety
+    ///
+    /// The value should be a function. This is not checked.
     pub unsafe fn from_raw(raw: LLVMValueRef) -> Self {
         Function {
             raw,

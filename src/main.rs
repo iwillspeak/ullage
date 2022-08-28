@@ -3,8 +3,6 @@
 
 #![warn(missing_docs)]
 
-use failure;
-
 pub mod compile;
 pub mod diag;
 pub mod low_loader;
@@ -40,6 +38,7 @@ Options:
   -O, --optimise=<lvl>   Set the compilation optimisation level.
                          0 = off, 1 = low, 2 = medium, 3 = high, s = size.
   -o, --output=<out>     Write the output to <out>.
+  --link-kind=<type>     Set the link type to perform.
   --target=<triple>      Set the compilation target triple.
   --link-mode=<mode>     Set the type of intermediate assets to produce
                          for linking. Use `llvmIr`, or `llvmBc`.
@@ -159,7 +158,7 @@ impl From<LinkMode> for linker::Linker {
             match mode {
                 LinkMode::LlvmIr => linker::LinkerAssetType::LlvmIr,
                 LinkMode::LlvmBc => linker::LinkerAssetType::LlvmBc,
-            }
+            },
         )
     }
 }
@@ -239,6 +238,7 @@ fn main() {
         let linker = linker::Linker::from(link_mode);
         options = options.with_linker(linker);
     }
+
     let comp = match Compilation::new(tree, options) {
         Ok(c) => c,
         Err(e) => handle_comp_err(&e),

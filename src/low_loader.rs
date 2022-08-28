@@ -22,7 +22,12 @@
 
 #![deny(missing_docs)]
 
-use llvm_sys;
+#[cfg(feature = "llvm-10")]
+use llvm_10 as llvm_sys;
+#[cfg(feature = "llvm-13")]
+use llvm_13 as llvm_sys;
+#[cfg(feature = "llvm-9")]
+use llvm_9 as llvm_sys;
 
 pub mod builder;
 pub mod context;
@@ -42,7 +47,7 @@ pub mod prelude {
     pub use super::builder::Predicate;
     pub use super::context::Context;
     pub use super::function::{CallConvention, Function};
-    pub use super::module::Module;
+    pub use super::module::{Module, OutputFileKind};
     pub use super::targets::{Target, TargetLookupError};
     pub use super::types::Type;
     pub use super::value::Value;

@@ -11,12 +11,13 @@ keywords = [ "llvm", "parser", "compiler" ]
 categories = [ "parsing" ]
 edition = "2018"
 
+[features]
+default = [ "llvm-13" ]
+
 [dependencies]
-llvm-sys = "90"
-# FIXME: Want to upgrade to LLVM 10, but Clang doesn't seem capable of linking
-#        the IL or Bitcode output from it. Do we need to wait for LLVM 11? Is
-#        It time to stop relying on `cc` for linking?
-# llvm-sys = { version = "100", git = "https://gitlab.com/iwillspeak/llvm-sys.rs.git", branch = "macos-tbd-link" }
+llvm-9 = { package = "llvm-sys", version = "90", optional = true }
+llvm-10 = { package = "llvm-sys", version = "100", optional = true }
+llvm-13 = { package = "llvm-sys", version = "130", optional = true }
 docopt = "1.1"
 serde = { version = "1.0", features = ["derive"] }
 tempfile = "3.1"

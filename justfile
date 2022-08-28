@@ -1,8 +1,10 @@
+features := "llvm-13"
+
 build:
-    cargo build --release
+    cargo build --release --no-default-features --features={{features}}
 
 test: build
-    cargo test
+    cargo test --no-default-features --features={{features}}
     python3 specs.py
 
 clean:
@@ -30,6 +32,5 @@ bench opt_level="3": build
         except OSError:
             pass
         print("bench={0}, output={1}, opt={2}".format(bench, output, {{opt_level}}))
-        subprocess.call("target/release/ullage {0} -O{1} -o {2}"
-                .format(bench, {{opt_level}}, output))
-        subprocess.call("time {0}".format(output))
+        subprocess.call(["target/release/ullage", bench, "-O{{opt_level}}", "-o", output])
+        subprocess.call(["time", output])
