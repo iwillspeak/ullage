@@ -21,6 +21,5 @@ llvm-13 = { package = "llvm-sys", version = "130", optional = true }
 docopt = "1.1"
 serde = { version = "1.0", features = ["derive"] }
 tempfile = "3.1"
-failure = "0.1"
 libc = "0.2"
 indexmap = "1.5"

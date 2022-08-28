@@ -2,8 +2,8 @@
 
 use super::llvm_sys::core::LLVMDisposeMessage;
 use super::llvm_sys::target_machine::*;
-use failure::Fail;
 use std::ffi::{CStr, CString};
+use std::fmt::Display;
 use std::{fmt, ptr};
 
 /// Compilation Target
@@ -18,9 +18,16 @@ pub struct Target {
 /// Target Lookup Error
 ///
 /// Returned if a target couldn't be resolved from the given triple.
-#[derive(Fail, Debug)]
-#[fail(display = "Could not find target: '{}'", _0)]
+#[derive(Debug)]
 pub struct TargetLookupError(String);
+
+impl std::error::Error for TargetLookupError {}
+
+impl Display for TargetLookupError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Could not find target: '{}'", self.0)
+    }
+}
 
 impl fmt::Display for Target {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
