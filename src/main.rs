@@ -92,6 +92,9 @@ enum LinkMode {
     /// Bitcode files
     #[serde(rename = "bc")]
     LlvmBc,
+    /// Native Objects
+    #[serde(rename = "obj")]
+    Objects,
 }
 
 /// Custom Deserialiser for Optimisation Flags
@@ -158,6 +161,7 @@ impl From<LinkMode> for linker::Linker {
             match mode {
                 LinkMode::LlvmIr => linker::LinkerAssetType::LlvmIr,
                 LinkMode::LlvmBc => linker::LinkerAssetType::LlvmBc,
+                LinkMode::Objects => linker::LinkerAssetType::Object,
             },
         )
     }
